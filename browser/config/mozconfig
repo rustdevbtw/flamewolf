@@ -1,0 +1,49 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# This file specifies the build flags for Firefox.  You can use it by adding:
+#  . $topsrcdir/browser/config/mozconfig
+# to the top of your mozconfig file.
+
+ac_add_options --enable-project=browser
+ac_add_options --with-branding=browser/branding/flamewolf
+ac_add_options --enable-release
+ac_add_options --enable-hardening
+ac_add_options --enable-rust-simd
+ac_add_options --enable-wasm-simd
+ac_add_options --enable-linker=lld
+ac_add_options --disable-elf-hack
+ac_add_options --disable-bootstrap
+ac_add_options --with-unsigned-addon-scopes=app,system
+ac_add_options --allow-addon-sideload
+ac_add_options --enable-alsa
+ac_add_options --enable-av1
+ac_add_options --enable-crashreporter
+ac_add_options --enable-eme=+widevine
+ac_add_options --enable-jack
+ac_add_options --enable-jxl
+ac_add_options --enable-proxy-bypass-protection
+ac_add_options --enable-pulseaudio
+ac_add_options --enable-raw
+ac_add_options --enable-sandbox
+ac_add_options --enable-unverified-updates
+ac_add_options --disable-update-agent
+ac_add_options --enable-webrtc
+ac_add_options --disable-default-browser-agent
+ac_add_options --disable-parental-controls
+ac_add_options --disable-tests
+ac_add_options --enable-optimize=-O3
+ac_add_options --enable-lto=cross,full
+ac_add_options OPT_LEVEL="3"
+ac_add_options RUSTC_OPT_LEVEL="3"
+mk_add_options MOZ_DATA_REPORTING=0
+mk_add_options MOZ_SERVICES_HEALTHREPORT=0
+mk_add_options MOZ_TELEMETRY_REPORTING=0
+ac_add_options --disable-artifact-builds
+export MOZ_ENABLE_WAYLAND=1
+ac_add_options --with-system-jpeg
+ac_add_options --with-system-libevent
+ac_add_options --with-system-libvpx
+ac_add_options --with-system-webp
+ac_add_options --with-system-zlib
