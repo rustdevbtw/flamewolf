@@ -47,3 +47,4 @@ ac_add_options --with-system-libevent
 ac_add_options --with-system-libvpx
 ac_add_options --with-system-webp
 ac_add_options --with-system-zlib
+ac_add_options --with-ccache=sccache
