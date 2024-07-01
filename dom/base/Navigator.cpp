@@ -199,8 +199,6 @@ void Navigator::Whoami(nsAString& aResult) {
     DWORD username_len = UNLEN + 1;
     if (GetUserNameA(username, &username_len)) {
       aResult.AssignASCII(username);
-    } else {
-      aResult.AssignLiteral(u"Unknown");
     }
 #elif defined(XP_UNIX)
     const char* username = nullptr;
@@ -212,14 +210,8 @@ void Navigator::Whoami(nsAString& aResult) {
 
     if (username) {
       aResult.AssignASCII(username);
-    } else {
-      aResult.AssignLiteral(u"Unknown");
     }
-#else
-    aResult.AssignLiteral(u"Unknown");
 #endif
-  } else {
-    aResult.AssignLiteral(u"Unknown");
   }
 }
 
