@@ -46,6 +46,7 @@ pref_groups = [
     "editor",
     "extensions",
     "fission",
+    "flamewolf",
     "font",
     "full_screen_api",
     "general",
@@ -133,7 +134,7 @@ GeneratedFile(
     *gen_all_tuple,
     script="init/generate_static_pref_list.py",
     entry_point="emit_code",
-    inputs=["init/StaticPrefList.yaml"]
+    inputs=["init/StaticPrefList.yaml"],
 )
 
 PYTHON_UNITTEST_MANIFESTS += [

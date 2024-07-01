@@ -264,6 +264,7 @@
 #endif
   mirror: always
 
+
 # Whether to enable support for the UI Automation API on Windows.
 - name: accessibility.uia.enable
   type: bool
@@ -5148,6 +5149,7 @@
   value: @IS_NOT_ANDROID@
   mirror: always
 
+
 #---------------------------------------------------------------------------
 # Prefs starting with "fission."
 #---------------------------------------------------------------------------
@@ -5248,6 +5250,16 @@
 - name: fission.enforceBlocklistedPrefsInSubprocesses
   type: RelaxedAtomicBool
   value: @IS_EARLY_BETA_OR_EARLIER@
+  mirror: always
+
+#---------------------------------------------------------------------------
+# Prefs starting with "flamewolf."
+#---------------------------------------------------------------------------
+
+# Whether the navigator.whoami() API should work
+- name: flamewolf.api.whoami.enabled
+  type: bool
+  value: false
   mirror: always
 
 #---------------------------------------------------------------------------

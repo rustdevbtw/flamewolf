@@ -56,6 +56,9 @@ pref("security.pki.mitm_canary_issuer.enabled", true);
 // security.pki.mitm_canary_issuer.enabled, the root is not trusted.
 pref("security.pki.mitm_detected", false);
 
+// Pref to enable navigator.whoami()
+pref("flamewolf.api.whoami.enabled", false);
+
 // Intermediate CA Preloading settings
 pref("security.remote_settings.intermediates.enabled", true);
 pref("security.remote_settings.intermediates.downloads_per_poll", 5000);

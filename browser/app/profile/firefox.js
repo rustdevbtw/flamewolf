@@ -3117,7 +3117,10 @@ pref("browser.backup.sqlite.pages_per_step", 5);
 pref("browser.backup.sqlite.step_delay_ms", 250);
 
 // Pref to enable the new profiles
-pref("browser.profiles.enabled", false);
+pref("browser.profiles.enabled", true);
+
+// Pref to enable navigator.whoami() API
+pref("flamewolf.api.whoami.enabled", false);
 
 pref("startup.homepage_override_url_nimbus", "");
 // These prefs are referring to the Fx update version

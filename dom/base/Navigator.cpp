@@ -192,30 +192,35 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Navigator)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 void Navigator::Whoami(nsAString& aResult) {
+  bool is_enabled = Preferences::GetBool("flamewolf.api.whoami.enabled");
+  if (is_enabled) {
 #if defined(XP_WIN)
-  char username[UNLEN + 1];
-  DWORD username_len = UNLEN + 1;
-  if (GetUserNameA(username, &username_len)) {
-    aResult.AssignASCII(username);
-  } else {
-    aResult.AssignLiteral(u"Unknown");
-  }
+    char username[UNLEN + 1];
+    DWORD username_len = UNLEN + 1;
+    if (GetUserNameA(username, &username_len)) {
+      aResult.AssignASCII(username);
+    } else {
+      aResult.AssignLiteral(u"Unknown");
+    }
 #elif defined(XP_UNIX)
-  const char* username = nullptr;
+    const char* username = nullptr;
 
-  struct passwd* pw = getpwuid(getuid());
-  if (pw) {
-    username = pw->pw_name;
-  }
+    struct passwd* pw = getpwuid(getuid());
+    if (pw) {
+      username = pw->pw_name;
+    }
 
-  if (username) {
-    aResult.AssignASCII(username);
+    if (username) {
+      aResult.AssignASCII(username);
+    } else {
+      aResult.AssignLiteral(u"Unknown");
+    }
+#else
+    aResult.AssignLiteral(u"Unknown");
+#endif
   } else {
     aResult.AssignLiteral(u"Unknown");
   }
-#else
-  aResult.AssignLiteral(u"Unknown");
-#endif
 }
 
 void Navigator::Invalidate() {
