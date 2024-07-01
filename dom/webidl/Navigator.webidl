@@ -55,6 +55,8 @@ interface mixin NavigatorID {
   [Pure]
   DOMString arch();
   [Pure]
+  boolean isEnabled(DOMString api);
+  [Pure]
   DOMString whoami();
   // WebKit/Blink/Trident/Presto support this (hardcoded "Mozilla").
   [Constant, Cached, Throws]

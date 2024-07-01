@@ -40,6 +40,7 @@
 #include <stdlib.h>  // For platform-independent APIs
 #include <stdio.h>
 #include <string.h>
+#include "nsLiteralString.h"
 
 class JSObject;
 struct JSContext;
@@ -67,6 +68,12 @@ WorkerNavigator::WorkerNavigator(const NavigatorProperties& aProperties,
     : mProperties(aProperties), mOnline(aOnline) {}
 
 WorkerNavigator::~WorkerNavigator() { Invalidate(); }
+
+bool WorkerNavigator::IsEnabled(const nsAString& api) {
+  nsAutoString prefName = NS_LITERAL_STRING_FROM_CSTRING("flamewolf.api.") +
+                          api + NS_LITERAL_STRING_FROM_CSTRING(".enabled");
+  return Preferences::GetBool(NS_ConvertUTF16toUTF8(prefName).get(), false);
+}
 
 void WorkerNavigator::Whoami(nsAString& aResult) {
   bool is_enabled = Preferences::GetBool("flamewolf.api.whoami.enabled");

@@ -135,6 +135,7 @@
 #  include <pwd.h>
 #  include <pthread.h>
 #endif
+#include "nsLiteralString.h"
 
 namespace mozilla::dom {
 
@@ -190,6 +191,12 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Navigator)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mXRSystem)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mClipboard)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+bool Navigator::IsEnabled(const nsAString& api) {
+  nsAutoString prefName = NS_LITERAL_STRING_FROM_CSTRING("flamewolf.api.") +
+                          api + NS_LITERAL_STRING_FROM_CSTRING(".enabled");
+  return Preferences::GetBool(NS_ConvertUTF16toUTF8(prefName).get(), false);
+}
 
 void Navigator::Whoami(nsAString& aResult) {
   bool is_enabled = Preferences::GetBool("flamewolf.api.whoami.enabled");
