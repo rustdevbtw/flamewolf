@@ -28,14 +28,29 @@ if os.path.exists(os.path.join(GECKO, "taskcluster", "kinds", "test", "variants.
     TEST_VARIANTS = load_yaml(GECKO, "taskcluster", "kinds", "test", "variants.yml")
 
 WPT_SUBSUITES = {
-    "canvas": "html/canvas",
-    "webgpu": "_mozilla/webgpu",
-    "privatebrowsing": "/service-workers/cache-storage",
-    "webcodecs": "webcodecs",
+    "canvas": ["html/canvas"],
+    "webgpu": ["_mozilla/webgpu"],
+    "privatebrowsing": ["/service-workers/cache-storage"],
+    "webcodecs": ["webcodecs"],
 }
 
 
-def guess_mozinfo_from_task(task, repo="", env={}):
+def get_test_tags(config, env):
+    test_tags = []
+    try_config = json.loads(
+        config.params["try_task_config"].get("env", {}).get("MOZHARNESS_TEST_TAG", "[]")
+    )
+    env_tags = env.get("MOZHARNESS_TEST_TAG", [])
+    if env_tags:
+        if try_config:
+            env_tags.extend(try_config)
+        test_tags = list(set(env_tags))
+    elif try_config:
+        test_tags = try_config
+    return test_tags
+
+
+def guess_mozinfo_from_task(task, repo="", test_tags=[]):
     """Attempt to build a mozinfo dict from a task definition.
 
     This won't be perfect and many values used in the manifests will be missing. But
@@ -137,7 +152,9 @@ def guess_mozinfo_from_task(task, repo="", env={}):
         else:
             info[tag] = False
 
-    info["tag"] = env.get("MOZHARNESS_TEST_TAG", "")
+    # NOTE: as we are using an array here, frozenset() cannot work with a 'list'
+    # this is cast to a string
+    info["tag"] = json.dumps(test_tags)
 
     info["automation"] = True
     return info
@@ -258,11 +275,18 @@ class DefaultLoader(BaseManifestLoader):
             for t in tests:
                 if subsuite:
                     # add specific directories
-                    if WPT_SUBSUITES[subsuite[0]] in t["manifest"]:
+                    if any(x in t["manifest"] for x in WPT_SUBSUITES[subsuite[0]]):
                         manifests.add(t["manifest"])
                 else:
-                    if any(x in t["manifest"] for x in WPT_SUBSUITES.values()):
+                    containsSubsuite = False
+                    for subsuites in WPT_SUBSUITES.values():
+                        if any(subsuite in t["manifest"] for subsuite in subsuites):
+                            containsSubsuite = True
+                            break
+
+                    if containsSubsuite:
                         continue
+
                     manifests.add(t["manifest"])
             return {
                 "active": list(manifests),
@@ -273,11 +297,8 @@ class DefaultLoader(BaseManifestLoader):
         manifests = {chunk_by_runtime.get_manifest(t) for t in tests}
 
         filters = []
-        if mozinfo["condprof"]:
-            filters.extend([tags(["condprof"])])
-
-        if mozinfo["tag"]:
-            filters.extend([tags([mozinfo["tag"]])])
+        if json.loads(mozinfo["tag"]):
+            filters.extend([tags([x]) for x in json.loads(mozinfo["tag"])])
 
         # Compute  the active tests.
         m = TestManifest()

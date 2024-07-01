@@ -39,6 +39,9 @@ export class BackupUIParent extends JSWindowActorParent {
    */
   actorCreated() {
     this.#bs.addEventListener("BackupService:StateUpdate", this);
+    // Note that loadEncryptionState is an async function.
+    // This function is no-op if the encryption state was already loaded.
+    this.#bs.loadEncryptionState();
   }
 
   /**
@@ -149,14 +152,24 @@ export class BackupUIParent extends JSWindowActorParent {
       const window = this.browsingContext.topChromeWindow;
       this.#bs.filePickerForRestore(window);
     } else if (message.name == "RestoreFromBackupFile") {
-      // TODO: Call restore from single-file archive method
-      // in BackupService once it is implemented in Bug 1890322.
+      let { backupFile, backupPassword } = message.data;
+      try {
+        await this.#bs.recoverFromBackupArchive(
+          backupFile,
+          backupPassword,
+          true /* shouldLaunch */
+        );
+      } catch (e) {
+        /**
+         * TODO: (Bug 1905156) display a localized version of error in the restore dialog.
+         */
+      }
     } else if (message.name == "ToggleEncryption") {
-      let { isEncryptionEnabled } = message.data;
+      let { isEncryptionEnabled, password } = message.data;
 
       if (!isEncryptionEnabled) {
         try {
-          this.#bs.disableEncryption();
+          await this.#bs.disableEncryption();
           /**
            * TODO: (Bug 1901640) after disabling encryption, recreate the backup,
            * this time without sensitive data.
@@ -166,10 +179,36 @@ export class BackupUIParent extends JSWindowActorParent {
            * TODO: (Bug 1901308) maybe display an error if there is a problem with
            * disabling encryption.
            */
-          return null;
         }
+      } else {
+        try {
+          await this.#bs.enableEncryption(password);
+          /**
+           * TODO: (Bug 1901640) after enabling encryption, recreate the backup,
+           * this time with sensitive data.
+           */
+        } catch (e) {
+          /**
+           * TODO: (Bug 1901308) maybe display an error if there is a problem with
+           * enabling encryption.
+           */
+        }
+      }
+    } else if (message.name == "RerunEncryption") {
+      let { password } = message.data;
 
-        return true;
+      try {
+        await this.#bs.disableEncryption();
+        await this.#bs.enableEncryption(password);
+        /**
+         * TODO: (Bug 1901640) after enabling encryption, recreate the backup,
+         * this time with the new password.
+         */
+      } catch (e) {
+        /**
+         * TODO: (Bug 1901308) maybe display an error if there is a problem with
+         * re-encryption.
+         */
       }
     }
 

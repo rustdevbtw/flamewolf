@@ -7921,7 +7921,7 @@
     type: bool
     value: false
     mirror: always
-    set_spidermonkey_pref: startup
+    set_spidermonkey_pref: always
 #endif  // ENABLE_JSON_PARSE_WITH_SOURCE
 
 - name: javascript.options.wasm_caching
@@ -8655,14 +8655,14 @@
 # Whether transition-behavior property is enabled?
 - name: layout.css.transition-behavior.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
   rust: true
 
 # Whether @starting-style is enabled?
 - name: layout.css.starting-style-at-rules.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
   rust: true
 
@@ -10144,7 +10144,7 @@
 # outside of GeckoView or test environments will likely break EME.
 - name: media.eme.require-app-approval
   type: bool
-  value: false 
+  value: false
   mirror: always
 
 - name: media.eme.audio.blank
@@ -10175,13 +10175,13 @@
 
 - name: media.clearkey.persistent-license.enabled
   type: bool
-  value: true 
+  value: false
   mirror: always
 
 # Are test specific clearkey key systems enabled and exposed?
 - name: media.clearkey.test-key-systems.enabled
   type: RelaxedAtomicBool
-  value: true 
+  value: false
   mirror: always
 
 - name: media.cloneElementVisually.testing
@@ -11909,6 +11909,26 @@
 - name: network.cookie.staleThreshold
   type: uint32_t
   value: 60
+  mirror: always
+
+# Enable CHIPS partition byte limit enforcement
+# This pref will only be consulted if CHIPS itself is enabled
+- name: network.cookie.chips.partitionLimitEnabled
+  type: bool
+  value: @IS_EARLY_BETA_OR_EARLIER@
+  mirror: always
+
+# CHIPS partition limit DryRun mode disables purging/rejection
+# but still checks for capacity overflow and reports telemetry
+- name: network.cookie.chips.partitionLimitDryRun
+  type: bool
+  value: true
+  mirror: always
+
+# The actual CHIPS parition limit in bytes
+- name: network.cookie.chips.partitionLimitByteCapacity
+  type: RelaxedAtomicInt32
+  value: 10240 # 10KiB
   mirror: always
 
 - name: network.cookie.sameSite.laxByDefault
@@ -15285,6 +15305,11 @@
   mirror: always
 
 - name: security.tls.enable_certificate_compression_brotli
+  type: RelaxedAtomicBool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
+- name: security.tls.enable_certificate_compression_zstd
   type: RelaxedAtomicBool
   value: @IS_NIGHTLY_BUILD@
   mirror: always

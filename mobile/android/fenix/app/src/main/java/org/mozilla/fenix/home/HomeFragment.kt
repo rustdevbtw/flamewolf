@@ -25,6 +25,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -84,6 +86,7 @@ import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.ui.colors.PhotonColors
+import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.HomeScreen
@@ -106,6 +109,7 @@ import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerIntegration
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerView
+import org.mozilla.fenix.components.toolbar.FenixTabCounterMenu
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.HomeNavBar
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
@@ -562,7 +566,7 @@ class HomeFragment : Fragment() {
         )
     }
 
-    @Suppress("LongMethod")
+    @Suppress("LongMethod", "ComplexMethod")
     private fun initializeNavBar(
         activity: HomeActivity,
         isConfigChange: Boolean = false,
@@ -599,17 +603,30 @@ class HomeFragment : Fragment() {
             composableContent = {
                 FirefoxTheme {
                     Column {
-                        currentMicrosurvey.let {
-                            if (it == null) {
-                                binding.bottomBarShadow.visibility = View.VISIBLE
-                            } else {
-                                MicrosurveyRequestPrompt(it) {
-                                    findNavController().nav(
-                                        R.id.homeFragment,
-                                        HomeFragmentDirections.actionGlobalMicrosurveyDialog(),
+                        val shouldShowMicrosurveyPrompt =
+                            remember { mutableStateOf(context.settings().shouldShowMicrosurveyPrompt) }
+
+                        if (shouldShowMicrosurveyPrompt.value) {
+                            currentMicrosurvey.let {
+                                if (it == null) {
+                                    binding.bottomBarShadow.visibility = View.VISIBLE
+                                } else {
+                                    MicrosurveyRequestPrompt(
+                                        microsurvey = it,
+                                        onStartSurveyClicked = {
+                                            findNavController().nav(
+                                                R.id.homeFragment,
+                                                HomeFragmentDirections.actionGlobalMicrosurveyDialog(),
+                                            )
+                                        },
+                                        onCloseButtonClicked = {
+                                            context.settings().shouldShowMicrosurveyPrompt = false
+                                            shouldShowMicrosurveyPrompt.value = false
+                                        },
                                     )
+
+                                    binding.bottomBarShadow.visibility = View.GONE
                                 }
-                                binding.bottomBarShadow.visibility = View.GONE
                             }
                         }
 
@@ -621,8 +638,30 @@ class HomeFragment : Fragment() {
 
                         HomeNavBar(
                             isPrivateMode = activity.browsingModeManager.mode.isPrivate,
+                            isFeltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
                             browserStore = context.components.core.store,
                             menuButton = menuButton,
+                            tabsCounterMenu = FenixTabCounterMenu(
+                                context = context,
+                                onItemTapped = { item ->
+                                    if (item is TabCounterMenu.Item.NewTab) {
+                                        browsingModeManager.mode = BrowsingMode.Normal
+                                    } else if (item is TabCounterMenu.Item.NewPrivateTab) {
+                                        browsingModeManager.mode = BrowsingMode.Private
+                                    }
+                                },
+                                iconColor = when (activity.browsingModeManager.mode.isPrivate) {
+                                    true -> getColor(context, R.color.fx_mobile_private_icon_color_primary)
+                                    else -> null
+                                },
+                            ).also {
+                                it.updateMenu(
+                                    showOnly = when (browsingModeManager.mode) {
+                                        BrowsingMode.Normal -> BrowsingMode.Private
+                                        BrowsingMode.Private -> BrowsingMode.Normal
+                                    },
+                                )
+                            },
                             onSearchButtonClick = {
                                 NavigationBar.homeSearchTapped.record(NoExtras())
                                 val directions =
@@ -647,6 +686,9 @@ class HomeFragment : Fragment() {
                                         },
                                     ),
                                 )
+                            },
+                            onTabsButtonLongPress = {
+                                NavigationBar.homeTabTrayLongTapped.record(NoExtras())
                             },
                             onMenuButtonClick = {
                                 findNavController().nav(
@@ -712,14 +754,31 @@ class HomeFragment : Fragment() {
             composableContent = {
                 FirefoxTheme {
                     Column {
-                        currentMicrosurvey?.let {
-                            MicrosurveyRequestPrompt(it) {
-                                findNavController().nav(
-                                    R.id.homeFragment,
-                                    HomeFragmentDirections.actionGlobalMicrosurveyDialog(),
-                                )
+                        val shouldShowMicrosurveyPrompt =
+                            remember { mutableStateOf(context.settings().shouldShowMicrosurveyPrompt) }
+
+                        if (shouldShowMicrosurveyPrompt.value) {
+                            currentMicrosurvey.let {
+                                if (it == null) {
+                                    binding.bottomBarShadow.visibility = View.VISIBLE
+                                } else {
+                                    MicrosurveyRequestPrompt(
+                                        microsurvey = it,
+                                        onStartSurveyClicked = {
+                                            findNavController().nav(
+                                                R.id.homeFragment,
+                                                HomeFragmentDirections.actionGlobalMicrosurveyDialog(),
+                                            )
+                                        },
+                                        onCloseButtonClicked = {
+                                            context.settings().shouldShowMicrosurveyPrompt = false
+                                            shouldShowMicrosurveyPrompt.value = false
+                                        },
+                                    )
+
+                                    binding.bottomBarShadow.visibility = View.GONE
+                                }
                             }
-                            binding.bottomBarShadow.visibility = View.GONE
                         }
 
                         if (isToolbarAtTheBottom) {

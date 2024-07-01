@@ -15,7 +15,7 @@ import {
 } from "../DSContextFooter/DSContextFooter.jsx";
 import { FluentOrText } from "../../FluentOrText/FluentOrText.jsx";
 import { connect } from "react-redux";
-
+import { LinkMenuOptions } from "content-src/lib/link-menu-options";
 const READING_WPM = 220;
 
 /**
@@ -85,6 +85,9 @@ export const DefaultMeta = ({
   ctaButtonVariant,
   dispatch,
   spocMessageVariant,
+  mayHaveThumbsUpDown,
+  onThumbsUpClick,
+  onThumbsDownClick,
 }) => (
   <div className="meta">
     <div className="info-wrap">
@@ -101,6 +104,25 @@ export const DefaultMeta = ({
       <header className="title clamp">{title}</header>
       {excerpt && <p className="excerpt clamp">{excerpt}</p>}
     </div>
+    {mayHaveThumbsUpDown && (
+      <div className="card-stp-thumbs-buttons-wrapper">
+        {/* Only show to non-sponsored content */}
+        {!sponsor && (
+          <div className="card-stp-thumbs-buttons">
+            <button
+              onClick={onThumbsUpClick}
+              className="card-stp-thumbs-button icon icon-thumbs-up"
+              data-l10n-id="newtab-pocket-thumbs-up-tooltip"
+            ></button>
+            <button
+              onClick={onThumbsDownClick}
+              className="card-stp-thumbs-button icon icon-thumbs-down"
+              data-l10n-id="newtab-pocket-thumbs-down-tooltip"
+            ></button>
+          </div>
+        )}
+      </div>
+    )}
     {!newSponsoredLabel && (
       <DSContextFooter
         context_type={context_type}
@@ -134,6 +156,8 @@ export class _DSCard extends React.PureComponent {
     this.onSaveClick = this.onSaveClick.bind(this);
     this.onMenuUpdate = this.onMenuUpdate.bind(this);
     this.onMenuShow = this.onMenuShow.bind(this);
+    this.onThumbsUpClick = this.onThumbsUpClick.bind(this);
+    this.onThumbsDownClick = this.onThumbsDownClick.bind(this);
 
     this.setContextMenuButtonHostRef = element => {
       this.contextMenuButtonHostElement = element;
@@ -197,6 +221,9 @@ export class _DSCard extends React.PureComponent {
               : {}),
             fetchTimestamp: this.props.fetchTimestamp,
             firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+            scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+            recommended_at: this.props.recommended_at,
+            received_rank: this.props.received_rank,
           },
         })
       );
@@ -246,6 +273,9 @@ export class _DSCard extends React.PureComponent {
               : {}),
             fetchTimestamp: this.props.fetchTimestamp,
             firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+            scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+            recommended_at: this.props.recommended_at,
+            received_rank: this.props.received_rank,
           },
         })
       );
@@ -265,6 +295,109 @@ export class _DSCard extends React.PureComponent {
             },
           ],
         })
+      );
+    }
+  }
+
+  onThumbsUpClick() {
+    // Record thumbs up telemetry event
+    this.props.dispatch(
+      ac.DiscoveryStreamUserEvent({
+        event: "POCKET_THUMBS_UP",
+        source: "THUMBS_UI",
+        value: {
+          recommendation_id: this.props.recommendation_id,
+          tile_id: this.props.id,
+          scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+          recommended_at: this.props.recommended_at,
+          received_rank: this.props.received_rank,
+          thumbs_up: true,
+          thumbs_down: false,
+        },
+      })
+    );
+
+    // Show Toast
+    this.props.dispatch(
+      ac.OnlyToOneContent(
+        {
+          type: at.SHOW_TOAST_MESSAGE,
+          data: {
+            showNotifications: true,
+            toastId: "thumbsUpToast",
+          },
+        },
+        "ActivityStream:Content"
+      )
+    );
+  }
+
+  onThumbsDownClick() {
+    if (
+      this.props.dispatch &&
+      this.props.type &&
+      this.props.id &&
+      this.props.url
+    ) {
+      const index = this.props.pos;
+      const source = this.props.type.toUpperCase();
+      const spocData = {
+        url: this.props.url,
+        guid: this.props.id,
+        type: "CardGrid",
+        card_type: "organic",
+        recommendation_id: this.props.recommendation_id,
+        tile_id: this.props.id,
+        scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+        recommended_at: this.props.recommended_at,
+        received_rank: this.props.received_rank,
+      };
+      const blockUrlOption = LinkMenuOptions.BlockUrl(spocData, index, source);
+
+      const { action, impression, userEvent } = blockUrlOption;
+
+      this.props.dispatch(action);
+
+      this.props.dispatch(
+        ac.DiscoveryStreamUserEvent({
+          event: userEvent,
+          source,
+          action_position: index,
+        })
+      );
+      if (impression) {
+        this.props.dispatch(impression);
+      }
+
+      // Record thumbs down telemetry event
+      this.props.dispatch(
+        ac.DiscoveryStreamUserEvent({
+          event: "POCKET_THUMBS_DOWN",
+          source: "THUMBS_UI",
+          value: {
+            recommendation_id: this.props.recommendation_id,
+            tile_id: this.props.id,
+            scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+            recommended_at: this.props.recommended_at,
+            received_rank: this.props.received_rank,
+            thumbs_up: false,
+            thumbs_down: true,
+          },
+        })
+      );
+
+      // Show Toast
+      this.props.dispatch(
+        ac.OnlyToOneContent(
+          {
+            type: at.SHOW_TOAST_MESSAGE,
+            data: {
+              showNotifications: true,
+              toastId: "thumbsDownToast",
+            },
+          },
+          "ActivityStream:Content"
+        )
       );
     }
   }
@@ -443,6 +576,9 @@ export class _DSCard extends React.PureComponent {
                   : {}),
                 recommendation_id: this.props.recommendation_id,
                 fetchTimestamp: this.props.fetchTimestamp,
+                scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+                recommended_at: this.props.recommended_at,
+                received_rank: this.props.received_rank,
               },
             ]}
             dispatch={this.props.dispatch}
@@ -467,6 +603,9 @@ export class _DSCard extends React.PureComponent {
           ctaButtonVariant={ctaButtonVariant}
           dispatch={this.props.dispatch}
           spocMessageVariant={this.props.spocMessageVariant}
+          mayHaveThumbsUpDown={this.props.mayHaveThumbsUpDown}
+          onThumbsUpClick={this.onThumbsUpClick}
+          onThumbsDownClick={this.onThumbsDownClick}
         />
 
         <div className="card-stp-button-hover-background">
@@ -481,6 +620,7 @@ export class _DSCard extends React.PureComponent {
               title={this.props.title}
               source={source}
               type={this.props.type}
+              card_type={this.props.flightId ? "spoc" : "organic"}
               pocket_id={this.props.pocket_id}
               shim={this.props.shim}
               bookmarkGuid={this.props.bookmarkGuid}
@@ -493,6 +633,11 @@ export class _DSCard extends React.PureComponent {
               saveToPocketCard={saveToPocketCard}
               pocket_button_enabled={pocketButtonEnabled}
               isRecentSave={isRecentSave}
+              recommendation_id={this.props.recommendation_id}
+              tile_id={this.props.id}
+              scheduled_corpus_item_id={this.props.scheduled_corpus_item_id}
+              recommended_at={this.props.recommended_at}
+              received_rank={this.props.received_rank}
             />
           </div>
         </div>

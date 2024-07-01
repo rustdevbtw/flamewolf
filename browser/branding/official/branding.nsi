@@ -8,9 +8,9 @@
 
 # BrandFullNameInternal is used for some registry and file system values
 # instead of BrandFullName and typically should not be modified.
-!define BrandFullNameInternal "FlameWolf"
-!define BrandFullName         "FlameWolf"
-!define CompanyName           "FlameWolf Authors"
+!define BrandFullNameInternal "Mozilla Firefox"
+!define BrandFullName         "Mozilla Firefox"
+!define CompanyName           "Mozilla Corporation"
 !define URLInfoAbout          "https://www.mozilla.org"
 !define URLUpdateInfo         "https://www.mozilla.org/firefox/${AppVersion}/releasenotes"
 !define HelpLink              "https://support.mozilla.org"
@@ -27,7 +27,7 @@
 !define Channel "release"
 
 # The installer's certificate name and issuer expected by the stub installer
-!define CertNameDownload   "FlameWolf Authors"
+!define CertNameDownload   "Mozilla Corporation"
 !define CertIssuerDownload "DigiCert Trusted G4 Code Signing RSA4096 SHA384 2021 CA1"
 
 # Dialog units are used so the UI displays correctly with the system's DPI

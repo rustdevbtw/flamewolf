@@ -104,11 +104,6 @@ export class UrlbarInput {
     );
     this.panel = this.textbox.querySelector(".urlbarView");
 
-    this.searchButton = lazy.UrlbarPrefs.get("experimental.searchButton");
-    if (this.searchButton) {
-      this.textbox.classList.add("searchButton");
-    }
-
     this.controller = new lazy.UrlbarController({
       input: this,
       eventTelemetryCategory: options.eventTelemetryCategory,
@@ -912,6 +907,13 @@ export class UrlbarInput {
       return;
     }
     if (element?.dataset.action && element?.dataset.action != "tabswitch") {
+      this.controller.engagementEvent.record(event, {
+        result,
+        element,
+        searchString: this._lastSearchString,
+        selType: "action",
+        searchSource: this.getSearchSource(event),
+      });
       this.view.close();
       let provider = lazy.UrlbarProvidersManager.getActionProvider(
         element.dataset.providerName

@@ -341,9 +341,6 @@ case "$target" in
 *-netbsd*)
     CFLAGS="$CFLAGS -Dunix"
     CXXFLAGS="$CXXFLAGS -Dunix"
-    if $CC -E - -dM </dev/null | grep __ELF__ >/dev/null; then
-        MOZ_PROGRAM_LDFLAGS="$MOZ_PROGRAM_LDFLAGS -Wl,--export-dynamic"
-    fi
     ;;
 
 *-wasi*)
@@ -354,10 +351,6 @@ esac
 
 if test -z "$MOZ_OPTIMIZE_FLAGS"; then
 	MOZ_OPTIMIZE_FLAGS="-O"
-fi
-
-if test -n "$COMPILE_ENVIRONMENT"; then
-    MOZ_COMPILER_OPTS
 fi
 
 

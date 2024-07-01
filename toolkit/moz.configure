@@ -1602,16 +1602,32 @@ def x11_libs(webrtc):
     return libs
 
 
-x11_headers = pkg_check_modules(
+x11 = pkg_check_modules(
     "MOZ_X11",
     x11_libs,
     allow_missing=toolkit_gtk_x11_optional,
     when=toolkit_gtk_x11,
+    config=False,  # set after the OpenBSD hook below
 )
 
 
-set_config("MOZ_X11", True, when=x11_headers)
-set_define("MOZ_X11", True, when=x11_headers)
+@depends(x11, target_is_openbsd)
+def moz_x11_libs(x11, target_is_openbsd):
+    if not x11:
+        return []
+    if target_is_openbsd:
+        rpath = tuple(
+            f"-Wl,-rpath-link,{flag[2:]}" for flag in x11.libs if flag.startswith("-L")
+        )
+    else:
+        rpath = ()
+    return x11.libs + rpath
+
+
+set_config("MOZ_X11_CFLAGS", x11.cflags)
+set_config("MOZ_X11_LIBS", moz_x11_libs)
+set_config("MOZ_X11", True, when=x11)
+set_define("MOZ_X11", True, when=x11)
 
 pkg_check_modules(
     "MOZ_X11_SM",
@@ -1720,7 +1736,6 @@ with only_when("--enable-compile-environment"):
     @checking("for -z pack-relative-relocs option to ld", bool)
     @imports(_from="__builtin__", _import="FileNotFoundError")
     @imports("os")
-    @imports(_from="tempfile", _import="mkstemp")
     @imports("textwrap")
     def has_pack_relative_relocs(
         c_compiler,
@@ -1728,10 +1743,7 @@ with only_when("--enable-compile-environment"):
         linker_ldflags,
         readelf,
     ):
-        try:
-            fd, path = mkstemp(prefix="conftest.")
-            os.close(fd)
-
+        with create_temporary_file(suffix=".out") as path:
             pack_rel_relocs = ["-Wl,-z,pack-relative-relocs"]
             if (
                 try_invoke_compiler(
@@ -1776,11 +1788,6 @@ with only_when("--enable-compile-environment"):
                             return pack_rel_relocs
                     else:
                         return pack_rel_relocs
-        finally:
-            try:
-                os.remove(path)
-            except FileNotFoundError:
-                pass
 
     @depends(
         has_pack_relative_relocs,

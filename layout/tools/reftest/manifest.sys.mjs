@@ -624,6 +624,11 @@ function BuildConditionSandbox(aURL) {
   sandbox.is64Bit = mozinfo.bits == "64";
   sandbox.AddressSanitizer = mozinfo.asan;
   sandbox.ThreadSanitizer = mozinfo.tsan;
+  sandbox.optimized =
+    !sandbox.isDebugBuild &&
+    !sandbox.isCoverageBuild &&
+    !sandbox.AddressSanitizer &&
+    !sandbox.ThreadSanitizer;
 
   sandbox.release_or_beta = mozinfo.release_or_beta;
 
@@ -652,6 +657,9 @@ function BuildConditionSandbox(aURL) {
   sandbox.gfxSVGFE =
     Services.prefs.getBoolPref("gfx.webrender.svg-filter-effects") &&
     !g.useDrawSnapshot;
+  sandbox.gfxSVGFEBlend =
+    Services.prefs.getBoolPref("gfx.webrender.svg-filter-effects.feblend") &&
+    sandbox.gfxSVGFE;
   sandbox.gfxSVGFEColorMatrix =
     Services.prefs.getBoolPref(
       "gfx.webrender.svg-filter-effects.fecolormatrix"

@@ -115,7 +115,9 @@ async function testCreateBackupHelper(sandbox, taskFn) {
     "createBackupTest"
   );
 
+  Assert.ok(!bs.state.lastBackupDate, "No backup date is stored in state.");
   await bs.createBackup({ profilePath: fakeProfilePath });
+  Assert.ok(bs.state.lastBackupDate, "The backup date was recorded.");
 
   // We expect the staging folder to exist then be renamed under the fakeProfilePath.
   // We should also find a folder for each fake BackupResource.
@@ -371,6 +373,23 @@ add_task(async function test_recoverFromSnapshotFolder() {
   );
 
   let { stagingPath } = await bs.createBackup({ profilePath: oldProfilePath });
+
+  // Ensure that the appName in the written manifest matches the current
+  // MOZ_APP_NAME.
+  let manifest = await IOUtils.readJSON(
+    PathUtils.join(stagingPath, BackupService.MANIFEST_FILE_NAME)
+  );
+  Assert.equal(
+    manifest.meta.appName,
+    AppConstants.MOZ_APP_NAME,
+    "appName matches MOZ_APP_NAME"
+  );
+  // And that appVersion matches MOZ_APP_VERSION
+  Assert.equal(
+    manifest.meta.appVersion,
+    AppConstants.MOZ_APP_VERSION,
+    "appVersion matches MOZ_APP_VERSION"
+  );
 
   let testTelemetryStateObject = {
     clientID: "ed209123-04a1-04a1-04a1-c0ffeec0ffee",
