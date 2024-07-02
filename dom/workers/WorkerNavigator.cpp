@@ -75,28 +75,14 @@ bool WorkerNavigator::IsEnabled(const nsAString& api) {
   return Preferences::GetBool(NS_ConvertUTF16toUTF8(prefName).get(), false);
 }
 
+bool WorkerNavigator::IsEnabledLit(const nsLiteralString api) {
+  nsAutoString prefName = NS_LITERAL_STRING_FROM_CSTRING("flamewolf.api.") +
+                          api + NS_LITERAL_STRING_FROM_CSTRING(".enabled");
+  return Preferences::GetBool(NS_ConvertUTF16toUTF8(prefName).get(), false);
+}
+
 void WorkerNavigator::Whoami(nsAString& aResult) {
-  bool is_enabled = Preferences::GetBool("flamewolf.api.whoami.enabled");
-  if (is_enabled) {
-#if defined(XP_WIN)
-    char username[UNLEN + 1];
-    DWORD username_len = UNLEN + 1;
-    if (GetUserNameA(username, &username_len)) {
-      aResult.AssignASCII(username);
-    }
-#elif defined(XP_UNIX)
-    const char* username = nullptr;
-
-    struct passwd* pw = getpwuid(getuid());
-    if (pw) {
-      username = pw->pw_name;
-    }
-
-    if (username) {
-      aResult.AssignASCII(username);
-    }
-#endif
-  }
+  // In WorkerNavigator, this API is disabled.
 }
 
 /* static */

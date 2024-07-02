@@ -136,6 +136,12 @@
 #  include <pthread.h>
 #endif
 #include "nsLiteralString.h"
+#include "nsIPromptService.h"
+#include "nsEmbedCID.h"
+#include "nsWidgetsCID.h"
+#include "nsIAppShell.h"
+#include "nsPrintfCString.h"
+#include "nsGlobalWindowInner.h"
 
 namespace mozilla::dom {
 
@@ -198,27 +204,71 @@ bool Navigator::IsEnabled(const nsAString& api) {
   return Preferences::GetBool(NS_ConvertUTF16toUTF8(prefName).get(), false);
 }
 
+bool Navigator::IsEnabledLit(const nsLiteralString api) {
+  nsAutoString prefName = NS_LITERAL_STRING_FROM_CSTRING("flamewolf.api.") +
+                          api + NS_LITERAL_STRING_FROM_CSTRING(".enabled");
+  return Preferences::GetBool(NS_ConvertUTF16toUTF8(prefName).get(), false);
+}
+
 void Navigator::Whoami(nsAString& aResult) {
-  bool is_enabled = Preferences::GetBool("flamewolf.api.whoami.enabled");
+  bool is_enabled =
+      this->IsEnabledLit(NS_LITERAL_STRING_FROM_CSTRING("whoami"));
   if (is_enabled) {
+    // Get the current inner window (nsGlobalWindowInner)
+    nsGlobalWindowInner* window = nsGlobalWindowInner::Cast(GetWindow());
+    if (!window) {
+      printf("Failed to get nsGlobalWindowInner\n");
+    } else {
+      // Get the BrowsingContext from the inner window
+      RefPtr<BrowsingContext> browsingContext = window->GetBrowsingContext();
+      if (!browsingContext) {
+        printf("Failed to get browsing context\n");
+      } else {
+        // Now you have the BrowsingContext, you can do something with it
+        // For example:
+        // browsingContext->...
+        auto* dom = browsingContext->GetDOMWindow();
+        if (!dom) {
+          // No window (weird)
+          printf("Failed to get inner window\n");
+        } else {
+          nsCOMPtr<nsIPromptService> ps(
+              do_GetService(NS_PROMPTSERVICE_CONTRACTID));
+          bool allow;
+          auto uri = dom->GetDocumentURI();
+          nsAutoCString host;
+          nsAutoCString t;
+          uri->GetHost(host);
+          t.AssignLiteral("Access requested by Website");
+          host.AppendLiteral(" requested access to your username. Allow?");
+          auto loc = NS_ConvertUTF8toUTF16(host);
+          auto tt = NS_ConvertUTF8toUTF16(t);
+          const char16_t* l = loc.get();
+          const char16_t* ts = tt.get();
+          ps->Confirm(dom, ts, l, &allow);
+          if (allow) {
 #if defined(XP_WIN)
-    char username[UNLEN + 1];
-    DWORD username_len = UNLEN + 1;
-    if (GetUserNameA(username, &username_len)) {
-      aResult.AssignASCII(username);
-    }
+            char username[UNLEN + 1];
+            DWORD username_len = UNLEN + 1;
+            if (GetUserNameA(username, &username_len)) {
+              aResult.AssignASCII(username);
+            }
 #elif defined(XP_UNIX)
-    const char* username = nullptr;
+            const char* username = nullptr;
 
-    struct passwd* pw = getpwuid(getuid());
-    if (pw) {
-      username = pw->pw_name;
-    }
+            struct passwd* pw = getpwuid(getuid());
+            if (pw) {
+              username = pw->pw_name;
+            }
 
-    if (username) {
-      aResult.AssignASCII(username);
-    }
+            if (username) {
+              aResult.AssignASCII(username);
+            }
 #endif
+          }
+        }
+      }
+    }
   }
 }
 

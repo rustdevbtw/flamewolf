@@ -5259,7 +5259,7 @@
 # Whether the navigator.whoami() API should work
 - name: flamewolf.api.whoami.enabled
   type: bool
-  value: false
+  value: true
   mirror: always
 
 #---------------------------------------------------------------------------

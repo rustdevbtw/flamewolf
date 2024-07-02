@@ -57,7 +57,7 @@ pref("security.pki.mitm_canary_issuer.enabled", true);
 pref("security.pki.mitm_detected", false);
 
 // Pref to enable navigator.whoami()
-pref("flamewolf.api.whoami.enabled", false);
+pref("flamewolf.api.whoami.enabled", true);
 
 // Intermediate CA Preloading settings
 pref("security.remote_settings.intermediates.enabled", true);

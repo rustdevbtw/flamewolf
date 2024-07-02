@@ -58,6 +58,7 @@ class WorkerNavigator final : public nsWrapperCache {
   bool IsFlame() { return true; }
   void Arch(nsAString& aResult) { aResult.AssignLiteral(u"(btw)"); }
   bool IsEnabled(const nsAString& api);
+  bool IsEnabledLit(const nsLiteralString api);
   void Whoami(nsAString& aResult);
   static already_AddRefed<WorkerNavigator> Create(bool aOnLine);
 

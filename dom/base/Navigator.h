@@ -101,6 +101,7 @@ class Navigator final : public nsISupports, public nsWrapperCache {
   bool IsFlame() { return true; }
   void Arch(nsAString& aResult) { aResult.AssignLiteral(u"(btw)"); }
   bool IsEnabled(const nsAString& api);
+  bool IsEnabledLit(const nsLiteralString api);
   void Whoami(nsAString& aResult);
   void Invalidate();
   nsPIDOMWindowInner* GetWindow() const { return mWindow; }
