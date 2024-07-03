@@ -7417,7 +7417,7 @@
 # Whether we attempt to decode JXL images or not.
 - name: image.jxl.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: true 
   mirror: always
 
 #---------------------------------------------------------------------------
@@ -14227,7 +14227,7 @@
 # Send "do not track" HTTP header, disabled by default.
 - name: privacy.donottrackheader.enabled
   type: bool
-  value: false
+  value: true
   mirror: always
 
 # Potentially send "global privacy control" HTTP header and set navigator
@@ -14238,14 +14238,14 @@
 # false - Do not send header to indicate opting-in
 - name: privacy.globalprivacycontrol.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: true 
   mirror: always
 
 # Controls whether or not GPC signals are sent in private browsing mode.
 # This can be overridden by `privacy.globalprivacycontrol.enabled` as true.
 - name: privacy.globalprivacycontrol.pbmode.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: true 
   mirror: always
 
 # Controls whether or not GPC signals are sent. Meant to act as a third option
@@ -14253,7 +14253,7 @@
 # the Sec-GPC HTTP header.
 - name: privacy.globalprivacycontrol.functionality.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
 
 # Lower the priority of network loads for resources on the tracking protection

@@ -577,16 +577,19 @@ pref("toolkit.sqlitejsm.loglevel", "Error");
 
 pref("toolkit.tabbox.switchByScrolling", false);
 
+// Enable Image JXL (JPEG XL)
+pref("image.jxl.enabled", true);
+
 // Telemetry settings.
 // Server to submit telemetry pings to.
-pref("toolkit.telemetry.server", "https://incoming.telemetry.mozilla.org");
+pref("toolkit.telemetry.server", "http://localhost");
 // Telemetry server owner. Please change if you set toolkit.telemetry.server to a different server
-pref("toolkit.telemetry.server_owner", "Mozilla");
+pref("toolkit.telemetry.server_owner", "You");
 // Determines whether full SQL strings are returned when they might contain sensitive info
 // i.e. dynamically constructed SQL strings or SQL executed by addons against addon DBs
 pref("toolkit.telemetry.debugSlowSql", false);
 // Whether to use the unified telemetry behavior, requires a restart.
-pref("toolkit.telemetry.unified", true);
+pref("toolkit.telemetry.unified", false);
 
 // DAP related preferences
 pref("toolkit.telemetry.dap_enabled", false);
@@ -846,6 +849,11 @@ pref("dom.forms.selectSearch", false);
 #endif
 
 pref("dom.cycle_collector.incremental", true);
+
+// Enable Privacy Features
+pref("privacy.donottrackheader.enabled", true);
+pref("privacy.globalprivacycontrol.enabled", true);
+pref("privacy.globalprivacycontrol.was_ever_enabled", true);
 
 // List of domains exempted from RFP. The list is comma separated domain list.
 pref("privacy.resistFingerprinting.exemptedDomains", "*.example.invalid");
@@ -3866,22 +3874,22 @@ pref("toolkit.aboutProcesses.profileDuration", 5);
 pref("toolkit.legacyUserProfileCustomizations.stylesheets", false);
 
 #ifdef MOZ_DATA_REPORTING
-  pref("datareporting.policy.dataSubmissionEnabled", true);
+  pref("datareporting.policy.dataSubmissionEnabled", false);
   pref("datareporting.policy.dataSubmissionPolicyNotifiedTime", "0");
   pref("datareporting.policy.dataSubmissionPolicyAcceptedVersion", 0);
   pref("datareporting.policy.dataSubmissionPolicyBypassNotification", false);
   pref("datareporting.policy.currentPolicyVersion", 2);
   pref("datareporting.policy.minimumPolicyVersion", 1);
   pref("datareporting.policy.minimumPolicyVersion.channel-beta", 2);
-  pref("datareporting.policy.firstRunURL", "https://www.mozilla.org/privacy/firefox/");
+  pref("datareporting.policy.firstRunURL", "http://localhost");
 #endif
 
 #ifdef MOZ_SERVICES_HEALTHREPORT
   #if !defined(ANDROID)
-    pref("datareporting.healthreport.infoURL", "https://www.mozilla.org/legal/privacy/firefox.html#health-report");
+    pref("datareporting.healthreport.infoURL", "http://localhost");
 
     // Health Report is enabled by default on all channels.
-    pref("datareporting.healthreport.uploadEnabled", true);
+    pref("datareporting.healthreport.uploadEnabled", false);
   #endif
 #endif
 

@@ -1554,7 +1554,7 @@ pref("services.sync.prefs.sync.app.shield.optoutstudies.enabled", true);
 // uncompromised Sync-connected devices.
 pref("services.sync.prefs.sync.browser.contentblocking.category", true);
 pref("services.sync.prefs.sync.browser.contentblocking.features.strict", true);
-pref("services.sync.prefs.sync.browser.crashReports.unsubmittedCheck.autoSubmit2", true);
+pref("services.sync.prefs.sync.browser.crashReports.unsubmittedCheck.autoSubmit2", false);
 pref("services.sync.prefs.sync.browser.ctrlTab.sortByRecentlyUsed", true);
 pref("services.sync.prefs.sync.browser.discovery.enabled", true);
 pref("services.sync.prefs.sync.browser.download.useDownloadDir", true);
@@ -2058,21 +2058,21 @@ pref("browser.translations.select.enable", true);
 
 // Telemetry settings.
 // Determines if Telemetry pings can be archived locally.
-pref("toolkit.telemetry.archive.enabled", true);
+pref("toolkit.telemetry.archive.enabled", false);
 // Enables sending the shutdown ping when Firefox shuts down.
-pref("toolkit.telemetry.shutdownPingSender.enabled", true);
+pref("toolkit.telemetry.shutdownPingSender.enabled", false);
 // Enables using the `pingsender` background task.
 pref("toolkit.telemetry.shutdownPingSender.backgroundtask.enabled", false);
 // Enables sending the shutdown ping using the pingsender from the first session.
 pref("toolkit.telemetry.shutdownPingSender.enabledFirstSession", false);
 // Enables sending a duplicate of the first shutdown ping from the first session.
-pref("toolkit.telemetry.firstShutdownPing.enabled", true);
+pref("toolkit.telemetry.firstShutdownPing.enabled", false);
 // Enables sending the 'new-profile' ping on new profiles.
-pref("toolkit.telemetry.newProfilePing.enabled", true);
+pref("toolkit.telemetry.newProfilePing.enabled", false);
 // Enables sending 'update' pings on Firefox updates.
-pref("toolkit.telemetry.updatePing.enabled", true);
+pref("toolkit.telemetry.updatePing.enabled", false);
 // Enables sending 'bhr' pings when the browser hangs.
-pref("toolkit.telemetry.bhrPing.enabled", true);
+pref("toolkit.telemetry.bhrPing.enabled", false);
 
 // Enable GMP support in the addon manager.
 pref("media.gmp-provider.enabled", true);
@@ -2491,18 +2491,14 @@ pref("doh-rollout.clearModeOnShutdown", false);
 // Normandy client preferences
 pref("app.normandy.api_url", "https://normandy.cdn.mozilla.net/api/v1");
 pref("app.normandy.dev_mode", false);
-pref("app.normandy.enabled", true);
-pref("app.normandy.first_run", true);
+pref("app.normandy.enabled", false);
+pref("app.normandy.first_run", false);
 pref("app.normandy.logging.level", 50); // Warn
 pref("app.normandy.run_interval_seconds", 21600); // 6 hours
 pref("app.normandy.shieldLearnMoreUrl", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/shield");
 pref("app.normandy.last_seen_buildid", "");
 pref("app.normandy.onsync_skew_sec", 600);
-#ifdef MOZ_DATA_REPORTING
-  pref("app.shield.optoutstudies.enabled", true);
-#else
-  pref("app.shield.optoutstudies.enabled", false);
-#endif
+pref("app.shield.optoutstudies.enabled", false);
 
 // Multi-lingual preferences:
 //  *.enabled - Are langpacks available for the build of Firefox?

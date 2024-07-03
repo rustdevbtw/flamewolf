@@ -1443,8 +1443,8 @@ permissions-addon-exceptions =
 collection-header2 = { -brand-short-name } Data Collection and Use
     .searchkeywords = telemetry
 
-collection-description = We strive to provide you with choices and collect only what we need to provide and improve { -brand-short-name } for everyone. We always ask permission before receiving personal information.
-collection-privacy-notice = Privacy Notice
+collection-description = At Flamewolf, we take user privacy VERY seriously. As such, all the known privacy-invading features, options, telemetry etc. are already disabled, by default.
+collection-privacy-notice = Help us protect your privacy further!
 
 collection-health-report-telemetry-disabled = You’re no longer allowing { -vendor-short-name } to capture technical and interaction data. All past data will be deleted within 30 days.
 collection-health-report-telemetry-disabled-link = Learn more
@@ -1464,7 +1464,7 @@ addon-recommendations-link = Learn more
 
 # This message is displayed above disabled data sharing options in developer builds
 # or builds with no Telemetry support available.
-collection-health-report-disabled = Data reporting is disabled for this build configuration
+collection-health-report-disabled = Telemetry is disabled in Flamewolf!
 
 collection-backlogged-crash-reports = Allow { -brand-short-name } to send backlogged crash reports on your behalf
     .accesskey = c
