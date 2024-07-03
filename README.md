@@ -67,3 +67,7 @@ If you want to contribute through Git, you have three options:
 Flamewolf is a Community Project. So, a medium for the community to interact is a must.  
 
 That's why we have [**mailing lists**](https://sr.ht/~rajdeep/flamewolf/lists) and a IRC Channel (`#flamewolf` at `irc.libera.chat`).
+
+### Docs
+
+FlameWolf's documentation is available at [flame.rajdeepm.xyz](https://flame.rajdeepm.xyz)!
