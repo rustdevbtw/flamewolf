@@ -1413,11 +1413,11 @@ pref("breakpad.reportURL", "https://crash-stats.mozilla.org/report/index/");
 
 // URL for "Learn More" for DataCollection
 pref("toolkit.datacollection.infoURL",
-     "https://flame.rajdeepm.xyz/guides/privacy");
+     "https://flame.rajdeepm.xyz/privacy");
 
 // URL for "Learn More" for Crash Reporter
 pref("toolkit.crashreporter.infoURL",
-     "https://flame.rajdeepm.xyz/guides/privacy#crash-reporter");
+     "https://flame.rajdeepm.xyz/privacy#crash-reporter");
 
 // base URL for web-based support pages
 pref("app.support.baseURL", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/");
