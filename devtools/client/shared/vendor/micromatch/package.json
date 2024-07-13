@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/micromatch/micromatch#readme",
   "dependencies": {
-    "micromatch": "^4.0.4"
+    "micromatch": "^4.0.7"
   },
   "devDependencies": {
     "webpack": "^4.46.0",
