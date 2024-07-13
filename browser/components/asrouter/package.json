@@ -8,7 +8,7 @@
     "@fluent/react": "0.15.2",
     "react": "16.13.1",
     "react-dom": "16.13.1",
-    "react-redux": "7.2.6",
+    "react-redux": "7.2.9",
     "redux": "4.1.2"
   },
   "devDependencies": {
