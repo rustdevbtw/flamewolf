@@ -6,8 +6,8 @@
   "dependencies": {
     "@fluent/bundle": "0.18.0",
     "@fluent/react": "0.15.2",
-    "react": "16.13.1",
-    "react-dom": "16.13.1",
+    "react": "16.14.0",
+    "react-dom": "16.14.0",
     "react-redux": "7.2.6",
     "redux": "4.1.2"
   },
