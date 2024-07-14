@@ -55,6 +55,10 @@ jobs:
         ./mach build
         ./mach package
 
+    - name: Change XCode version (macOS)
+      if: matrix.os == 'macos-latest'
+      run: sudo xcode-select -s "/Applications/Xcode_15.0.1.app"
+
     - name: Build Flamewolf (macOS)
       if: matrix.os == 'macos-latest'
       run: |
