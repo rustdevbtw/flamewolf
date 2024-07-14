@@ -87,8 +87,9 @@ static const CSSCoord kRangeHeight = 6.0f;
 static const CSSCoord kProgressbarHeight = 6.0f;
 static const CSSCoord kMeterHeight = 12.0f;
 
+// nsCheckboxRadioFrame takes the bottom of the content box as the baseline.
+// This border-width makes its baseline 2px under the bottom, which is nice.
 static constexpr CSSCoord kCheckboxRadioBorderWidth = 2.0f;
-static constexpr CSSCoord kCheckboxRadioSize = 14.0f;
 
 static constexpr sRGBColor sTransparent = sRGBColor::White(0.0);
 
@@ -231,23 +232,15 @@ std::tuple<sRGBColor, sRGBColor, sRGBColor> Theme::ComputeCheckboxColors(
       return std::make_tuple(bg, bg, fg);
     }
 
+    if (aColors.HighContrast()) {
+      auto bg = aColors.System(StyleSystemColor::Selecteditem);
+      auto fg = aColors.System(StyleSystemColor::Selecteditemtext);
+      return std::make_tuple(bg, bg, fg);
+    }
+
     bool isActive =
         aState.HasAllStates(ElementState::HOVER | ElementState::ACTIVE);
     bool isHovered = aState.HasState(ElementState::HOVER);
-
-    if (aColors.HighContrast()) {
-      sRGBColor border = (isHovered && !isActive)
-                             ? aColors.System(StyleSystemColor::Selecteditem)
-                             : aColors.System(StyleSystemColor::Buttontext);
-      auto bg = (isHovered || isActive)
-                    ? aColors.System(StyleSystemColor::Selecteditem)
-                    : aColors.System(StyleSystemColor::Buttontext);
-      auto fg = (isHovered || isActive)
-                    ? aColors.System(StyleSystemColor::Selecteditemtext)
-                    : aColors.System(StyleSystemColor::Buttonface);
-      return std::make_tuple(bg, border, fg);
-    }
-
     const auto& bg = isActive    ? aColors.Accent().GetDarker()
                      : isHovered ? aColors.Accent().GetDark()
                                  : aColors.Accent().Get();
@@ -265,15 +258,13 @@ sRGBColor Theme::ComputeBorderColor(const ElementState& aState,
                                     const Colors& aColors,
                                     OutlineCoversBorder aOutlineCoversBorder) {
   bool isDisabled = aState.HasState(ElementState::DISABLED);
+  if (aColors.HighContrast()) {
+    return aColors.System(isDisabled ? StyleSystemColor::Graytext
+                                     : StyleSystemColor::Buttontext);
+  }
   bool isActive =
       aState.HasAllStates(ElementState::HOVER | ElementState::ACTIVE);
   bool isHovered = aState.HasState(ElementState::HOVER);
-  if (aColors.HighContrast()) {
-    return aColors.System(isDisabled ? StyleSystemColor::Graytext
-                          : (isHovered && !isActive)
-                              ? StyleSystemColor::Selecteditem
-                              : StyleSystemColor::Buttontext);
-  }
   bool isFocused = aState.HasState(ElementState::FOCUSRING);
   if (isDisabled) {
     return sColorGrey40Alpha50;
@@ -345,27 +336,15 @@ std::pair<sRGBColor, sRGBColor> Theme::ComputeTextfieldColors(
 
 std::pair<sRGBColor, sRGBColor> Theme::ComputeRangeProgressColors(
     const ElementState& aState, const Colors& aColors) {
+  if (aColors.HighContrast()) {
+    return aColors.SystemPair(StyleSystemColor::Selecteditem,
+                              StyleSystemColor::Buttontext);
+  }
+
   bool isActive =
       aState.HasAllStates(ElementState::HOVER | ElementState::ACTIVE);
   bool isDisabled = aState.HasState(ElementState::DISABLED);
   bool isHovered = aState.HasState(ElementState::HOVER);
-
-  if (aColors.HighContrast()) {
-    if (isDisabled) {
-      return aColors.SystemPair(StyleSystemColor::Graytext,
-                                StyleSystemColor::Graytext);
-    }
-    if (isActive) {
-      return aColors.SystemPair(StyleSystemColor::Selecteditem,
-                                StyleSystemColor::Buttontext);
-    }
-    if (isHovered) {
-      return aColors.SystemPair(StyleSystemColor::Selecteditem,
-                                StyleSystemColor::Selecteditem);
-    }
-    return aColors.SystemPair(StyleSystemColor::Buttontext,
-                              StyleSystemColor::Buttontext);
-  }
 
   if (isDisabled) {
     return std::make_pair(sColorGrey40Alpha50, sColorGrey40Alpha50);
@@ -379,27 +358,14 @@ std::pair<sRGBColor, sRGBColor> Theme::ComputeRangeProgressColors(
 
 std::pair<sRGBColor, sRGBColor> Theme::ComputeRangeTrackColors(
     const ElementState& aState, const Colors& aColors) {
+  if (aColors.HighContrast()) {
+    return aColors.SystemPair(StyleSystemColor::Window,
+                              StyleSystemColor::Buttontext);
+  }
   bool isActive =
       aState.HasAllStates(ElementState::HOVER | ElementState::ACTIVE);
   bool isDisabled = aState.HasState(ElementState::DISABLED);
   bool isHovered = aState.HasState(ElementState::HOVER);
-
-  if (aColors.HighContrast()) {
-    if (isDisabled) {
-      return aColors.SystemPair(StyleSystemColor::Buttonface,
-                                StyleSystemColor::Graytext);
-    }
-    if (isActive) {
-      return aColors.SystemPair(StyleSystemColor::Buttonface,
-                                StyleSystemColor::Buttontext);
-    }
-    if (isHovered) {
-      return aColors.SystemPair(StyleSystemColor::Selecteditemtext,
-                                StyleSystemColor::Selecteditem);
-    }
-    return aColors.SystemPair(StyleSystemColor::Buttonface,
-                              StyleSystemColor::Buttontext);
-  }
 
   if (isDisabled) {
     return std::make_pair(sColorGrey10Alpha50, sColorGrey40Alpha50);
@@ -412,23 +378,15 @@ std::pair<sRGBColor, sRGBColor> Theme::ComputeRangeTrackColors(
 
 std::pair<sRGBColor, sRGBColor> Theme::ComputeRangeThumbColors(
     const ElementState& aState, const Colors& aColors) {
+  if (aColors.HighContrast()) {
+    return aColors.SystemPair(StyleSystemColor::Selecteditemtext,
+                              StyleSystemColor::Selecteditem);
+  }
+
   bool isActive =
       aState.HasAllStates(ElementState::HOVER | ElementState::ACTIVE);
   bool isDisabled = aState.HasState(ElementState::DISABLED);
   bool isHovered = aState.HasState(ElementState::HOVER);
-
-  if (aColors.HighContrast()) {
-    if (isDisabled) {
-      return aColors.SystemPair(StyleSystemColor::Buttonface,
-                                StyleSystemColor::Graytext);
-    }
-    if (isActive || isHovered) {
-      return aColors.SystemPair(StyleSystemColor::Selecteditemtext,
-                                StyleSystemColor::Selecteditem);
-    }
-    return aColors.SystemPair(StyleSystemColor::Buttonface,
-                              StyleSystemColor::Buttontext);
-  }
 
   const sRGBColor& backgroundColor = [&] {
     if (isDisabled) {
@@ -487,8 +445,8 @@ std::pair<sRGBColor, sRGBColor> Theme::ComputeMeterchunkColors(
 std::array<sRGBColor, 3> Theme::ComputeFocusRectColors(const Colors& aColors) {
   if (aColors.HighContrast()) {
     return {aColors.System(StyleSystemColor::Selecteditem),
-            aColors.System(StyleSystemColor::Window),
-            aColors.System(StyleSystemColor::Buttontext)};
+            aColors.System(StyleSystemColor::Buttontext),
+            aColors.System(StyleSystemColor::Window)};
   }
   const auto& accent = aColors.Accent();
   const sRGBColor middle =
@@ -573,17 +531,22 @@ void Theme::PaintCheckboxControl(DrawTarget& aDrawTarget,
   }
 }
 
+constexpr CSSCoord kCheckboxRadioContentBoxSize = 10.0f;
+constexpr CSSCoord kCheckboxRadioBorderBoxSize =
+    kCheckboxRadioContentBoxSize + kCheckboxRadioBorderWidth * 2.0f;
+
 void Theme::PaintCheckMark(DrawTarget& aDrawTarget,
                            const LayoutDeviceRect& aRect,
                            const sRGBColor& aColor) {
-  // Points come from the coordinates on a 14X14 (kCheckboxRadioSize)
+  // Points come from the coordinates on a 14X14 (kCheckboxRadioBorderBoxSize)
   // unit box centered at 0,0
   const float checkPolygonX[] = {-4.5f, -1.5f, -0.5f, 5.0f, 4.75f,
                                  3.5f,  -0.5f, -1.5f, -3.5f};
   const float checkPolygonY[] = {0.5f,  4.0f, 4.0f,  -2.5f, -4.0f,
                                  -4.0f, 1.0f, 1.25f, -1.0f};
   const int32_t checkNumPoints = sizeof(checkPolygonX) / sizeof(float);
-  const float scale = ThemeDrawing::ScaleToFillRect(aRect, kCheckboxRadioSize);
+  const float scale =
+      ThemeDrawing::ScaleToFillRect(aRect, kCheckboxRadioBorderBoxSize);
   auto center = aRect.Center().ToUnknownPoint();
 
   RefPtr<PathBuilder> builder = aDrawTarget.CreatePathBuilder();
@@ -601,8 +564,10 @@ void Theme::PaintCheckMark(DrawTarget& aDrawTarget,
 void Theme::PaintIndeterminateMark(DrawTarget& aDrawTarget,
                                    const LayoutDeviceRect& aRect,
                                    const sRGBColor& aColor) {
-  const CSSCoord borderWidth = kCheckboxRadioBorderWidth;
-  const float scale = ThemeDrawing::ScaleToFillRect(aRect, kCheckboxRadioSize);
+  const CSSCoord borderWidth = 2.0f;
+  const float scale =
+      ThemeDrawing::ScaleToFillRect(aRect, kCheckboxRadioBorderBoxSize);
+
   Rect rect = aRect.ToUnknownRect();
   rect.y += (rect.height / 2) - (borderWidth * scale / 2);
   rect.height = borderWidth * scale;
@@ -1481,6 +1446,13 @@ LayoutDeviceIntMargin Theme::GetWidgetBorder(nsDeviceContext* aContext,
                  aFrame->StyleBorder()->GetComputedBorder(),
                  aFrame->PresContext()->AppUnitsPerDevPixel())
           .Rounded();
+    case StyleAppearance::Checkbox:
+    case StyleAppearance::Radio: {
+      DPIRatio dpiRatio = GetDPIRatio(aFrame, aAppearance);
+      LayoutDeviceIntCoord w =
+          ThemeDrawing::SnapBorderWidth(kCheckboxRadioBorderWidth, dpiRatio);
+      return LayoutDeviceIntMargin(w, w, w, w);
+    }
     default:
       return LayoutDeviceIntMargin();
   }
@@ -1552,7 +1524,7 @@ LayoutDeviceIntCoord Theme::GetScrollbarSize(const nsPresContext* aPresContext,
 }
 
 nscoord Theme::GetCheckboxRadioPrefSize() {
-  return CSSPixel::ToAppUnits(kCheckboxRadioSize);
+  return CSSPixel::ToAppUnits(kCheckboxRadioContentBoxSize);
 }
 
 /* static */

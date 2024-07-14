@@ -754,8 +754,8 @@ void EventStateManager::TryToFlushPendingNotificationsToIME() {
 
 static bool IsMessageMouseUserActivity(EventMessage aMessage) {
   return aMessage == eMouseMove || aMessage == eMouseUp ||
-         aMessage == eMouseDown || aMessage == ePointerAuxClick ||
-         aMessage == eMouseDoubleClick || aMessage == ePointerClick ||
+         aMessage == eMouseDown || aMessage == eMouseAuxClick ||
+         aMessage == eMouseDoubleClick || aMessage == eMouseClick ||
          aMessage == eMouseActivate || aMessage == eMouseLongTap;
 }
 
@@ -854,7 +854,6 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
                                            nsIContent* aTargetContent,
                                            nsEventStatus* aStatus,
                                            nsIContent* aOverrideClickTarget) {
-  AUTO_PROFILER_LABEL("EventStateManager::PreHandleEvent", DOM);
   NS_ENSURE_ARG_POINTER(aStatus);
   NS_ENSURE_ARG(aPresContext);
   if (!aEvent) {
@@ -1902,17 +1901,11 @@ void EventStateManager::DispatchCrossProcessEvent(WidgetEvent* aEvent,
     // process.
   }
 
-  MOZ_ASSERT(aEvent->mMessage != ePointerClick);
-  MOZ_ASSERT(aEvent->mMessage != ePointerAuxClick);
-
   // SendReal* will transform the coordinate to the child process coordinate
   // space. So restore the coordinate after the event has been dispatched to the
   // child process to avoid using the transformed coordinate afterward.
   AutoRestore<LayoutDeviceIntPoint> restore(aEvent->mRefPoint);
   switch (aEvent->mClass) {
-    case ePointerEventClass:
-      MOZ_ASSERT(aEvent->mMessage == eContextMenu);
-      [[fallthrough]];
     case eMouseEventClass: {
       BrowserParent* oldRemote = BrowserParent::GetLastMouseRemoteTarget();
 
@@ -2276,17 +2269,8 @@ void EventStateManager::FireContextClick() {
 
     if (allowedToDispatch) {
       // init the event while mCurrentTarget is still good
-      Maybe<WidgetPointerEvent> pointerEvent;
-      Maybe<WidgetMouseEvent> mouseEvent;
-      if (StaticPrefs::
-              dom_w3c_pointer_events_dispatch_click_as_pointer_event()) {
-        pointerEvent.emplace(true, eContextMenu, targetWidget);
-      } else {
-        mouseEvent.emplace(true, eContextMenu, targetWidget,
-                           WidgetMouseEvent::eReal);
-      }
-      WidgetMouseEvent& event =
-          pointerEvent.isSome() ? pointerEvent.ref() : mouseEvent.ref();
+      WidgetMouseEvent event(true, eContextMenu, targetWidget,
+                             WidgetMouseEvent::eReal);
       event.mClickCount = 1;
       FillInEventFromGestureDown(&event);
 
@@ -3767,7 +3751,6 @@ nsresult EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
                                             nsIFrame* aTargetFrame,
                                             nsEventStatus* aStatus,
                                             nsIContent* aOverrideClickTarget) {
-  AUTO_PROFILER_LABEL("EventStateManager::PostHandleEvent", DOM);
   NS_ENSURE_ARG(aPresContext);
   NS_ENSURE_ARG_POINTER(aStatus);
 
@@ -5900,29 +5883,19 @@ nsresult EventStateManager::InitAndDispatchClickEvent(
   MOZ_ASSERT(EventCausesClickEvents(*aMouseUpEvent));
   MOZ_ASSERT(aMouseUpContent || aCurrentTarget || aOverrideClickTarget);
 
-  Maybe<WidgetPointerEvent> pointerEvent;
-  Maybe<WidgetMouseEvent> mouseEvent;
-  if (IsPointerEventMessage(aMessage)) {
-    pointerEvent.emplace(aMouseUpEvent->IsTrusted(), aMessage,
-                         aMouseUpEvent->mWidget);
-  } else {
-    mouseEvent.emplace(aMouseUpEvent->IsTrusted(), aMessage,
-                       aMouseUpEvent->mWidget, WidgetMouseEvent::eReal);
-  }
+  WidgetMouseEvent event(aMouseUpEvent->IsTrusted(), aMessage,
+                         aMouseUpEvent->mWidget, WidgetMouseEvent::eReal);
 
-  WidgetMouseEvent& mouseOrPointerEvent =
-      pointerEvent.isSome() ? pointerEvent.ref() : mouseEvent.ref();
-
-  mouseOrPointerEvent.mRefPoint = aMouseUpEvent->mRefPoint;
-  mouseOrPointerEvent.mClickCount = aMouseUpEvent->mClickCount;
-  mouseOrPointerEvent.mModifiers = aMouseUpEvent->mModifiers;
-  mouseOrPointerEvent.mButtons = aMouseUpEvent->mButtons;
-  mouseOrPointerEvent.mTimeStamp = aMouseUpEvent->mTimeStamp;
-  mouseOrPointerEvent.mFlags.mOnlyChromeDispatch = aNoContentDispatch;
-  mouseOrPointerEvent.mFlags.mNoContentDispatch = aNoContentDispatch;
-  mouseOrPointerEvent.mButton = aMouseUpEvent->mButton;
-  mouseOrPointerEvent.pointerId = aMouseUpEvent->pointerId;
-  mouseOrPointerEvent.mInputSource = aMouseUpEvent->mInputSource;
+  event.mRefPoint = aMouseUpEvent->mRefPoint;
+  event.mClickCount = aMouseUpEvent->mClickCount;
+  event.mModifiers = aMouseUpEvent->mModifiers;
+  event.mButtons = aMouseUpEvent->mButtons;
+  event.mTimeStamp = aMouseUpEvent->mTimeStamp;
+  event.mFlags.mOnlyChromeDispatch = aNoContentDispatch;
+  event.mFlags.mNoContentDispatch = aNoContentDispatch;
+  event.mButton = aMouseUpEvent->mButton;
+  event.pointerId = aMouseUpEvent->pointerId;
+  event.mInputSource = aMouseUpEvent->mInputSource;
   nsIContent* target = aMouseUpContent;
   nsIFrame* targetFrame = aCurrentTarget;
   if (aOverrideClickTarget) {
@@ -5939,14 +5912,14 @@ nsresult EventStateManager::InitAndDispatchClickEvent(
   // an event means that previous event status will be ignored.
   nsEventStatus status = nsEventStatus_eIgnore;
   nsresult rv = aPresShell->HandleEventWithTarget(
-      &mouseOrPointerEvent, targetFrame, MOZ_KnownLive(target), &status);
+      &event, targetFrame, MOZ_KnownLive(target), &status);
 
   // Copy mMultipleActionsPrevented flag from a click event to the mouseup
   // event only when it's set to true.  It may be set to true if an editor has
   // already handled it.  This is important to avoid two or more default
   // actions handled here.
   aMouseUpEvent->mFlags.mMultipleActionsPrevented |=
-      mouseOrPointerEvent.mFlags.mMultipleActionsPrevented;
+      event.mFlags.mMultipleActionsPrevented;
   // If current status is nsEventStatus_eConsumeNoDefault, we don't need to
   // overwrite it.
   if (*aStatus == nsEventStatus_eConsumeNoDefault) {
@@ -6041,7 +6014,7 @@ nsresult EventStateManager::DispatchClickEvents(
 
   AutoWeakFrame currentTarget = aClickTarget->GetPrimaryFrame();
   nsresult rv = InitAndDispatchClickEvent(
-      aMouseUpEvent, aStatus, ePointerClick, aPresShell, aClickTarget,
+      aMouseUpEvent, aStatus, eMouseClick, aPresShell, aClickTarget,
       currentTarget, notDispatchToContents, aOverrideClickTarget);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -6050,11 +6023,10 @@ nsresult EventStateManager::DispatchClickEvents(
   // Fire auxclick event if necessary.
   if (fireAuxClick && *aStatus != nsEventStatus_eConsumeNoDefault &&
       aClickTarget && aClickTarget->IsInComposedDoc()) {
-    rv = InitAndDispatchClickEvent(aMouseUpEvent, aStatus, ePointerAuxClick,
+    rv = InitAndDispatchClickEvent(aMouseUpEvent, aStatus, eMouseAuxClick,
                                    aPresShell, aClickTarget, currentTarget,
                                    false, aOverrideClickTarget);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                         "Failed to dispatch ePointerAuxClick");
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to dispatch eMouseAuxClick");
   }
 
   // Fire double click event if click count is 2.
@@ -6076,7 +6048,7 @@ nsresult EventStateManager::HandleMiddleClickPaste(
     nsEventStatus* aStatus, EditorBase* aEditorBase) {
   MOZ_ASSERT(aPresShell);
   MOZ_ASSERT(aMouseEvent);
-  MOZ_ASSERT((aMouseEvent->mMessage == ePointerAuxClick &&
+  MOZ_ASSERT((aMouseEvent->mMessage == eMouseAuxClick &&
               aMouseEvent->mButton == MouseButton::eMiddle) ||
              EventCausesClickEvents(*aMouseEvent));
   MOZ_ASSERT(aStatus);

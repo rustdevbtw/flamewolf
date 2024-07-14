@@ -118,36 +118,20 @@ dictionary PlaneLayout {
 enum VideoPixelFormat {
   // 4:2:0 Y, U, V
   "I420",
-  "I420P10",
-  "I420P12",
   // 4:2:0 Y, U, V, A
   "I420A",
-  "I420AP10",
-  "I420AP12",
   // 4:2:2 Y, U, V
   "I422",
-  "I422P10",
-  "I422P12",
-  // 4:2:2 Y, U, V, A
-  "I422A",
-  "I422AP10",
-  "I422AP12",
   // 4:4:4 Y, U, V
   "I444",
-  "I444P10",
-  "I444P12",
-  // 4:4:4 Y, U, V, A
-  "I444A",
-  "I444AP10",
-  "I444AP12",
   // 4:2:0 Y, UV
   "NV12",
-  // 4:4:4 RGBA
+  // 32bpp RGBA
   "RGBA",
-  // 4:4:4 RGBX (opaque)
+  // 32bpp RGBX (opaque)
   "RGBX",
-  // 4:4:4 BGRA
+  // 32bpp BGRA
   "BGRA",
-  // 4:4:4 BGRX (opaque)
+  // 32bpp BGRX (opaque)
   "BGRX",
 };

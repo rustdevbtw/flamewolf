@@ -297,57 +297,31 @@ class OutputParser {
     const secondOpts = {};
 
     let varData;
+    let varValue;
     let varFallbackValue;
-    let varSubsitutedValue;
 
     // Get the variable value if it is in use.
     if (tokens && tokens.length === 1) {
       varData = options.getVariableData(tokens[0].text);
-      const varValue =
+      varValue =
         typeof varData.value === "string"
           ? varData.value
           : varData.registeredProperty?.initialValue;
-
-      const varStartingStyleValue =
-        typeof varData.startingStyle === "string"
-          ? varData.startingStyle
-          : // If the variable is not set in starting style, then it will default to either:
-            // - a declaration in a "regular" rule
-            // - or if there's no declaration in regular rule, to the registered property initial-value.
-            varValue;
-
-      varSubsitutedValue = options.inStartingStyleRule
-        ? varStartingStyleValue
-        : varValue;
     }
 
     // Get the variable name.
     const varName = text.substring(tokens[0].startOffset, tokens[0].endOffset);
 
-    if (typeof varSubsitutedValue === "string") {
+    if (typeof varValue === "string") {
       // The variable value is valid, set the variable name's title of the first argument
       // in var() to display the variable name and value.
       firstOpts["data-variable"] = STYLE_INSPECTOR_L10N.getFormatStr(
         "rule.variableValue",
         varName,
-        varSubsitutedValue
+        varValue
       );
       firstOpts.class = options.matchedVariableClass;
       secondOpts.class = options.unmatchedVariableClass;
-
-      // Display starting-style value when not in a starting style rule
-      if (
-        !options.inStartingStyleRule &&
-        typeof varData.startingStyle === "string"
-      ) {
-        firstOpts["data-starting-style-variable"] =
-          STYLE_INSPECTOR_L10N.getFormatStr(
-            "rule.variableValue",
-            varName,
-            varData.startingStyle
-          );
-      }
-
       if (varData.registeredProperty) {
         const { initialValue, syntax, inherits } = varData.registeredProperty;
         firstOpts["data-registered-property-initial-value"] = initialValue;
@@ -389,7 +363,7 @@ class OutputParser {
 
     return {
       node: variableNode,
-      value: varSubsitutedValue,
+      value: varValue,
       fallbackValue: varFallbackValue,
     };
   }
@@ -612,15 +586,9 @@ class OutputParser {
           ) {
             this.#appendLinear(token.text, options);
           } else if (this.#isDisplayFlex(text, token, options)) {
-            this.#appendDisplayWithHighlighterToggle(
-              token.text,
-              options.flexClass
-            );
+            this.#appendHighlighterToggle(token.text, options.flexClass);
           } else if (this.#isDisplayGrid(text, token, options)) {
-            this.#appendDisplayWithHighlighterToggle(
-              token.text,
-              options.gridClass
-            );
+            this.#appendHighlighterToggle(token.text, options.gridClass);
           } else if (colorOK() && InspectorUtils.isValidCSSColor(token.text)) {
             this.#appendColor(token.text, {
               ...options,
@@ -891,22 +859,21 @@ class OutputParser {
    *
    * @param {String} text
    *        The text value to append
-   * @param {String} toggleButtonClassName
-   *        The class name for the toggle button.
-   *        If not passed/empty, the toggle button won't be created.
+   * @param {String} className
+   *        The class name for the toggle span
    */
-  #appendDisplayWithHighlighterToggle(text, toggleButtonClassName) {
+  #appendHighlighterToggle(text, className) {
     const container = this.#createNode("span", {});
 
-    if (toggleButtonClassName) {
-      const toggleButton = this.#createNode("button", {
-        class: toggleButtonClassName,
-      });
-      container.append(toggleButton);
-    }
+    const toggle = this.#createNode("span", {
+      class: className,
+    });
 
-    const value = this.#createNode("span", {}, text);
-    container.append(value);
+    const value = this.#createNode("span", {});
+    value.textContent = text;
+
+    container.appendChild(toggle);
+    container.appendChild(value);
     this.#parsed.push(container);
   }
 
@@ -942,8 +909,10 @@ class OutputParser {
 
     const container = this.#createNode("span", {});
 
-    const toggleButton = this.#createNode("button", {
+    const toggle = this.#createNode("span", {
       class: options.shapeSwatchClass,
+      tabindex: "0",
+      role: "button",
     });
 
     const lowerCaseShape = shape.toLowerCase();
@@ -955,7 +924,7 @@ class OutputParser {
           class: options.shapeClass,
         });
 
-        container.appendChild(toggleButton);
+        container.appendChild(toggle);
 
         appendText(valContainer, shape.substring(0, coordsBegin));
 
@@ -2100,7 +2069,6 @@ class OutputParser {
       baseURI: undefined,
       getVariableData: null,
       unmatchedVariableClass: null,
-      inStartingStyleRule: false,
     };
 
     for (const item in overrides) {

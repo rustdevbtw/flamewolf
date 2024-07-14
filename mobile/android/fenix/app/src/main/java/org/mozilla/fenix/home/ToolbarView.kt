@@ -6,6 +6,7 @@ package org.mozilla.fenix.home
 
 import android.content.Context
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -16,8 +17,8 @@ import androidx.core.view.updateLayoutParams
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
+import org.mozilla.fenix.components.toolbar.IncompleteRedesignToolbarFeature
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
-import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.toolbar.ToolbarInteractor
@@ -33,7 +34,7 @@ class ToolbarView(
     private val interactor: ToolbarInteractor,
 ) {
     init {
-        updateLayout()
+        updateLayout(binding.root)
     }
 
     /**
@@ -58,10 +59,10 @@ class ToolbarView(
         }
     }
 
-    internal fun updateLayout() {
-        val showBrowserActionButtonsAndMenu = !context.shouldAddNavigationBar()
-        binding.menuButton.isVisible = showBrowserActionButtonsAndMenu
-        binding.tabButton.isVisible = showBrowserActionButtonsAndMenu
+    private fun updateLayout(view: View) {
+        val redesignEnabled = IncompleteRedesignToolbarFeature(context.settings()).isEnabled
+        binding.menuButton.isVisible = !redesignEnabled
+        binding.tabButton.isVisible = !redesignEnabled
 
         when (context.settings().toolbarPosition) {
             ToolbarPosition.TOP -> {
@@ -109,8 +110,8 @@ class ToolbarView(
                 }
 
                 binding.bottomBar.background = AppCompatResources.getDrawable(
-                    context,
-                    context.theme.resolveAttribute(R.attr.bottomBarBackgroundTop),
+                    view.context,
+                    view.context.theme.resolveAttribute(R.attr.bottomBarBackgroundTop),
                 )
 
                 binding.homeAppBar.updateLayoutParams<ViewGroup.MarginLayoutParams> {

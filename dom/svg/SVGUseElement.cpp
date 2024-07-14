@@ -257,13 +257,14 @@ static bool NodeCouldBeRendered(const nsINode& aNode) {
   if (const auto* symbol = SVGSymbolElement::FromNode(aNode)) {
     return symbol->CouldBeRendered();
   }
+  if (const auto* svgGraphics = SVGGraphicsElement::FromNode(aNode)) {
+    if (!svgGraphics->PassesConditionalProcessingTests()) {
+      return false;
+    }
+  }
   if (auto* svgSwitch =
           SVGSwitchElement::FromNodeOrNull(aNode.GetParentNode())) {
     if (&aNode != svgSwitch->GetActiveChild()) {
-      return false;
-    }
-  } else if (const auto* svgGraphics = SVGGraphicsElement::FromNode(aNode)) {
-    if (!svgGraphics->PassesConditionalProcessingTests()) {
       return false;
     }
   }

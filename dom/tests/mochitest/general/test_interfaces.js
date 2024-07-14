@@ -96,7 +96,6 @@ let ecmaGlobals = [
   { name: "Error", insecureContext: true },
   { name: "EvalError", insecureContext: true },
   { name: "FinalizationRegistry", insecureContext: true },
-  { name: "Float16Array", insecureContext: true },
   { name: "Float32Array", insecureContext: true },
   { name: "Float64Array", insecureContext: true },
   { name: "Function", insecureContext: true },
@@ -330,7 +329,7 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSSRuleList", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "CSSStartingStyleRule", insecureContext: true },
+  { name: "CSSStartingStyleRule", insecureContext: true, nightly: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSSStyleDeclaration", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -797,6 +796,8 @@ let interfaceNamesInGlobalScope = [
   { name: "MathMLElement", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "MediaCapabilities", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "MediaCapabilitiesInfo", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "MediaDeviceInfo", insecureContext: false },
   // IMPORTANT: Do not change this list without review from a DOM peer!

@@ -17,11 +17,6 @@ import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.theme.FirefoxTheme
 
-/**
- * UI for displaying the Empty Tab Page in the Tabs Tray.
- *
- * @param isPrivate Whether or not the tab is private.
- */
 @Composable
 internal fun EmptyTabPage(isPrivate: Boolean) {
     val testTag: String

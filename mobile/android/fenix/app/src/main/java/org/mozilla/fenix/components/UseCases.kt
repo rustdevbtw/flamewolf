@@ -11,7 +11,6 @@ import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.concept.storage.HistoryStorage
-import mozilla.components.feature.accounts.push.CloseTabsUseCases
 import mozilla.components.feature.app.links.AppLinksUseCases
 import mozilla.components.feature.contextmenu.ContextMenuUseCases
 import mozilla.components.feature.downloads.DownloadsUseCases
@@ -21,7 +20,6 @@ import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.session.SettingsUseCases
 import mozilla.components.feature.session.TrackingProtectionUseCases
-import mozilla.components.feature.syncedtabs.commands.SyncedTabsCommands
 import mozilla.components.feature.tabs.CustomTabsUseCases
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.top.sites.TopSitesStorage
@@ -46,7 +44,6 @@ class UseCases(
     private val topSitesStorage: TopSitesStorage,
     private val bookmarksStorage: BookmarksStorage,
     private val historyStorage: HistoryStorage,
-    private val syncedTabsCommands: SyncedTabsCommands,
     appStore: AppStore,
     client: Client,
     strictMode: StrictModeManager,
@@ -121,6 +118,4 @@ class UseCases(
         }
         WallpapersUseCases(context, appStore, client, rootStorageDirectory, currentLocale)
     }
-
-    val closeSyncedTabsUseCases by lazyMonitored { CloseTabsUseCases(syncedTabsCommands) }
 }

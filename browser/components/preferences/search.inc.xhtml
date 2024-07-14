@@ -6,13 +6,13 @@
     <html:template id="template-paneSearch">
     <hbox id="searchCategory"
           class="subcategory"
-          hidden="true"
+          hidden="false"
           data-category="paneSearch">
       <html:h1 data-l10n-id="pane-search-title"/>
     </hbox>
 
     <!-- Default Search Engine -->
-    <groupbox id="defaultEngineGroup" data-category="paneSearch" hidden="true">
+    <groupbox id="defaultEngineGroup" data-category="paneSearch" hidden="false">
       <label><html:h2 data-l10n-id="search-engine-default-header" id="search-engine-default-header" /></label>
       <description class="description-deemphasized" data-l10n-id="search-engine-default-desc-2" id="search-engine-default-desc-2" />
       <hbox>
@@ -23,11 +23,11 @@
       <checkbox id="searchShowSearchTermCheckbox"
                 data-l10n-id="search-show-search-term-option"
                 preference="browser.urlbar.showSearchTerms.enabled"
-                hidden="true" />
+                hidden="false" />
       <checkbox id="browserSeparateDefaultEngine"
                 data-l10n-id="search-separate-default-engine"
-                hidden="true"/>
-      <vbox id="browserPrivateEngineSelection" class="indent" hidden="true">
+                hidden="false"/>
+      <vbox id="browserPrivateEngineSelection" class="indent" hidden="false">
         <description data-l10n-id="search-engine-default-private-desc-2" id="search-engine-default-private-desc-2" />
         <hbox>
           <menulist id="defaultPrivateEngine" aria-labelledby="search-engine-default-private-desc-2">
@@ -37,7 +37,7 @@
       </vbox>
     </groupbox>
 
-    <groupbox id="searchSuggestionsGroup" data-category="paneSearch" hidden="true">
+    <groupbox id="searchSuggestionsGroup" data-category="paneSearch" hidden="false">
       <label><html:h2 data-l10n-id="search-suggestions-header" /></label>
       <description id="searchSuggestionsDesc"
                    class="description-deemphasized"
@@ -61,14 +61,14 @@
           <label flex="1" data-l10n-id="search-suggestions-cant-show" />
         </hbox>
       </vbox>
-      <checkbox id="enableRecentSearches" data-l10n-id="addressbar-locbar-showrecentsearches-option" hidden="true"
+      <checkbox id="enableRecentSearches" data-l10n-id="addressbar-locbar-showrecentsearches-option" hidden="false"
             preference="browser.urlbar.suggest.recentsearches" />
     </groupbox>
 
     <!-- Address Bar -->
     <groupbox id="locationBarGroup"
               data-category="paneSearch"
-              hidden="true"
+              hidden="false"
               data-subcategory="locationBar">
       <label><html:h2 id="locationBarGroupHeader" data-l10n-id="addressbar-header"/></label>
       <label id="locationBarSuggestionLabel" class="description-deemphasized" data-l10n-id="addressbar-suggest"/>
@@ -76,7 +76,7 @@
                 preference="browser.urlbar.suggest.history"/>
       <checkbox id="bookmarkSuggestion" data-l10n-id="addressbar-locbar-bookmarks-option"
                 preference="browser.urlbar.suggest.bookmark"/>
-      <checkbox id="clipboardSuggestion" data-l10n-id="addressbar-locbar-clipboard-option" hidden="true"
+      <checkbox id="clipboardSuggestion" data-l10n-id="addressbar-locbar-clipboard-option" hidden="false"
                 preference="browser.urlbar.suggest.clipboard"/>
       <checkbox id="openpageSuggestion" data-l10n-id="addressbar-locbar-openpage-option"
                 preference="browser.urlbar.suggest.openpage"/>
@@ -85,7 +85,7 @@
                 preference="browser.urlbar.suggest.topsites"/>
       <checkbox id="enginesSuggestion" data-l10n-id="addressbar-locbar-engines-option"
                 preference="browser.urlbar.suggest.engines"/>
-      <hbox id="quickActionsBox" align="center" hidden="true">
+      <hbox id="quickActionsBox" align="center" hidden="false">
         <checkbox id="enableQuickActions"
                   class="tail-with-learn-more"
                   data-l10n-id="addressbar-locbar-quickactions-option"
@@ -96,7 +96,7 @@
                 support-page="quick-actions-firefox-search-bar"
         />
       </hbox>
-      <vbox id="firefoxSuggestContainer" hidden="true">
+      <vbox id="firefoxSuggestContainer" hidden="false">
         <checkbox id="firefoxSuggestNonsponsored"
                   data-l10n-id="addressbar-firefox-suggest-nonsponsored"
                   preference="browser.urlbar.suggest.quicksuggest.nonsponsored"
@@ -112,7 +112,7 @@
                       data-l10n-id="addressbar-firefox-suggest-sponsored-desc"
         />
         <hbox id="firefoxSuggestInfoBox" class="info-box-container smaller-font-size" align="start"
-              hidden="true">
+              hidden="false">
           <html:img class="info-icon"/>
           <description flex="1">
             <html:span id="firefoxSuggestInfoText" class="tail-with-learn-more"/>
@@ -162,7 +162,7 @@
       </vbox>
     </groupbox>
 
-    <groupbox id="oneClickSearchProvidersGroup" data-category="paneSearch" hidden="true">
+    <groupbox id="oneClickSearchProvidersGroup" data-category="paneSearch" hidden="false">
       <label><html:h2 data-l10n-id="search-one-click-header2" /></label>
       <description class="description-deemphasized" data-l10n-id="search-one-click-desc" />
 

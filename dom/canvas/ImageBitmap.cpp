@@ -32,7 +32,6 @@
 #include "mozilla/ScopeExit.h"
 #include "nsGlobalWindowInner.h"
 #include "nsIAsyncInputStream.h"
-#include "nsISerialEventTarget.h"
 #include "nsNetUtil.h"
 #include "nsLayoutUtils.h"
 #include "nsStreamUtils.h"
@@ -63,10 +62,9 @@ class SendShutdownToWorkerThread : public MainThreadWorkerControlRunnable {
  public:
   explicit SendShutdownToWorkerThread(ImageBitmap* aImageBitmap)
       : MainThreadWorkerControlRunnable("SendShutdownToWorkerThread"),
+        mWorkerPrivate(GetCurrentThreadWorkerPrivate()),
         mImageBitmap(aImageBitmap) {
     MOZ_ASSERT(GetCurrentThreadWorkerPrivate());
-    mTarget = GetCurrentThreadWorkerPrivate()->ControlEventTarget();
-    MOZ_ASSERT(mTarget);
   }
 
   bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
@@ -77,14 +75,7 @@ class SendShutdownToWorkerThread : public MainThreadWorkerControlRunnable {
     return true;
   }
 
-  void DispatchToWorker() {
-    MOZ_ASSERT(mTarget);
-    Unused << NS_WARN_IF(
-        NS_FAILED(mTarget->Dispatch(this, NS_DISPATCH_NORMAL)));
-    mTarget = nullptr;
-  }
-
-  nsCOMPtr<nsISerialEventTarget> mTarget;
+  WorkerPrivate* mWorkerPrivate;
   ImageBitmap* mImageBitmap;
 };
 
@@ -157,7 +148,7 @@ ImageBitmapShutdownObserver::Observe(nsISupports* aSubject, const char* aTopic,
     for (const auto& bitmap : mBitmaps) {
       const auto& runnable = bitmap->mShutdownRunnable;
       if (runnable) {
-        runnable->DispatchToWorker();
+        runnable->Dispatch(runnable->mWorkerPrivate);
       } else {
         bitmap->OnShutdown();
       }
@@ -1390,7 +1381,7 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
               new CreateImageFromRawDataInMainThreadSyncTask(
                   fixedData, dataLength, imageStride, FORMAT, imageSize,
                   aCropRect, getter_AddRefs(data), aOptions);
-          task->Dispatch(GetCurrentThreadWorkerPrivate(), Canceling, aRv);
+          task->Dispatch(Canceling, aRv);
         }
 
         if (NS_WARN_IF(!data)) {

@@ -46,8 +46,6 @@ using ::testing::Contains;
 using ::testing::MockFunction;
 using ::testing::NiceMock;
 using ::testing::StrictMock;
-using ::webrtc::test::FakeEncoder;
-using ::webrtc::test::FunctionVideoEncoderFactory;
 using ::webrtc::test::MockAudioDeviceModule;
 using ::webrtc::test::MockAudioMixer;
 using ::webrtc::test::MockAudioProcessing;
@@ -387,10 +385,9 @@ TEST(CallTest, RecreatingAudioStreamWithSameSsrcReusesRtpState) {
 TEST(CallTest, AddAdaptationResourceAfterCreatingVideoSendStream) {
   CallHelper call(true);
   // Create a VideoSendStream.
-  FunctionVideoEncoderFactory fake_encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return std::make_unique<FakeEncoder>(env);
-      });
+  test::FunctionVideoEncoderFactory fake_encoder_factory([]() {
+    return std::make_unique<test::FakeEncoder>(Clock::GetRealTimeClock());
+  });
   auto bitrate_allocator_factory = CreateBuiltinVideoBitrateAllocatorFactory();
   MockTransport send_transport;
   VideoSendStream::Config config(&send_transport);
@@ -453,10 +450,9 @@ TEST(CallTest, AddAdaptationResourceBeforeCreatingVideoSendStream) {
   auto fake_resource = FakeResource::Create("FakeResource");
   call->AddAdaptationResource(fake_resource);
   // Create a VideoSendStream.
-  FunctionVideoEncoderFactory fake_encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return std::make_unique<FakeEncoder>(env);
-      });
+  test::FunctionVideoEncoderFactory fake_encoder_factory([]() {
+    return std::make_unique<test::FakeEncoder>(Clock::GetRealTimeClock());
+  });
   auto bitrate_allocator_factory = CreateBuiltinVideoBitrateAllocatorFactory();
   MockTransport send_transport;
   VideoSendStream::Config config(&send_transport);

@@ -10,20 +10,20 @@
 
 #include_next <X11/extensions/Xrandr.h>
 
-#if RANDR_MAJOR == 1 && RANDR_MINOR < 5 // defined in randr.h
+#if RANDR_MAJOR == 1 && RANDR_MINOR < 5  // defined in randr.h
 typedef struct _XRRMonitorInfo {
-    Atom name;
-    Bool primary;
-    Bool automatic;
-    int noutput;
-    int x;
-    int y;
-    int width;
-    int height;
-    int mwidth;
-    int mheight;
-    RROutput *outputs;
+  Atom name;
+  Bool primary;
+  Bool automatic;
+  int noutput;
+  int x;
+  int y;
+  int width;
+  int height;
+  int mwidth;
+  int mheight;
+  RROutput* outputs;
 } XRRMonitorInfo;
 #endif
 
-#endif // _XRANDR_H_WRAPPER_HACK_
+#endif  // _XRANDR_H_WRAPPER_HACK_

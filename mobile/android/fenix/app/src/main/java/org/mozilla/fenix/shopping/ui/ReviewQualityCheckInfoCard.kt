@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,7 +34,6 @@ import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
-import org.mozilla.fenix.compose.parseHtml
 import org.mozilla.fenix.shopping.ui.ext.headingResource
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -116,7 +114,7 @@ fun ReviewQualityCheckInfoCard(
                     title?.let { Spacer(modifier = Modifier.height(4.dp)) }
 
                     Text(
-                        text = remember(description) { parseHtml(description) },
+                        text = description,
                         color = FirefoxTheme.colors.textPrimary,
                         style = FirefoxTheme.typography.body2,
                     )

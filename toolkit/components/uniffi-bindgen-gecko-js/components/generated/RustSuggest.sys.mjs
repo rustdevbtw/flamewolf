@@ -705,30 +705,39 @@ export class SuggestStoreBuilder {
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
     /**
-     * A constructor for SuggestStoreBuilder.
+     * An async constructor for SuggestStoreBuilder.
      * 
-     * @returns { SuggestStoreBuilder }
+     * @returns {Promise<SuggestStoreBuilder>}: A promise that resolves
+     *      to a newly constructed SuggestStoreBuilder
      */
     static init() {
         const liftResult = (result) => FfiConverterTypeSuggestStoreBuilder.lift(result);
         const liftError = null;
         const functionCall = () => {
-            return UniFFIScaffolding.callSync(
+            return UniFFIScaffolding.callAsync(
                 23, // suggest:uniffi_suggest_fn_constructor_suggeststorebuilder_new
             )
         }
-        return handleRustResult(functionCall(), liftResult, liftError);}
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }}
 
     build() {
         const liftResult = (result) => FfiConverterTypeSuggestStore.lift(result);
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
         const functionCall = () => {
-            return UniFFIScaffolding.callSync(
+            return UniFFIScaffolding.callAsync(
                 24, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_build
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
             )
         }
-        return handleRustResult(functionCall(), liftResult, liftError);
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
     }
 
     cachePath(path) {
@@ -768,34 +777,42 @@ export class SuggestStoreBuilder {
                 }
                 throw e;
             }
-            return UniFFIScaffolding.callSync(
+            return UniFFIScaffolding.callAsync(
                 26, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_data_path
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterString.lower(path),
             )
         }
-        return handleRustResult(functionCall(), liftResult, liftError);
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
     }
 
-    remoteSettingsBucketName(bucketName) {
+    remoteSettingsConfig(config) {
         const liftResult = (result) => FfiConverterTypeSuggestStoreBuilder.lift(result);
         const liftError = null;
         const functionCall = () => {
             try {
-                FfiConverterString.checkType(bucketName)
+                FfiConverterTypeRemoteSettingsConfig.checkType(config)
             } catch (e) {
                 if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("bucketName");
+                    e.addItemDescriptionPart("config");
                 }
                 throw e;
             }
-            return UniFFIScaffolding.callSync(
-                27, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_bucket_name
+            return UniFFIScaffolding.callAsync(
+                27, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_config
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
-                FfiConverterString.lower(bucketName),
+                FfiConverterTypeRemoteSettingsConfig.lower(config),
             )
         }
-        return handleRustResult(functionCall(), liftResult, liftError);
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
     }
 
     remoteSettingsServer(server) {
@@ -810,13 +827,17 @@ export class SuggestStoreBuilder {
                 }
                 throw e;
             }
-            return UniFFIScaffolding.callSync(
+            return UniFFIScaffolding.callAsync(
                 28, // suggest:uniffi_suggest_fn_method_suggeststorebuilder_remote_settings_server
                 FfiConverterTypeSuggestStoreBuilder.lower(this),
                 FfiConverterTypeRemoteSettingsServer.lower(server),
             )
         }
-        return handleRustResult(functionCall(), liftResult, liftError);
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
     }
 
 }

@@ -10,7 +10,6 @@
 #ifndef XP_WIN
 #  include <unistd.h>
 #endif
-#include "mozilla/AppShutdown.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/CheckedInt.h"
@@ -469,14 +468,7 @@ NS_IMPL_RELEASE_INHERITED(XMLHttpRequestMainThread, XMLHttpRequestEventTarget)
 
 void XMLHttpRequestMainThread::DisconnectFromOwner() {
   XMLHttpRequestEventTarget::DisconnectFromOwner();
-  // Worker-owned XHRs have their own complicated state machine that does not
-  // expect Abort() to be called here.  The worker state machine cleanup will
-  // take care of ensuring the XHR is aborted in a timely fashion since the
-  // worker itself will inherently be canceled at the same time this is
-  // happening.
-  if (!mForWorker) {
-    Abort();
-  }
+  Abort();
 }
 
 size_t XMLHttpRequestMainThread::SizeOfEventTargetIncludingThis(
@@ -1566,11 +1558,6 @@ void XMLHttpRequestMainThread::Open(const nsACString& aMethod,
     return;
   }
 
-  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
-    aRv.Throw(NS_ERROR_ILLEGAL_DURING_SHUTDOWN);
-    return;
-  }
-
   // Gecko-specific
   if (!aAsync && responsibleDocument && GetOwner()) {
     // We have no extant document during unload, so the above general
@@ -2604,13 +2591,11 @@ nsresult XMLHttpRequestMainThread::CreateChannel() {
   // where it will be the parent document, which is not the one we want to use.
   nsresult rv;
   nsCOMPtr<Document> responsibleDocument = GetDocumentIfCurrent();
-  auto contentPolicyType =
-      mFlagSynchronous ? nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST_SYNC
-                       : nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST_ASYNC;
   if (responsibleDocument &&
       responsibleDocument->NodePrincipal() == mPrincipal) {
     rv = NS_NewChannel(getter_AddRefs(mChannel), mRequestURL,
-                       responsibleDocument, secFlags, contentPolicyType,
+                       responsibleDocument, secFlags,
+                       nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST,
                        nullptr,  // aPerformanceStorage
                        loadGroup,
                        nullptr,  // aCallbacks
@@ -2618,7 +2603,8 @@ nsresult XMLHttpRequestMainThread::CreateChannel() {
   } else if (mClientInfo.isSome()) {
     rv = NS_NewChannel(getter_AddRefs(mChannel), mRequestURL, mPrincipal,
                        mClientInfo.ref(), mController, secFlags,
-                       contentPolicyType, mCookieJarSettings,
+                       nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST,
+                       mCookieJarSettings,
                        mPerformanceStorage,  // aPerformanceStorage
                        loadGroup,
                        nullptr,  // aCallbacks
@@ -2626,7 +2612,8 @@ nsresult XMLHttpRequestMainThread::CreateChannel() {
   } else {
     // Otherwise use the principal.
     rv = NS_NewChannel(getter_AddRefs(mChannel), mRequestURL, mPrincipal,
-                       secFlags, contentPolicyType, mCookieJarSettings,
+                       secFlags, nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST,
+                       mCookieJarSettings,
                        mPerformanceStorage,  // aPerformanceStorage
                        loadGroup,
                        nullptr,  // aCallbacks

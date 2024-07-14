@@ -22,27 +22,19 @@
 namespace webrtc {
 
 SctpTransport::SctpTransport(
-    std::unique_ptr<cricket::SctpTransportInternal> internal,
-    rtc::scoped_refptr<DtlsTransport> dtls_transport)
+    std::unique_ptr<cricket::SctpTransportInternal> internal)
     : owner_thread_(rtc::Thread::Current()),
-      info_(SctpTransportState::kConnecting,
-            dtls_transport,
-            /*max_message_size=*/absl::nullopt,
-            /*max_channels=*/absl::nullopt),
-      internal_sctp_transport_(std::move(internal)),
-      dtls_transport_(dtls_transport) {
+      info_(SctpTransportState::kNew),
+      internal_sctp_transport_(std::move(internal)) {
   RTC_DCHECK(internal_sctp_transport_.get());
-  RTC_DCHECK(dtls_transport_.get());
-
-  dtls_transport_->internal()->SubscribeDtlsTransportState(
-      [this](cricket::DtlsTransportInternal* transport,
-             DtlsTransportState state) {
-        OnDtlsStateChange(transport, state);
-      });
-
-  internal_sctp_transport_->SetDtlsTransport(dtls_transport->internal());
   internal_sctp_transport_->SetOnConnectedCallback(
       [this]() { OnAssociationChangeCommunicationUp(); });
+
+  if (dtls_transport_) {
+    UpdateInformation(SctpTransportState::kConnecting);
+  } else {
+    UpdateInformation(SctpTransportState::kNew);
+  }
 }
 
 SctpTransport::~SctpTransport() {
@@ -108,23 +100,6 @@ bool SctpTransport::IsReadyToSend() const {
   return internal_sctp_transport_->ReadyToSendData();
 }
 
-size_t SctpTransport::buffered_amount(int channel_id) const {
-  RTC_DCHECK_RUN_ON(owner_thread_);
-  RTC_DCHECK(internal_sctp_transport_);
-  return internal_sctp_transport_->buffered_amount(channel_id);
-}
-
-size_t SctpTransport::buffered_amount_low_threshold(int channel_id) const {
-  RTC_DCHECK_RUN_ON(owner_thread_);
-  return internal_sctp_transport_->buffered_amount_low_threshold(channel_id);
-}
-
-void SctpTransport::SetBufferedAmountLowThreshold(int channel_id,
-                                                  size_t bytes) {
-  RTC_DCHECK_RUN_ON(owner_thread_);
-  internal_sctp_transport_->SetBufferedAmountLowThreshold(channel_id, bytes);
-}
-
 rtc::scoped_refptr<DtlsTransportInterface> SctpTransport::dtls_transport()
     const {
   RTC_DCHECK_RUN_ON(owner_thread_);
@@ -140,6 +115,31 @@ void SctpTransport::Clear() {
   dtls_transport_ = nullptr;
   internal_sctp_transport_ = nullptr;
   UpdateInformation(SctpTransportState::kClosed);
+}
+
+void SctpTransport::SetDtlsTransport(
+    rtc::scoped_refptr<DtlsTransport> transport) {
+  RTC_DCHECK_RUN_ON(owner_thread_);
+  SctpTransportState next_state = info_.state();
+  dtls_transport_ = transport;
+  if (internal_sctp_transport_) {
+    if (transport) {
+      internal_sctp_transport_->SetDtlsTransport(transport->internal());
+
+      transport->internal()->SubscribeDtlsTransportState(
+          [this](cricket::DtlsTransportInternal* transport,
+                 DtlsTransportState state) {
+            OnDtlsStateChange(transport, state);
+          });
+      if (info_.state() == SctpTransportState::kNew) {
+        next_state = SctpTransportState::kConnecting;
+      }
+    } else {
+      internal_sctp_transport_->SetDtlsTransport(nullptr);
+    }
+  }
+
+  UpdateInformation(next_state);
 }
 
 void SctpTransport::Start(int local_port,

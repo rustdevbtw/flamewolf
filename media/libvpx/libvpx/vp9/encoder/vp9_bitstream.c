@@ -996,7 +996,6 @@ static size_t encode_tiles_mt(VP9_COMP *cpi, uint8_t *data_ptr,
   const int num_workers = cpi->num_workers;
   size_t total_size = 0;
   int tile_col = 0;
-  int error = 0;
 
   const size_t buffer_alloc_size = encode_tiles_buffer_alloc_size(cpi);
   if (!cpi->vp9_bitstream_worker_data ||
@@ -1050,10 +1049,9 @@ static size_t encode_tiles_mt(VP9_COMP *cpi, uint8_t *data_ptr,
       int k;
 
       if (!winterface->sync(worker)) {
-        error = 1;
-        continue;
+        vpx_internal_error(&cm->error, VPX_CODEC_ERROR,
+                           "encode_tiles_mt: worker had error");
       }
-
       tile_size = data->bit_writer.pos;
 
       // Aggregate per-thread bitstream stats.
@@ -1066,24 +1064,20 @@ static size_t encode_tiles_mt(VP9_COMP *cpi, uint8_t *data_ptr,
       // Prefix the size of the tile on all but the last.
       if (tile_col != tile_cols || j < i - 1) {
         if (data_size - total_size < 4) {
-          error = 1;
-          continue;
+          vpx_internal_error(&cm->error, VPX_CODEC_ERROR,
+                             "encode_tiles_mt: output buffer full");
         }
         mem_put_be32(data_ptr + total_size, tile_size);
         total_size += 4;
       }
       if (j > 0) {
         if (data_size - total_size < tile_size) {
-          error = 1;
-          continue;
+          vpx_internal_error(&cm->error, VPX_CODEC_ERROR,
+                             "encode_tiles_mt: output buffer full");
         }
         memcpy(data_ptr + total_size, data->dest, tile_size);
       }
       total_size += tile_size;
-    }
-    if (error) {
-      vpx_internal_error(&cm->error, VPX_CODEC_ERROR,
-                         "encode_tiles_mt: output buffer full");
     }
   }
   return total_size;
@@ -1417,6 +1411,7 @@ void vp9_pack_bitstream(VP9_COMP *cpi, uint8_t *dest, size_t dest_size,
   if (cm->show_existing_frame) {
     uncompressed_hdr_size = vpx_wb_bytes_written(&wb);
     data += uncompressed_hdr_size;
+    data_size -= uncompressed_hdr_size;
     *size = data - dest;
     return;
   }

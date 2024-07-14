@@ -71,9 +71,8 @@ class ReassemblyQueue {
   // socket should restrict incoming data to avoid filling up the queue.
   static constexpr float kHighWatermarkLimit = 0.9;
 
-  ReassemblyQueue(absl::string_view log_prefix,
-                  size_t max_size_bytes,
-                  bool use_message_interleaving = false);
+  ReassemblyQueue(absl::string_view log_prefix, TSN peer_initial_tsn,
+                  size_t max_size_bytes, bool use_message_interleaving = false);
 
   // Adds a data chunk to the queue, with a `tsn` and other parameters in
   // `data`.

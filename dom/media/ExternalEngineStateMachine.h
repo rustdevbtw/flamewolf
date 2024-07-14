@@ -301,8 +301,6 @@ class ExternalEngineStateMachine final
 
   void DecodeError(const MediaResult& aError) override;
 
-  void NotifyAudibleStateChangeIfNeeded();
-
   UniquePtr<ExternalPlaybackEngine> mEngine;
 
   bool mHasEnoughAudio = false;

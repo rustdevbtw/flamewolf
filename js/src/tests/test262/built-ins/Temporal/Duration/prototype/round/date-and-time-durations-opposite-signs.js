@@ -21,8 +21,14 @@ features: [Temporal]
 // Based on a test case by André Bargull
 
 const calendar = new class extends Temporal.Calendar {
+    #dateUntil = 0;
+  
     dateUntil(one, two, options) {
-        return super.dateUntil(one, two, options).negated();
+        let result = super.dateUntil(one, two, options);
+        if (++this.#dateUntil === 2) {
+            result = result.negated();
+        }
+        return result;
     }
 }("iso8601");
   

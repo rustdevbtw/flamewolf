@@ -1,7 +1,5 @@
-use super::lifetimes::{Lifetime, Lifetimes, MaybeStatic};
 use super::{
-    Borrow, LinkedLifetimes, MaybeOwn, Mutability, OutStructId, ReturnableStructPath, StructId,
-    StructPath, TypeContext, TypeId,
+    Borrow, MaybeOwn, Mutability, OutStructId, ReturnableStructPath, StructId, StructPath, TypeId,
 };
 use core::fmt::Debug;
 
@@ -101,7 +99,9 @@ pub trait TyPosition: Debug + Copy {
 
     type StructId: Debug;
 
-    type StructPath: Debug + StructPathLike;
+    type StructPath: Debug;
+
+    fn id_for_path(p: &Self::StructPath) -> TypeId;
 }
 
 /// One of two types implementing [`TyPosition`], representing types that can be
@@ -125,6 +125,10 @@ impl TyPosition for Everywhere {
     type OpaqueOwnership = Borrow;
     type StructId = StructId;
     type StructPath = StructPath;
+
+    fn id_for_path(p: &Self::StructPath) -> TypeId {
+        p.tcx_id.into()
+    }
 }
 
 impl TyPosition for OutputOnly {
@@ -132,59 +136,14 @@ impl TyPosition for OutputOnly {
     type OpaqueOwnership = MaybeOwn;
     type StructId = OutStructId;
     type StructPath = ReturnableStructPath;
-}
-
-pub trait StructPathLike {
-    fn lifetimes(&self) -> &Lifetimes;
-    fn id(&self) -> TypeId;
-
-    /// Get a map of lifetimes used on this path to lifetimes as named in the def site. See [`LinkedLifetimes`]
-    /// for more information.
-    fn link_lifetimes<'def, 'tcx>(
-        &'def self,
-        tcx: &'tcx TypeContext,
-    ) -> LinkedLifetimes<'def, 'tcx>;
-}
-
-impl StructPathLike for StructPath {
-    fn lifetimes(&self) -> &Lifetimes {
-        &self.lifetimes
-    }
-    fn id(&self) -> TypeId {
-        self.tcx_id.into()
-    }
-
-    fn link_lifetimes<'def, 'tcx>(
-        &'def self,
-        tcx: &'tcx TypeContext,
-    ) -> LinkedLifetimes<'def, 'tcx> {
-        let struc = self.resolve(tcx);
-        let env = &struc.lifetimes;
-        LinkedLifetimes::new(env, None, &self.lifetimes)
-    }
-}
-
-impl StructPathLike for ReturnableStructPath {
-    fn lifetimes(&self) -> &Lifetimes {
-        self.lifetimes()
-    }
-    fn id(&self) -> TypeId {
-        match self {
+    fn id_for_path(p: &Self::StructPath) -> TypeId {
+        match p {
             ReturnableStructPath::Struct(p) => p.tcx_id.into(),
             ReturnableStructPath::OutStruct(p) => p.tcx_id.into(),
         }
     }
-
-    fn link_lifetimes<'def, 'tcx>(
-        &'def self,
-        tcx: &'tcx TypeContext,
-    ) -> LinkedLifetimes<'def, 'tcx> {
-        match self {
-            Self::Struct(p) => p.link_lifetimes(tcx),
-            Self::OutStruct(p) => p.link_lifetimes(tcx),
-        }
-    }
 }
+
 /// Abstraction over how a type can hold a pointer to an opaque.
 ///
 /// This trait is designed as a helper abstraction for the `OpaqueOwnership`
@@ -196,9 +155,6 @@ pub trait OpaqueOwner {
     fn mutability(&self) -> Option<Mutability>;
 
     fn is_owned(&self) -> bool;
-
-    /// Return the lifetime of the borrow, if any.
-    fn lifetime(&self) -> Option<MaybeStatic<Lifetime>>;
 }
 
 impl OpaqueOwner for MaybeOwn {
@@ -215,13 +171,6 @@ impl OpaqueOwner for MaybeOwn {
             MaybeOwn::Borrow(_) => false,
         }
     }
-
-    fn lifetime(&self) -> Option<MaybeStatic<Lifetime>> {
-        match self {
-            MaybeOwn::Own => None,
-            MaybeOwn::Borrow(b) => b.lifetime(),
-        }
-    }
 }
 
 impl OpaqueOwner for Borrow {
@@ -231,9 +180,5 @@ impl OpaqueOwner for Borrow {
 
     fn is_owned(&self) -> bool {
         false
-    }
-
-    fn lifetime(&self) -> Option<MaybeStatic<Lifetime>> {
-        Some(self.lifetime)
     }
 }

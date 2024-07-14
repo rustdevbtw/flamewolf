@@ -6,11 +6,10 @@ package org.mozilla.fenix.debugsettings.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
@@ -48,34 +47,28 @@ fun DebugDrawer(
     var backButtonVisible by remember { mutableStateOf(false) }
     var toolbarTitle by remember { mutableStateOf("") }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = toolbarTitle,
-                        color = FirefoxTheme.colors.textPrimary,
-                        style = FirefoxTheme.typography.headline6,
-                    )
-                },
-                navigationIcon = if (backButtonVisible) {
-                    topBarBackButton(onClick = onBackButtonClick)
-                } else {
-                    null
-                },
-                backgroundColor = FirefoxTheme.colors.layer1,
-                elevation = 5.dp,
-            )
-        },
-        backgroundColor = FirefoxTheme.colors.layer1,
-    ) { paddingValues ->
+    Column(modifier = Modifier.fillMaxSize()) {
+        TopAppBar(
+            title = {
+                Text(
+                    text = toolbarTitle,
+                    color = FirefoxTheme.colors.textPrimary,
+                    style = FirefoxTheme.typography.headline6,
+                )
+            },
+            navigationIcon = if (backButtonVisible) {
+                topBarBackButton(onClick = onBackButtonClick)
+            } else {
+                null
+            },
+            backgroundColor = FirefoxTheme.colors.layer1,
+            elevation = 5.dp,
+        )
+
         NavHost(
             navController = navController,
             startDestination = DEBUG_DRAWER_HOME_ROUTE,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+            modifier = Modifier.fillMaxSize(),
         ) {
             composable(route = DEBUG_DRAWER_HOME_ROUTE) {
                 toolbarTitle = stringResource(id = R.string.debug_drawer_title)

@@ -150,12 +150,12 @@ nsresult HTMLEditor::ShowInlineTableEditingUIInternal(Element& aCellElement) {
     }
     mAddRowAfterButton = std::move(addRowAfterButton);
 
-    AddPointerClickListener(mAddColumnBeforeButton);
-    AddPointerClickListener(mRemoveColumnButton);
-    AddPointerClickListener(mAddColumnAfterButton);
-    AddPointerClickListener(mAddRowBeforeButton);
-    AddPointerClickListener(mRemoveRowButton);
-    AddPointerClickListener(mAddRowAfterButton);
+    AddMouseClickListener(mAddColumnBeforeButton);
+    AddMouseClickListener(mRemoveColumnButton);
+    AddMouseClickListener(mAddColumnAfterButton);
+    AddMouseClickListener(mAddRowBeforeButton);
+    AddMouseClickListener(mRemoveRowButton);
+    AddMouseClickListener(mAddRowAfterButton);
 
     nsresult rv = RefreshInlineTableEditingUIInternal();
     NS_WARNING_ASSERTION(
@@ -171,12 +171,12 @@ nsresult HTMLEditor::ShowInlineTableEditingUIInternal(Element& aCellElement) {
 void HTMLEditor::HideInlineTableEditingUIInternal() {
   mInlineEditedCell = nullptr;
 
-  RemovePointerClickListener(mAddColumnBeforeButton);
-  RemovePointerClickListener(mRemoveColumnButton);
-  RemovePointerClickListener(mAddColumnAfterButton);
-  RemovePointerClickListener(mAddRowBeforeButton);
-  RemovePointerClickListener(mRemoveRowButton);
-  RemovePointerClickListener(mAddRowAfterButton);
+  RemoveMouseClickListener(mAddColumnBeforeButton);
+  RemoveMouseClickListener(mRemoveColumnButton);
+  RemoveMouseClickListener(mAddColumnAfterButton);
+  RemoveMouseClickListener(mAddRowBeforeButton);
+  RemoveMouseClickListener(mRemoveRowButton);
+  RemoveMouseClickListener(mAddRowAfterButton);
 
   // get the presshell's document observer interface.
   RefPtr<PresShell> presShell = GetPresShell();
@@ -371,7 +371,7 @@ nsresult HTMLEditor::DoInlineTableEditingAction(const Element& aElement) {
   return NS_OK;
 }
 
-void HTMLEditor::AddPointerClickListener(Element* aElement) {
+void HTMLEditor::AddMouseClickListener(Element* aElement) {
   if (NS_WARN_IF(!aElement)) {
     return;
   }
@@ -382,7 +382,7 @@ void HTMLEditor::AddPointerClickListener(Element* aElement) {
       "EventTarget::AddEventListener(click) failed, but ignored");
 }
 
-void HTMLEditor::RemovePointerClickListener(Element* aElement) {
+void HTMLEditor::RemoveMouseClickListener(Element* aElement) {
   if (NS_WARN_IF(!aElement)) {
     return;
   }

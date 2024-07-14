@@ -1608,9 +1608,8 @@ void TextureClient::GetSurfaceDescriptorRemoteDecoder(
   MOZ_RELEASE_ASSERT(mData);
   mData->GetSubDescriptor(&subDesc);
 
-  *aOutDesc = SurfaceDescriptorRemoteDecoder(
-      handle, std::move(subDesc), Nothing(),
-      SurfaceDescriptorRemoteDecoderId::GetNext());
+  *aOutDesc =
+      SurfaceDescriptorRemoteDecoder(handle, std::move(subDesc), Nothing());
 }
 
 class MemoryTextureReadLock : public NonBlockingTextureReadLock {

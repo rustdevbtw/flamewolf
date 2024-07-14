@@ -5,8 +5,6 @@
 //
 
 const TEST_PAGE = TEST_DOMAIN + TEST_PATH + "file_iframe_document_open.html";
-const TEST_PAGE_PARTITIOEND =
-  TEST_DOMAIN_HTTPS + TEST_PATH + "file_iframe_document_open_partitioned.html";
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
@@ -20,8 +18,6 @@ add_setup(async function () {
         BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
       ],
       ["privacy.dynamic_firstparty.use_site", true],
-      ["network.cookie.cookieBehavior.optInPartitioning", true],
-      ["network.cookie.CHIPS.enabled", true],
     ],
   });
 });
@@ -63,7 +59,7 @@ add_task(async function test_thirdParty_iframe() {
   // Open the test page within a third-party context.
   await SpecialPowers.spawn(
     tab.linkedBrowser,
-    [TEST_PAGE_PARTITIOEND],
+    [TEST_PAGE],
     async function (page) {
       let ifr = content.document.createElement("iframe");
       let loading = ContentTaskUtils.waitForEvent(ifr, "load");

@@ -294,8 +294,6 @@ private fun DialogContentAnErrorOccurred(
                 translationsDialogState.positiveButtonType
             }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
         TranslationsDialogActionButtons(
             positiveButtonText = positiveButtonTitle,
             negativeButtonText = negativeButtonTitle,

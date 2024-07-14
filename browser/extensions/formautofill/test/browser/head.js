@@ -976,7 +976,7 @@ function verifySectionFieldDetails(sections, expectedSectionsInfo) {
         Assert.equal(
           actualValue,
           expectedValue,
-          `[${field.fieldName}]: ${key} should be equal, expect ${expectedValue}, got ${actualValue}`
+          `${key} should be equal, expect ${expectedValue}, got ${actualValue}`
         );
       }
     });

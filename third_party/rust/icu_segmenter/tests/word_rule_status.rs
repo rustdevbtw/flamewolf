@@ -33,10 +33,6 @@ fn rule_status() {
     assert_eq!(iter.next(), Some(15), "after number");
     assert_eq!(iter.word_type(), WordType::Number, "number");
     assert!(iter.is_word_like(), "Number is true");
-
-    assert_eq!(iter.next(), None, "EOT");
-    assert_eq!(iter.word_type(), WordType::None, "none");
-    assert!(!iter.is_word_like(), "None is false");
 }
 
 #[test]
@@ -53,10 +49,6 @@ fn rule_status_letter_eof() {
     assert!(iter.is_word_like(), "Letter is true");
 
     assert_eq!(iter.next(), Some(4), "after full stop");
-    assert_eq!(iter.word_type(), WordType::None, "none");
-    assert!(!iter.is_word_like(), "None is false");
-
-    assert_eq!(iter.next(), None, "EOT");
     assert_eq!(iter.word_type(), WordType::None, "none");
     assert!(!iter.is_word_like(), "None is false");
 }
@@ -77,10 +69,6 @@ fn rule_status_numeric_eof() {
     assert_eq!(iter.next(), Some(3), "after full stop");
     assert_eq!(iter.word_type(), WordType::None, "none");
     assert!(!iter.is_word_like(), "None is false");
-
-    assert_eq!(iter.next(), None, "EOT");
-    assert_eq!(iter.word_type(), WordType::None, "none");
-    assert!(!iter.is_word_like(), "None is false");
 }
 
 #[test]
@@ -99,18 +87,6 @@ fn rule_status_th() {
     assert_eq!(iter.next(), Some(21), "after 2nd word");
     assert_eq!(iter.word_type(), WordType::Letter, "letter");
     assert!(iter.is_word_like(), "Letter(Thai) is true");
-
-    assert_eq!(iter.next(), Some(33), "after 3rd word");
-    assert_eq!(iter.word_type(), WordType::Letter, "letter");
-    assert!(iter.is_word_like(), "Letter(Thai) is true");
-
-    assert_eq!(iter.next(), Some(42), "after 4th word and next is EOT");
-    assert_eq!(iter.word_type(), WordType::Letter, "letter");
-    assert!(iter.is_word_like(), "Letter(Thai) is true");
-
-    assert_eq!(iter.next(), None, "EOT");
-    assert_eq!(iter.word_type(), WordType::None, "none");
-    assert!(!iter.is_word_like(), "None is false");
 }
 
 /* The rule status functions are no longer public to non word break iterators.

@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* eslint-env webextensions */
-
 /*
  * This web extension looks for known icon tags, collects URLs and available
  * meta data (e.g. sizes) and passes that to the app code.
@@ -27,7 +25,7 @@ function sizesToList(sizes) {
 function collect_link_icons(icons, rel) {
   document
     .querySelectorAll('link[rel="' + rel + '"]')
-    .forEach(function (currentValue) {
+    .forEach(function (currentValue, currentIndex, listObj) {
       icons.push({
         type: rel,
         href: currentValue.href,
@@ -40,7 +38,7 @@ function collect_link_icons(icons, rel) {
 function collect_meta_property_icons(icons, property) {
   document
     .querySelectorAll('meta[property="' + property + '"]')
-    .forEach(function (currentValue) {
+    .forEach(function (currentValue, currentIndex, listObj) {
       icons.push({
         type: property,
         href: currentValue.content,
@@ -51,7 +49,7 @@ function collect_meta_property_icons(icons, property) {
 function collect_meta_name_icons(icons, name) {
   document
     .querySelectorAll('meta[name="' + name + '"]')
-    .forEach(function (currentValue) {
+    .forEach(function (currentValue, currentIndex, listObj) {
       icons.push({
         type: name,
         href: currentValue.content,

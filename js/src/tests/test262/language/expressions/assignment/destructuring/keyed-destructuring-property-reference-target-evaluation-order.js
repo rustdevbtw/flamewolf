@@ -70,8 +70,8 @@ function targetKey() {
 
 assert.compareArray(log, [
     "source", "source-key", "source-key-tostring",
-    "target", "target-key",
-    "get", "target-key-tostring", "set",
+    "target", "target-key", "target-key-tostring",
+    "get", "set",
 ]);
 
 reportCompare(0, 0);

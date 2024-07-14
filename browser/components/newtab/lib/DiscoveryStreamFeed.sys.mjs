@@ -141,17 +141,6 @@ export class DiscoveryStreamFeed {
     return this._isBff;
   }
 
-  get isMerino() {
-    if (this._isMerino === undefined) {
-      const pocketConfig =
-        this.store.getState().Prefs.values?.pocketConfig || {};
-
-      this._isMerino = pocketConfig.merinoProviderEnabled;
-    }
-
-    return this._isMerino;
-  }
-
   get showSpocs() {
     // High level overall sponsored check, if one of these is true,
     // we know we need some sort of spoc control setup.
@@ -574,17 +563,13 @@ export class DiscoveryStreamFeed {
     return gridPositions;
   }
 
-  generateFeedUrl() {
+  generateFeedUrl(isBff) {
     // check for experiment parameters
     const hasParameters = lazy.NimbusFeatures.pocketNewtab.getVariable(
       "pocketFeedParameters"
     );
 
-    if (this.isMerino) {
-      return `https://${Services.prefs.getStringPref(
-        "browser.newtabpage.activity-stream.discoverystream.merino-provider.endpoint"
-      )}/api/v1/curated-recommendations`;
-    } else if (this.isBff) {
+    if (isBff) {
       return `https://${Services.prefs.getStringPref(
         "extensions.pocket.bffApi"
       )}/desktop/v1/recommendations?locale=$locale&region=$region&count=30${
@@ -672,7 +657,7 @@ export class DiscoveryStreamFeed {
       spocsUrl = newUrl.href;
     }
 
-    let feedUrl = this.generateFeedUrl();
+    let feedUrl = this.generateFeedUrl(this.isBff);
 
     // Set layout config.
     // Changing values in this layout in memory object is unnecessary.
@@ -1376,18 +1361,8 @@ export class DiscoveryStreamFeed {
     let feed = feeds ? feeds[feedUrl] : null;
     if (this.isExpired({ cachedData, key: "feed", url: feedUrl, isStartup })) {
       let options = {};
-      const headers = new Headers();
-      if (this.isMerino) {
-        headers.append("content-type", "application/json");
-        options = {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            locale: this.locale,
-            region: this.region,
-          }),
-        };
-      } else if (this.isBff) {
+      if (this.isBff) {
+        const headers = new Headers();
         const oAuthConsumerKey = Services.prefs.getStringPref(
           "extensions.pocket.oAuthConsumerKeyBff"
         );
@@ -1402,22 +1377,7 @@ export class DiscoveryStreamFeed {
       if (feedResponse) {
         const { settings = {} } = feedResponse;
         let { recommendations } = feedResponse;
-        if (this.isMerino) {
-          recommendations = feedResponse.data.map(item => ({
-            id: item.scheduledCorpusItemId,
-            // We duplicate scheduledCorpusItemId for backwards comp reasons.
-            // These ids are functionally the same.
-            // We need scheduled_corpus_item_id to pass along to telemetry.
-            scheduled_corpus_item_id: item.scheduledCorpusItemId,
-            url: item.url,
-            title: item.title,
-            excerpt: item.excerpt,
-            publisher: item.publisher,
-            raw_image_src: item.imageUrl,
-            received_rank: item.receivedRank,
-            recommended_at: feedResponse.recommendedAt,
-          }));
-        } else if (this.isBff) {
+        if (this.isBff) {
           recommendations = feedResponse.data.map(item => ({
             id: item.tileId,
             url: item.url,
@@ -1658,7 +1618,6 @@ export class DiscoveryStreamFeed {
     await this.resetContentCache();
     // Reset in-memory caches.
     this._isBff = undefined;
-    this._isMerino = undefined;
     this._spocsCacheUpdateTime = undefined;
   }
 

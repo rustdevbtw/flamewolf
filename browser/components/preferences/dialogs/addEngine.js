@@ -57,13 +57,6 @@ let gAddEngineDialog = {
     }
     this._alias.setCustomValidity(validity);
   },
-
-  async onFormInput() {
-    /*this._dialog.setAttribute(
-      "buttondisabledaccept",
-      !this._form.checkValidity()
-    );*/
-  },
 };
 
 window.addEventListener("load", () => gAddEngineDialog.onLoad());

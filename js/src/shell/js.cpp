@@ -911,7 +911,7 @@ static void TraceBlackRoots(JSTracer* trc, void* data) {
   TraceRootArrays(trc, gc::MarkColor::Black);
 }
 
-static bool TraceGrayRoots(JSTracer* trc, JS::SliceBudget& budget, void* data) {
+static bool TraceGrayRoots(JSTracer* trc, SliceBudget& budget, void* data) {
   TraceRootArrays(trc, gc::MarkColor::Gray);
   return true;
 }
@@ -5448,24 +5448,20 @@ static bool RegisterModule(JSContext* cx, unsigned argc, Value* vp) {
 
   if (!args[0].isString()) {
     const char* typeName = InformalValueTypeName(args[0]);
-    JS_ReportErrorASCII(cx, "Expected string, got %s", typeName);
+    JS_ReportErrorASCII(cx, "expected string, got %s", typeName);
     return false;
   }
 
   if (!args[1].isObject() ||
       !args[1].toObject().is<ShellModuleObjectWrapper>()) {
     const char* typeName = InformalValueTypeName(args[1]);
-    JS_ReportErrorASCII(cx, "Expected module, got %s", typeName);
+    JS_ReportErrorASCII(cx, "expected module, got %s", typeName);
     return false;
   }
 
   ShellContext* sc = GetShellContext(cx);
   Rooted<ModuleObject*> module(
       cx, args[1].toObject().as<ShellModuleObjectWrapper>().get());
-  if (module->realm() != cx->realm()) {
-    JS_ReportErrorASCII(cx, "Module is in a different realm");
-    return false;
-  }
 
   Rooted<JSAtom*> specifier(cx, AtomizeString(cx, args[0].toString()));
   if (!specifier) {
@@ -7316,11 +7312,6 @@ static void SingleStepCallback(void* arg, jit::Simulator* sim, void* pc) {
   state.lr = (void*)sim->get_register(jit::Simulator::lr);
   state.fp = (void*)sim->get_register(jit::Simulator::fp);
   state.tempFP = (void*)sim->get_register(jit::Simulator::r7);
-#  elif defined(JS_SIMULATOR_ARM64)
-  state.sp = (void*)sim->get_sp();
-  state.lr = (void*)sim->get_lr();
-  state.fp = (void*)sim->get_fp();
-  state.tempFP = (void*)sim->xreg(11);
 #  elif defined(JS_SIMULATOR_MIPS64) || defined(JS_SIMULATOR_MIPS32)
   state.sp = (void*)sim->getRegister(jit::Simulator::sp);
   state.lr = (void*)sim->getRegister(jit::Simulator::ra);
@@ -7339,11 +7330,7 @@ static void SingleStepCallback(void* arg, jit::Simulator* sim, void* pc) {
   AutoEnterOOMUnsafeRegion oomUnsafe;
   for (JS::ProfilingFrameIterator i(cx, state); !i.done(); ++i) {
     MOZ_ASSERT(i.stackAddress() != nullptr);
-#  ifndef ENABLE_WASM_JSPI
-    // The stack addresses are monotonically increasing, except when
-    // suspendable stacks are present (e.g. when JS PI is enabled).
     MOZ_ASSERT(lastStackAddress <= i.stackAddress());
-#  endif
     lastStackAddress = i.stackAddress();
     JS::ProfilingFrameIterator::Frame frames[16];
     uint32_t nframes = i.extractStack(frames, 0, 16);
@@ -12566,12 +12553,6 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
     JS::Prefs::setAtStartup_experimental_arraybuffer_resizable(true);
     JS::Prefs::setAtStartup_experimental_sharedarraybuffer_growable(true);
   }
-  if (op.getBoolOption("enable-regexp-duplicate-named-groups")) {
-    JS::Prefs::setAtStartup_experimental_regexp_duplicate_named_groups(true);
-  }
-  if (op.getBoolOption("enable-float16array")) {
-    JS::Prefs::setAtStartup_experimental_float16array(true);
-  }
 #ifdef NIGHTLY_BUILD
   if (op.getBoolOption("enable-iterator-helpers")) {
     JS::Prefs::setAtStartup_experimental_iterator_helpers(true);
@@ -12588,11 +12569,16 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   if (op.getBoolOption("enable-uint8array-base64")) {
     JS::Prefs::setAtStartup_experimental_uint8array_base64(true);
   }
+  if (op.getBoolOption("enable-float16array")) {
+    JS::Prefs::setAtStartup_experimental_float16array(true);
+  }
+  if (op.getBoolOption("enable-regexp-duplicate-named-groups")) {
+    JS::Prefs::setAtStartup_experimental_regexp_duplicate_named_groups(true);
+  }
 #endif
 #ifdef ENABLE_JSON_PARSE_WITH_SOURCE
-  if (op.getBoolOption("enable-json-parse-with-source")) {
-    JS::Prefs::set_experimental_json_parse_with_source(true);
-  }
+  JS::Prefs::setAtStartup_experimental_json_parse_with_source(
+      op.getBoolOption("enable-json-parse-with-source"));
 #else
   if (op.getBoolOption("enable-json-parse-with-source")) {
     fprintf(stderr, "JSON.parse with source is not enabled on this build.\n");
@@ -13400,10 +13386,11 @@ bool SetContextJITOptions(JSContext* cx, const OptionParser& op) {
 #  endif
 #endif
 
+#ifdef NIGHTLY_BUILD
   if (op.getBoolOption("enable-regexp-duplicate-named-groups")) {
     jit::JitOptions.js_regexp_duplicate_named_groups = true;
   }
-
+#endif
   return true;
 }
 

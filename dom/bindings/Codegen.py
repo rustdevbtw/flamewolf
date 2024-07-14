@@ -3883,7 +3883,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 fill(
                     """
                 JS::AssertObjectIsNotGray(*protoCache);
-                JS::Handle<JSObject*> proto = JS::Handle<JSObject*>::fromMarkedLocation(protoCache->unsafeAddress());
+                JS::Handle<JSObject*> proto = JS::Handle<JSObject*>::fromMarkedLocation(protoCache->address());
                 if (!proto) {
                   $*{failureCode}
                 }

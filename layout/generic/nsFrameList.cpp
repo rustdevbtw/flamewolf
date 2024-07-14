@@ -18,7 +18,11 @@
 
 using namespace mozilla;
 
-const nsFrameList nsFrameList::sEmptyList;
+namespace mozilla {
+namespace detail {
+const AlignedFrameListBytes gEmptyFrameListBytes = {0};
+}  // namespace detail
+}  // namespace mozilla
 
 void* nsFrameList::operator new(size_t sz, mozilla::PresShell* aPresShell) {
   return aPresShell->AllocateByObjectID(eArenaObjectID_nsFrameList, sz);

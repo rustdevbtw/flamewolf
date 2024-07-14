@@ -322,9 +322,16 @@ public interface VideoEncoder {
    * the Java interface methods declared below should thus throw an
    * UnsupportedOperationException.
    */
+
+  @CalledByNative
+  @Deprecated
+  default long createNativeVideoEncoder() {
+    return 0;
+  }
+
   @CalledByNative
   default long createNative(long webrtcEnvRef) {
-    return 0;
+    return createNativeVideoEncoder();
   }
 
   /**

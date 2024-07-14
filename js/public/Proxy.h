@@ -100,10 +100,6 @@ class JS_PUBLIC_API Wrapper;
  * organized in the following hierarchy:
  *
  *     BaseProxyHandler
- *     |  |
- *     |  NurseryAllocableProxyHandler
- *     |                         // allocated in the nursery; disallows
- *     |                         // overriding finalize method
  *     |
  *     ForwardingProxyHandler    // has a target and forwards internal methods
  *     |
@@ -382,17 +378,6 @@ class JS_PUBLIC_API BaseProxyHandler {
   virtual bool isScripted() const { return false; }
 };
 
-class JS_PUBLIC_API NurseryAllocableProxyHandler : public BaseProxyHandler {
-  using BaseProxyHandler::BaseProxyHandler;
-
-  // Don't allow overriding the default finalize method.
-  void finalize(JS::GCContext* gcx, JSObject* proxy) const final {
-    BaseProxyHandler::finalize(gcx, proxy);
-  }
-  // Can allocate in the nursery as long as we use the default finalize method.
-  bool canNurseryAllocate() const override { return true; }
-};
-
 extern JS_PUBLIC_DATA const JSClass ProxyClass;
 
 inline bool IsProxy(const JSObject* obj) {
@@ -569,8 +554,9 @@ inline void SetProxyReservedSlot(JSObject* obj, size_t n,
 
 inline void SetProxyPrivate(JSObject* obj, const JS::Value& value) {
 #ifdef DEBUG
-  JS::AssertObjectIsNotGray(obj);
-  JS::AssertValueIsNotGray(value);
+  if (gc::detail::ObjectIsMarkedBlack(obj)) {
+    JS::AssertValueIsNotGray(value);
+  }
 #endif
 
   JS::Value* vp = &detail::GetProxyDataLayout(obj)->values()->privateSlot;

@@ -421,7 +421,7 @@ async function clearNetworkEvents(monitor) {
   await waitForAllNetworkUpdateEvents();
 
   info("Clearing the network requests in the UI");
-  store.dispatch(Actions.clearRequests({ isExplicitClear: true }));
+  store.dispatch(Actions.clearRequests());
 }
 
 function teardown(monitor, privateWindow) {
@@ -459,26 +459,20 @@ function waitForNetworkEvents(monitor, getRequests, options = {}) {
   return new Promise(resolve => {
     const panel = monitor.panelWin;
     let networkEvent = 0;
+    let nonBlockedNetworkEvent = 0;
     let payloadReady = 0;
     let eventTimings = 0;
-
-    // Use a set to monitor blocked events, because a network resource might
-    // only receive its blockedReason in onPayloadReady.
-    let nonBlockedNetworkEvents = new Set();
 
     function onNetworkEvent(resource) {
       networkEvent++;
       if (!resource.blockedReason) {
-        nonBlockedNetworkEvents.add(resource.actor);
+        nonBlockedNetworkEvent++;
       }
       maybeResolve(TEST_EVENTS.NETWORK_EVENT, resource.actor);
     }
 
     function onPayloadReady(resource) {
       payloadReady++;
-      if (resource.blockedReason) {
-        nonBlockedNetworkEvents.delete(resource.actor);
-      }
       maybeResolve(EVENTS.PAYLOAD_READY, resource.actor);
     }
 
@@ -490,7 +484,7 @@ function waitForNetworkEvents(monitor, getRequests, options = {}) {
     function onClearNetworkResources() {
       // Reset all counters.
       networkEvent = 0;
-      nonBlockedNetworkEvents = new Set();
+      nonBlockedNetworkEvent = 0;
       payloadReady = 0;
       eventTimings = 0;
     }
@@ -502,7 +496,7 @@ function waitForNetworkEvents(monitor, getRequests, options = {}) {
       // * hidden in background,
       // * for any blocked request,
       let expectedEventTimings =
-        document.visibilityState == "hidden" ? 0 : nonBlockedNetworkEvents.size;
+        document.visibilityState == "hidden" ? 0 : nonBlockedNetworkEvent;
       let expectedPayloadReady = getRequests;
       // Typically ignore this option if it is undefined or null
       if (typeof options?.expectedEventTimings == "number") {

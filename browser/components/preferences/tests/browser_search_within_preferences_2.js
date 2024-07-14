@@ -189,14 +189,12 @@ add_task(async function testSearchShadowDOM() {
   });
 
   // Create the toggle.
-  let { mozElements, SHADOW_DOM_TEXT } = createMozCustomElements(gBrowser);
+  let { toggle, SHADOW_DOM_TEXT } = createToggle(gBrowser);
 
-  mozElements.forEach(el => {
-    ok(
-      !BrowserTestUtils.isVisible(el),
-      `${el.localName} is not visible prior to search.`
-    );
-  });
+  ok(
+    !BrowserTestUtils.isVisible(toggle),
+    "Toggle is not visible prior to search."
+  );
 
   // Perform search with text found in moz-toggle's shadow DOM.
   let query = SHADOW_DOM_TEXT;
@@ -207,12 +205,10 @@ add_task(async function testSearchShadowDOM() {
   );
   EventUtils.sendString(query);
   await searchCompletedPromise;
-  mozElements.forEach(el => {
-    ok(
-      BrowserTestUtils.isVisible(el),
-      `${el.localName} is visible after searching for string in the shadow DOM.`
-    );
-  });
+  ok(
+    BrowserTestUtils.isVisible(toggle),
+    "Toggle is visible after searching for string in the shadow DOM."
+  );
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
@@ -227,10 +223,7 @@ add_task(async function testSearchLightDOM() {
   });
 
   // Create the toggle.
-  let { mozElements, LIGHT_DOM_TEXT } = createMozCustomElements(gBrowser, [
-    "moz-toggle",
-  ]);
-  let toggle = mozElements[0];
+  let { toggle, LIGHT_DOM_TEXT } = createToggle(gBrowser);
 
   // Perform search with text found in moz-toggle's slotted content.
   let query = LIGHT_DOM_TEXT;
@@ -249,42 +242,23 @@ add_task(async function testSearchLightDOM() {
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
 
-const MOZ_CUSTOM_ELEMENTS = [
-  "moz-toggle",
-  "moz-radio-group",
-  "moz-radio",
-  "moz-checkbox",
-];
-
-// Create multiple moz- custom elements with the same label.
-function createMozCustomElements(gBrowser, elements = MOZ_CUSTOM_ELEMENTS) {
+// Create a toggle with a slotted link element.
+function createToggle(gBrowser) {
   const SHADOW_DOM_TEXT = "This text lives in the shadow DOM";
   const LIGHT_DOM_TEXT = "This text lives in the light DOM";
 
   let doc = gBrowser.contentDocument;
-  let mozElements = elements.map(tag => {
-    let el = doc.createElement(tag);
-    el.label = SHADOW_DOM_TEXT;
-    return el;
-  });
-  let [toggle, radioGroup, radioButton, ...rest] = mozElements;
+  let toggle = doc.createElement("moz-toggle");
+  toggle.label = SHADOW_DOM_TEXT;
+
+  let link = doc.createElement("a");
+  link.href = "https://mozilla.org/";
+  link.textContent = LIGHT_DOM_TEXT;
+  toggle.append(link);
+  link.slot = "support-link";
+
   let protectionsGroup = doc.getElementById("trackingGroup");
+  protectionsGroup.append(toggle);
 
-  if (toggle) {
-    let link = doc.createElement("a");
-    link.href = "https://mozilla.org/";
-    link.textContent = LIGHT_DOM_TEXT;
-    toggle.append(link);
-    link.slot = "support-link";
-    protectionsGroup.append(toggle);
-  }
-
-  if (radioGroup && radioButton) {
-    radioGroup.appendChild(radioButton);
-    protectionsGroup.append(radioGroup);
-  }
-
-  protectionsGroup.append(...rest);
-
-  return { SHADOW_DOM_TEXT, LIGHT_DOM_TEXT, mozElements };
+  return { SHADOW_DOM_TEXT, LIGHT_DOM_TEXT, toggle };
 }

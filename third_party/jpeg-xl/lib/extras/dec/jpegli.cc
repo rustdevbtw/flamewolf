@@ -6,16 +6,16 @@
 #include "lib/extras/dec/jpegli.h"
 
 #include <setjmp.h>
-#include <stdint.h>
 
 #include <algorithm>
-#include <numeric>
+#include <cstdint>
+#include <memory>
 #include <utility>
 #include <vector>
 
 #include "lib/jpegli/decode.h"
+#include "lib/jxl/base/sanitizers.h"
 #include "lib/jxl/base/status.h"
-#include "lib/jxl/sanitizers.h"
 
 namespace jxl {
 namespace extras {
@@ -181,7 +181,9 @@ Status DecodeJpeg(const std::vector<uint8_t>& compressed,
     }
     int nbcomp = cinfo.num_components;
     if (nbcomp != 1 && nbcomp != 3) {
-      return failure("unsupported number of components in JPEG");
+      std::string msg =
+          "unsupported number of components in JPEG: " + std::to_string(nbcomp);
+      return failure(msg.c_str());
     }
     if (dparams.force_rgb) {
       cinfo.out_color_space = JCS_RGB;
@@ -246,7 +248,12 @@ Status DecodeJpeg(const std::vector<uint8_t>& compressed,
     };
     ppf->frames.clear();
     // Allocates the frame buffer.
-    ppf->frames.emplace_back(cinfo.image_width, cinfo.image_height, format);
+    {
+      JXL_ASSIGN_OR_RETURN(
+          PackedFrame frame,
+          PackedFrame::Create(cinfo.image_width, cinfo.image_height, format));
+      ppf->frames.emplace_back(std::move(frame));
+    }
     const auto& frame = ppf->frames.back();
     JXL_ASSERT(sizeof(JSAMPLE) * cinfo.out_color_components *
                    cinfo.image_width <=

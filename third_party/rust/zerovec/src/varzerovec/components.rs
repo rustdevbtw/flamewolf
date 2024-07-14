@@ -179,7 +179,7 @@ impl<'a, T: VarULE + ?Sized, F: VarZeroVecFormat> VarZeroVecComponents<'a, T, F>
             .map_err(|_| ZeroVecError::VarZeroVecFormatError)?;
 
         let len = len_ule
-            .first()
+            .get(0)
             .ok_or(ZeroVecError::VarZeroVecFormatError)?
             .as_unsigned_int();
         let indices_bytes = slice

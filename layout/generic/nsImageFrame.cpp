@@ -2678,7 +2678,7 @@ nsresult nsImageFrame::HandleEvent(nsPresContext* aPresContext,
                                    nsEventStatus* aEventStatus) {
   NS_ENSURE_ARG_POINTER(aEventStatus);
 
-  if ((aEvent->mMessage == ePointerClick &&
+  if ((aEvent->mMessage == eMouseClick &&
        aEvent->AsMouseEvent()->mButton == MouseButton::ePrimary) ||
       aEvent->mMessage == eMouseMove) {
     nsImageMap* map = GetImageMap();
@@ -2719,8 +2719,7 @@ nsresult nsImageFrame::HandleEvent(nsPresContext* aPresContext,
           NS_ENSURE_SUCCESS(rv, rv);
 
           bool clicked = false;
-          if (aEvent->mMessage == ePointerClick &&
-              !aEvent->DefaultPrevented()) {
+          if (aEvent->mMessage == eMouseClick && !aEvent->DefaultPrevented()) {
             *aEventStatus = nsEventStatus_eConsumeDoDefault;
             clicked = true;
           }

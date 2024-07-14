@@ -874,13 +874,6 @@ nsresult HTMLFormElement::SubmitSubmission(
     loadState->SetCsp(GetCsp());
     loadState->SetAllowFocusMove(UserActivation::IsHandlingUserInput());
 
-    const bool hasValidUserGestureActivation =
-        doc->HasValidTransientUserGestureActivation();
-    loadState->SetHasValidUserGestureActivation(hasValidUserGestureActivation);
-    loadState->SetTextDirectiveUserActivation(
-        doc->ConsumeTextDirectiveUserActivation() ||
-        hasValidUserGestureActivation);
-
     nsCOMPtr<nsIPrincipal> nodePrincipal = NodePrincipal();
     rv = container->OnLinkClickSync(this, loadState, false, nodePrincipal);
     NS_ENSURE_SUBMIT_SUCCESS(rv);
@@ -1667,7 +1660,7 @@ nsresult HTMLFormElement::GetActionURL(nsIURI** aActionURL,
         1,       // aColumnNumber
         nsIScriptError::warningFlag, "upgradeInsecureRequest"_ns,
         document->InnerWindowID(),
-        document->NodePrincipal()->OriginAttributesRef().IsPrivateBrowsing());
+        !!document->NodePrincipal()->OriginAttributesRef().mPrivateBrowsingId);
   }
 
   //

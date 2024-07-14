@@ -1875,27 +1875,11 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Indicates if the Compose Homepage is enabled.
-     */
-    var enableComposeHomepage by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_enable_compose_homepage),
-        default = FeatureFlags.composeHomepage,
-    )
-
-    /**
      * Indicates if the menu redesign is enabled.
      */
     var enableMenuRedesign by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_menu_redesign),
         default = FeatureFlags.menuRedesignEnabled,
-    )
-
-    /**
-     * Indicates if the Homepage as a New Tab is enabled.
-     */
-    var enableHomepageAsNewTab by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_enable_homepage_as_new_tab),
-        default = FeatureFlags.homepageAsNewTab,
     )
 
     /**
@@ -1969,14 +1953,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Indicates first time engaging with signup
-     */
-    var isFirstTimeEngagingWithSignup: Boolean by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_first_time_engage_with_signup),
-        default = true,
-    )
-
-    /**
      * Indicates if the user has chosen to show sponsored search suggestions in the awesomebar.
      * The default value is computed lazily, and based on whether Firefox Suggest is enabled.
      */
@@ -2007,6 +1983,15 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates if the user is shown new redesigned Toolbar UI.
+     */
+    var enableRedesignToolbar by lazyFeatureFlagPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_toolbar_use_redesign),
+        default = { FeatureFlags.completeToolbarRedesignEnabled },
+        featureFlag = FeatureFlags.completeToolbarRedesignEnabled,
+    )
+
+    /**
      * Indicates if the feature to close synced tabs is enabled.
      */
     val enableCloseSyncedTabs: Boolean
@@ -2019,7 +2004,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      * a combination of a navigation and address bar, or be absent.
      */
     fun getBottomToolbarHeight(): Int {
-        val isNavBarEnabled = navigationToolbarEnabled
+        val isNavBarEnabled = enableIncompleteToolbarRedesign
         val isToolbarAtBottom = toolbarPosition == ToolbarPosition.BOTTOM
         val toolbarHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_toolbar_height)
         val navbarHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height)
@@ -2051,40 +2036,11 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     }
 
     /**
-     * Returns the height of the bottom toolbar container.
-     *
-     * The bottom toolbar container can consist of a navigation bar, the microsurvey prompt
-     * a combination of a navigation and microsurvey prompt, or be absent.
+     * Indicates if the user is shown incomplete new redesigned Toolbar UI components and behaviors.
      */
-    fun getBottomToolbarContainerHeight(): Int {
-        val isNavBarEnabled = navigationToolbarEnabled
-        val isMicrosurveyEnabled = shouldShowMicrosurveyPrompt
-        val navbarHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height)
-        val microsurveyHeight =
-            appContext.resources.getDimensionPixelSize(R.dimen.browser_microsurvey_height)
-
-        return when {
-            isNavBarEnabled && isMicrosurveyEnabled -> navbarHeight + microsurveyHeight
-            isNavBarEnabled -> navbarHeight
-            isMicrosurveyEnabled -> microsurveyHeight
-            else -> 0
-        }
-    }
-
-    /**
-     * Indicates if the user is shown the new navigation toolbar.
-     */
-    var navigationToolbarEnabled by lazyFeatureFlagPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_toolbar_show_navigation_toolbar),
-        default = { FxNimbus.features.navigationToolbar.value().enabled },
-        featureFlag = FeatureFlags.navigationToolbarEnabled,
-    )
-
-    /**
-     * Indicates if a microsurvey should be shown to the user.
-     */
-    var shouldShowMicrosurveyPrompt by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_should_show_microsurvey_prompt),
-        default = false,
+    var enableIncompleteToolbarRedesign by lazyFeatureFlagPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_toolbar_use_redesign_incomplete),
+        default = { false },
+        featureFlag = FxNimbus.features.toolbarRedesign.value().enabled,
     )
 }

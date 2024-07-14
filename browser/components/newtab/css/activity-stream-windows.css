@@ -159,11 +159,6 @@ input {
 .icon.icon-info-critical {
   background-image: url("chrome://activity-stream/content/data/content/assets/glyph-info-critical-16.svg");
 }
-.icon.icon-info-warning {
-  background-image: url("chrome://global/skin/icons/warning.svg");
-  fill: var(--icon-color-warning);
-  -moz-context-properties: fill;
-}
 .icon.icon-help {
   background-image: url("chrome://global/skin/icons/help.svg");
 }
@@ -232,9 +227,6 @@ input {
 .icon.icon-check {
   background-image: url("chrome://global/skin/icons/check.svg");
 }
-.icon.icon-check-filled {
-  background-image: url("chrome://global/skin/icons/check-filled.svg");
-}
 .icon.icon-download {
   background-image: url("chrome://browser/skin/downloads/downloads.svg");
 }
@@ -286,13 +278,6 @@ input {
 .icon.icon-arrow {
   background-image: url("chrome://global/skin/icons/arrow-right-12.svg");
 }
-.icon.icon-thumbs-up {
-  transform: rotate(180deg);
-  background-image: url("chrome://browser/skin/thumb-down.svg");
-}
-.icon.icon-thumbs-down {
-  background-image: url("chrome://browser/skin/thumb-down.svg");
-}
 
 html {
   height: 100%;
@@ -309,7 +294,7 @@ body,
 
 body {
   background-color: var(--newtab-background-color);
-  font-family: system-ui;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, "Helvetica Neue", sans-serif;
   font-size: 16px;
   background-repeat: no-repeat;
   background-size: cover;
@@ -601,14 +586,6 @@ main section {
 }
 .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) {
   background: var(--newtab-element-hover-color);
-}
-.lightWallpaper .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover), .darkWallpaper .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) {
-  background-color: var(--newtab-weather-background-color);
-}
-@media (prefers-contrast) {
-  .lightWallpaper .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover), .darkWallpaper .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) {
-    background-color: var(--background-color-box);
-  }
 }
 @media (max-width: 610px) {
   .top-sites-list > :nth-child(2n+1) .context-menu {
@@ -2170,18 +2147,13 @@ main section {
 
 .weatherNotAvailable {
   font-size: var(--newtab-weather-content-font-size);
+  color: var(--text-color-error);
   display: flex;
   align-items: center;
-  border-radius: var(--border-radius-medium);
-  padding: var(--space-small);
 }
-.lightWallpaper .weatherNotAvailable, .darkWallpaper .weatherNotAvailable {
-  background-color: var(--newtab-weather-background-color);
-}
-@media (prefers-contrast) {
-  .lightWallpaper .weatherNotAvailable, .darkWallpaper .weatherNotAvailable {
-    background-color: var(--background-color-box);
-  }
+.weatherNotAvailable .icon {
+  fill: var(--icon-color-critical);
+  -moz-context-properties: fill;
 }
 
 .weatherCard {
@@ -2483,7 +2455,7 @@ main section {
   background-color: light-dark(var(--color-white), var(--newtab-background-color-secondary));
   color: var(--newtab-text-primary-color);
   border-radius: var(--border-radius-medium);
-  padding: var(--space-small);
+  padding: 8px;
   position: relative;
 }
 .lightWallpaper .location-input-wrapper, .darkWallpaper .location-input-wrapper {
@@ -2550,7 +2522,7 @@ main section {
   background-clip: padding-box;
   background-color: var(--newtab-button-background);
   background-image: url("chrome://global/skin/icons/more.svg");
-  background-position: 50.1%;
+  background-position: 55%;
   border: 0;
   outline: 1px solid var(--newtab-border-color);
   outline-width: 0;
@@ -3456,58 +3428,6 @@ main section {
   transition: box-shadow 150ms;
 }
 
-.notification-wrapper {
-  position: fixed;
-  inset-inline-end: var(--space-medium);
-  inset-block-end: var(--space-medium);
-}
-
-.notification-feed {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-medium);
-}
-
-.notification-feed-item {
-  position: relative;
-  padding: var(--space-small) var(--space-large);
-  border: 1px solid var(--border-color-interactive);
-  display: flex;
-  max-width: 280px;
-  border-radius: var(--border-radius-small);
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--space-small);
-  animation: toastSlideInSlideOut 4s ease-in-out forwards;
-}
-.notification-feed-item .icon {
-  flex-shrink: 0;
-}
-.notification-feed-item .notification-feed-item-text {
-  font-size: var(--font-size-small);
-  font-weight: var(--font-weight);
-}
-.notification-feed-item.is-success {
-  background-color: var(--background-color-success);
-}
-.notification-feed-item.is-success .icon.icon-themed {
-  fill: var(--icon-color-success);
-}
-.notification-feed-item button {
-  appearance: none;
-  border: 0;
-}
-
-@keyframes toastSlideInSlideOut {
-  0%, 100% {
-    opacity: 0;
-    top: 50%;
-  }
-  15%, 85% {
-    opacity: 1;
-    top: 0;
-  }
-}
 .ds-onboarding-container,
 .ds-card-grid .ds-card {
   background: #FFF;
@@ -4233,7 +4153,7 @@ main section {
   background-clip: padding-box;
   background-color: var(--newtab-button-background);
   background-image: url("chrome://global/skin/icons/more.svg");
-  background-position: 50.1%;
+  background-position: 55%;
   border: 0;
   outline: 1px solid var(--newtab-border-color);
   outline-width: 0;
@@ -4377,35 +4297,6 @@ main section {
 .ds-card .card-stp-button-hover-background button {
   cursor: pointer;
 }
-.ds-card .card-stp-thumbs-buttons-wrapper {
-  margin-top: var(--space-medium);
-  z-index: 1;
-  visibility: hidden;
-  opacity: 0;
-}
-.ds-card .card-stp-thumbs-buttons-wrapper .card-stp-thumbs-buttons {
-  display: flex;
-  height: 100%;
-  align-items: center;
-  justify-content: end;
-  gap: var(--space-medium);
-  padding-inline-end: var(--space-medium);
-}
-.ds-card .card-stp-thumbs-buttons-wrapper .card-stp-thumbs-button {
-  pointer-events: auto;
-  opacity: 0.8;
-  -moz-context-properties: fill;
-}
-.ds-card .card-stp-thumbs-buttons-wrapper .card-stp-thumbs-button:hover, .ds-card .card-stp-thumbs-buttons-wrapper .card-stp-thumbs-button:focus-visible {
-  opacity: 1;
-}
-.ds-card .card-stp-thumbs-buttons-wrapper .icon-thumbs-up,
-.ds-card .card-stp-thumbs-buttons-wrapper .icon-thumbs-down {
-  display: block;
-  border: 0;
-  background-color: transparent;
-  fill: light-dark(var(--color-gray-70), var(--color-gray-05));
-}
 .ds-card .context-menu-button {
   position: static;
   transition: none;
@@ -4434,10 +4325,6 @@ main section {
 .ds-card.active .card-stp-button-hover-background .context-menu-button, .ds-card:focus-within .card-stp-button-hover-background .context-menu-button, .ds-card:hover .card-stp-button-hover-background .context-menu-button {
   opacity: 1;
   transform: scale(1);
-}
-.ds-card.active .card-stp-thumbs-buttons-wrapper, .ds-card:focus-within .card-stp-thumbs-buttons-wrapper, .ds-card:hover .card-stp-thumbs-buttons-wrapper {
-  visibility: visible;
-  opacity: 1;
 }
 .ds-card.active header, .ds-card:focus-within header, .ds-card:hover header {
   color: var(--newtab-primary-action-background);
@@ -5305,4 +5192,48 @@ main section {
   margin-inline-start: auto;
   background-color: var(--button-background-color);
   margin-block-start: var(--space-small);
+}
+
+.ASRouterButton {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  border-radius: 2px;
+  border: 0;
+  font-family: inherit;
+  padding: 8px 15px;
+  margin-inline-start: 12px;
+  color: inherit;
+  cursor: pointer;
+}
+.tall .ASRouterButton {
+  margin-inline-start: 20px;
+}
+.ASRouterButton.test-only {
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  display: block;
+  visibility: hidden;
+}
+.ASRouterButton.primary {
+  border: 1px solid var(--newtab-primary-action-background);
+  background-color: var(--newtab-primary-action-background);
+  color: var(--newtab-primary-element-text-color);
+}
+.ASRouterButton.primary:hover {
+  background-color: var(--newtab-primary-element-hover-color);
+}
+.ASRouterButton.primary:active {
+  background-color: var(--newtab-primary-element-active-color);
+}
+.ASRouterButton.slim {
+  border: 1px solid var(--newtab-border-color);
+  margin-inline-start: 0;
+  font-size: 12px;
+  padding: 6px 12px;
+}
+.ASRouterButton.slim:hover, .ASRouterButton.slim:focus {
+  box-shadow: 0 0 0 5px var(--newtab-element-secondary-color);
+  transition: box-shadow 150ms;
 }

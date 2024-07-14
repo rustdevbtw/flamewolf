@@ -996,8 +996,7 @@ function ArraySpeciesCreate(originalArray, length) {
   }
 
   // Step 5.a.
-  var originalConstructor = originalArray.constructor;
-  var C = originalConstructor;
+  var C = originalArray.constructor;
 
   // Step 5.b.
   if (IsConstructor(C) && IsCrossRealmArrayConstructor(C)) {
@@ -1032,9 +1031,7 @@ function ArraySpeciesCreate(originalArray, length) {
   }
 
   // Step 8.
-  if (C !== originalConstructor) {
-    ReportUsageCounter(C, SUBCLASS_ARRAY_TYPE_III);
-  }
+  ReportUsageCounter(C, SUBCLASS_ARRAY_TYPE_III);
   return constructContentFunction(C, C, length);
 }
 

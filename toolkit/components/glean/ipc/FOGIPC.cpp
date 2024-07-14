@@ -346,12 +346,8 @@ void RecordPowerMetrics() {
             type.AppendLiteral(".background-perceivable");
             gThisProcessType = ProcessType::eUnknown;
             break;
-          case hal::PROCESS_PRIORITY_PREALLOC:
-            type.Assign("prealloc");
-            gThisProcessType = ProcessType::eUnknown;
-            break;
           default:
-            MOZ_ASSERT_UNREACHABLE("Unsuppored process type for cpu time");
+            gThisProcessType = ProcessType::eUnknown;
             break;
         }
       }

@@ -282,7 +282,7 @@ function Toolbox(commands, selectedTool, hostType, contentWindow, frameId) {
   this.selectedFrameId = null;
 
   // Number of targets currently paused
-  this._pausedTargets = new Set();
+  this._pausedTargets = 0;
 
   /**
    * KeyShortcuts instance specific to WINDOW host type.
@@ -686,9 +686,9 @@ Toolbox.prototype = {
    */
   _onThreadStateChanged(resource) {
     if (resource.state == "paused") {
-      this._onTargetPaused(resource.targetFront, resource.why.type);
+      this._pauseToolbox(resource.why.type);
     } else if (resource.state == "resumed") {
-      this._onTargetResumed(resource.targetFront);
+      this._resumeToolbox();
     }
   },
 
@@ -702,7 +702,7 @@ Toolbox.prototype = {
     if (!profile) {
       return;
     }
-    const browser = await openProfilerTab({ defaultPanel: "stack-chart" });
+    const browser = await openProfilerTab();
 
     const profileCaptureResult = {
       type: "SUCCESS",
@@ -716,16 +716,10 @@ Toolbox.prototype = {
   },
 
   /**
-   * Called whenever a given target got its execution paused.
-   *
    * Be careful, this method is synchronous, but highlightTool, raise, selectTool
    * are all async.
-   *
-   * @param {TargetFront} targetFront
-   * @param {string} reason
-   *        Reason why the execution paused
    */
-  _onTargetPaused(targetFront, reason) {
+  _pauseToolbox(reason) {
     // Suppress interrupted events by default because the thread is
     // paused/resumed a lot for various actions.
     if (reason === "interrupted") {
@@ -749,20 +743,15 @@ Toolbox.prototype = {
       // Each Target/Thread can be paused only once at a time,
       // so, for each pause, we should have a related resumed event.
       // But we may have multiple targets paused at the same time
-      this._pausedTargets.add(targetFront);
+      this._pausedTargets++;
       this.emit("toolbox-paused");
     }
   },
 
-  /**
-   * Called whenever a given target got its execution resumed.
-   *
-   * @param {TargetFront} targetFront
-   */
-  _onTargetResumed(targetFront) {
+  _resumeToolbox() {
     if (this.isHighlighted("jsdebugger")) {
-      this._pausedTargets.delete(targetFront);
-      if (this._pausedTargets.size == 0) {
+      this._pausedTargets--;
+      if (this._pausedTargets == 0) {
         this.emit("toolbox-resumed");
         this.unhighlightTool("jsdebugger");
       }
@@ -854,8 +843,8 @@ Toolbox.prototype = {
     // navigations when paused, so lets make sure we resumed if not.
     //
     // We should also resume if a paused non-top-level target is destroyed
-    if (targetFront.isTopLevel || this._pausedTargets.has(targetFront)) {
-      this._onTargetResumed(targetFront);
+    if (targetFront.isTopLevel || targetFront.threadFront?.paused) {
+      this._resumeToolbox();
     }
 
     if (targetFront.targetForm.ignoreSubFrames) {
@@ -3225,9 +3214,9 @@ Toolbox.prototype = {
     // issue which can cause loosing outgoing messages/RDP packets, the THREAD_STATE
     // resources for the resumed state might not get received. So let assume it happens
     // make use the UI is the appropriate state.
-    if (this._pausedTargets.size > 0) {
+    if (this._pausedTargets > 0) {
       this.emit("toolbox-resumed");
-      this._pausedTargets.clear();
+      this._pausedTargets = 0;
       if (this.isHighlighted("jsdebugger")) {
         this.unhighlightTool("jsdebugger");
       }
@@ -4701,9 +4690,7 @@ Toolbox.prototype = {
       }
 
       if (resourceType === TYPES.CONSOLE_MESSAGE) {
-        // @backward-compat { version 129 } Once Fx129 is release, CONSOLE_MESSAGE resource
-        // are no longer encapsulated into a sub "message" attribute.
-        const { level } = resource.message || resource;
+        const { level } = resource.message;
         if (level === "error" || level === "exception" || level === "assert") {
           errors++;
         }

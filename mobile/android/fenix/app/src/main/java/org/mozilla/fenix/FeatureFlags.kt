@@ -79,15 +79,9 @@ object FeatureFlags {
     const val metaAttributionEnabled = true
 
     /**
-     * Enables Navigation Toolbar.
+     * Enable Toolbar Redesign components and behaviors ready for Nightly.
      */
-    val navigationToolbarEnabled = Config.channel.isNightlyOrDebug
-
-    /**
-     * Whether or not to replace the Homepage button on the Navigation Toolbar with a New Tab
-     * button.
-     */
-    const val navigationToolbarNewTabButtonEnabled = false
+    val completeToolbarRedesignEnabled = Config.channel.isNightlyOrDebug
 
     /**
      * Enables the menu redesign.
@@ -98,14 +92,4 @@ object FeatureFlags {
      * Enables microsurveys.
      */
     val microsurveysEnabled = Config.channel.isDebug
-
-    /**
-     * Enables the Compose Homepage.
-     */
-    const val composeHomepage = false
-
-    /**
-     * Enables Homepage as a New Tab.
-     */
-    const val homepageAsNewTab = false
 }

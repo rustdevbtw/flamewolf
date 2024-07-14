@@ -27,6 +27,13 @@ namespace mozilla {
 struct SVGMark;
 enum class StyleStrokeLinecap : uint8_t;
 
+class SVGPathDataParser;  // IWYU pragma: keep
+
+namespace dom {
+class DOMSVGPathSeg;
+class DOMSVGPathSegList;
+}  // namespace dom
+
 /**
  * ATTENTION! WARNING! WATCH OUT!!
  *
@@ -75,7 +82,11 @@ enum class StyleStrokeLinecap : uint8_t;
  */
 class SVGPathData {
   friend class SVGAnimatedPathSegList;
-  friend class SVGPathDataAndInfo;
+  friend class dom::DOMSVGPathSeg;
+  friend class dom::DOMSVGPathSegList;
+  friend class SVGPathDataParser;
+  // SVGPathDataParser will not keep wrappers in sync, so consumers
+  // are responsible for that!
 
   using DrawTarget = gfx::DrawTarget;
   using Path = gfx::Path;
@@ -85,32 +96,60 @@ class SVGPathData {
   using CapStyle = gfx::CapStyle;
 
  public:
+  using const_iterator = const float*;
+
   SVGPathData() = default;
   ~SVGPathData() = default;
 
-  explicit SVGPathData(const nsACString& aString) {
-    SetValueFromString(aString);
+  SVGPathData& operator=(const SVGPathData& aOther) {
+    mData.ClearAndRetainStorage();
+    // Best-effort, really.
+    Unused << mData.AppendElements(aOther.mData, fallible);
+    return *this;
   }
 
-  SVGPathData& operator=(const SVGPathData&) = default;
-  SVGPathData(const SVGPathData&) = default;
-  SVGPathData& operator=(SVGPathData&&) = default;
-  SVGPathData(SVGPathData&&) = default;
-
-  // Used by SMILCompositor to check if the cached base val is out of date
-  bool operator==(const SVGPathData& rhs) const { return mData == rhs.mData; }
+  SVGPathData(const SVGPathData& aOther) { *this = aOther; }
 
   // Only methods that don't make/permit modification to this list are public.
   // Only our friend classes can access methods that may change us.
 
   /// This may return an incomplete string on OOM, but that's acceptable.
-  void GetValueAsString(nsACString& aValue) const;
+  void GetValueAsString(nsAString& aValue) const;
 
-  Span<const StylePathCommand> AsSpan() const { return mData._0.AsSpan(); }
-  bool IsEmpty() const { return AsSpan().IsEmpty(); }
+  bool IsEmpty() const { return mData.IsEmpty(); }
 
-  StyleSVGPathData& RawData() { return mData; }
-  const StyleSVGPathData& RawData() const { return mData; }
+#ifdef DEBUG
+  /**
+   * This method iterates over the encoded segment data and counts the number
+   * of segments we currently have.
+   */
+  uint32_t CountItems() const;
+#endif
+
+  /**
+   * Returns the number of *floats* in the encoding array, and NOT the number
+   * of segments encoded in this object. (For that, see CountItems() above.)
+   */
+  uint32_t Length() const { return mData.Length(); }
+
+  const nsTArray<float>& RawData() const { return mData; }
+
+  const float& operator[](uint32_t aIndex) const { return mData[aIndex]; }
+
+  // Used by SMILCompositor to check if the cached base val is out of date
+  bool operator==(const SVGPathData& rhs) const {
+    // We use memcmp so that we don't need to worry that the data encoded in
+    // the first float may have the same bit pattern as a NaN.
+    return mData.Length() == rhs.mData.Length() &&
+           memcmp(mData.Elements(), rhs.mData.Elements(),
+                  mData.Length() * sizeof(float)) == 0;
+  }
+
+  bool SetCapacity(uint32_t aSize) {
+    return mData.SetCapacity(aSize, fallible);
+  }
+
+  void Compact() { mData.Compact(); }
 
   float GetPathLength() const;
 
@@ -119,10 +158,11 @@ class SVGPathData {
   static uint32_t GetPathSegAtLength(Span<const StylePathCommand> aPath,
                                      float aDistance);
 
-  void GetMarkerPositioningData(float aZoom, nsTArray<SVGMark>* aMarks) const;
+  void GetMarkerPositioningData(nsTArray<SVGMark>* aMarks) const;
 
   static void GetMarkerPositioningData(Span<const StylePathCommand> aPath,
-                                       float aZoom, nsTArray<SVGMark>* aMarks);
+                                       nsTArray<SVGMark>* aMarks);
+
   /**
    * Returns true, except on OOM, in which case returns false.
    */
@@ -140,14 +180,14 @@ class SVGPathData {
    * ApproximateZeroLengthSubpathSquareCaps can insert if we have square-caps.
    * See the comment for that function for more info on that.
    */
-  already_AddRefed<Path> BuildPathForMeasuring(float aZoom) const;
+  already_AddRefed<Path> BuildPathForMeasuring() const;
 
   already_AddRefed<Path> BuildPath(PathBuilder* aBuilder,
                                    StyleStrokeLinecap aStrokeLineCap,
-                                   Float aStrokeWidth, float aZoom) const;
+                                   Float aStrokeWidth) const;
 
   static already_AddRefed<Path> BuildPathForMeasuring(
-      Span<const StylePathCommand> aPath, float aZoom);
+      Span<const StylePathCommand> aPath);
 
   /**
    * This function tries to build the path from an array of GenericShapeCommand,
@@ -156,18 +196,19 @@ class SVGPathData {
    * Note: |StylePathCommand| doesn't accept percentage values, so its |aBasis|
    * is empty by default.
    */
-  static already_AddRefed<Path> BuildPath(Span<const StylePathCommand> aPath,
-                                          PathBuilder* aBuilder,
-                                          StyleStrokeLinecap aStrokeLineCap,
-                                          Float aStrokeWidth,
-                                          const CSSSize& aBasis = {},
-                                          const gfx::Point& aOffset = {},
-                                          float aZoomFactor = 1.0);
+  static already_AddRefed<Path> BuildPath(
+      Span<const StylePathCommand> aPath, PathBuilder* aBuilder,
+      StyleStrokeLinecap aStrokeLineCap, Float aStrokeWidth,
+      const CSSSize& aBasis = {}, const gfx::Point& aOffset = gfx::Point(),
+      float aZoomFactor = 1.0);
   static already_AddRefed<Path> BuildPath(
       Span<const StyleShapeCommand> aShape, PathBuilder* aBuilder,
       StyleStrokeLinecap aStrokeLineCap, Float aStrokeWidth,
       const CSSSize& aBasis, const gfx::Point& aOffset = gfx::Point(),
       float aZoomFactor = 1.0);
+
+  const_iterator begin() const { return mData.Elements(); }
+  const_iterator end() const { return mData.Elements() + mData.Length(); }
 
   // memory reporting methods
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
@@ -181,9 +222,28 @@ class SVGPathData {
   // can take care of keeping DOM wrappers in sync.
 
  protected:
-  nsresult SetValueFromString(const nsACString& aValue);
+  using iterator = float*;
 
-  void Clear() { mData = {}; }
+  /**
+   * This may fail on OOM if the internal capacity needs to be increased, in
+   * which case the list will be left unmodified.
+   */
+  nsresult CopyFrom(const SVGPathData& rhs);
+  void SwapWith(SVGPathData& aRhs) { mData.SwapElements(aRhs.mData); }
+
+  float& operator[](uint32_t aIndex) { return mData[aIndex]; }
+
+  /**
+   * This may fail (return false) on OOM if the internal capacity is being
+   * increased, in which case the list will be left unmodified.
+   */
+  bool SetLength(uint32_t aLength) {
+    return mData.SetLength(aLength, fallible);
+  }
+
+  nsresult SetValueFromString(const nsAString& aValue);
+
+  void Clear() { mData.Clear(); }
 
   // Our DOM wrappers have direct access to our mData, so they directly
   // manipulate it rather than us implementing:
@@ -195,7 +255,10 @@ class SVGPathData {
 
   nsresult AppendSeg(uint32_t aType, ...);  // variable number of float args
 
-  mozilla::StyleSVGPathData mData;
+  iterator begin() { return mData.Elements(); }
+  iterator end() { return mData.Elements() + mData.Length(); }
+
+  FallibleTArray<float> mData;
 };
 
 /**
@@ -220,11 +283,9 @@ class SVGPathDataAndInfo final : public SVGPathData {
     return static_cast<dom::SVGElement*>(e.get());
   }
 
-  // If you use this, you need to call SetElement manually.
-  void CopyFrom(const SVGPathData& aOther) { mData = aOther.mData; }
-  void CopyFrom(const SVGPathDataAndInfo& aOther) {
-    CopyFrom(static_cast<const SVGPathData&>(aOther));
-    mElement = aOther.mElement;
+  nsresult CopyFrom(const SVGPathDataAndInfo& rhs) {
+    mElement = rhs.mElement;
+    return SVGPathData::CopyFrom(rhs);
   }
 
   /**
@@ -239,6 +300,20 @@ class SVGPathDataAndInfo final : public SVGPathData {
     }
     return false;
   }
+
+  /**
+   * Exposed so that SVGPathData baseVals can be copied to
+   * SVGPathDataAndInfo objects. Note that callers should also call
+   * SetElement() when using this method!
+   */
+  using SVGPathData::CopyFrom;
+
+  // Exposed since SVGPathData objects can be modified.
+  using SVGPathData::iterator;
+  using SVGPathData::operator[];
+  using SVGPathData::begin;
+  using SVGPathData::end;
+  using SVGPathData::SetLength;
 
  private:
   // We must keep a weak reference to our element because we may belong to a

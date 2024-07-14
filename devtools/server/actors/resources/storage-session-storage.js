@@ -4,6 +4,10 @@
 
 "use strict";
 
+const {
+  TYPES: { SESSION_STORAGE },
+} = require("resource://devtools/server/actors/resources/index.js");
+
 const ContentProcessStorage = require("resource://devtools/server/actors/resources/utils/content-process-storage.js");
 const {
   SessionStorageActor,
@@ -11,7 +15,7 @@ const {
 
 class SessionStorageWatcher extends ContentProcessStorage {
   constructor() {
-    super(SessionStorageActor, "sessionStorage");
+    super(SessionStorageActor, "sessionStorage", SESSION_STORAGE);
   }
 }
 

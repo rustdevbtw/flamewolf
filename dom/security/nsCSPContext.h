@@ -7,7 +7,6 @@
 #ifndef nsCSPContext_h___
 #define nsCSPContext_h___
 
-#include "mozilla/dom/CSPViolationData.h"
 #include "mozilla/dom/nsCSPUtils.h"
 #include "mozilla/dom/SecurityPolicyViolationEvent.h"
 #include "mozilla/StaticPrefs_security.h"
@@ -33,6 +32,8 @@ class nsIEventTarget;
 struct ConsoleMsgQueueElem;
 
 namespace mozilla {
+template <typename... Ts>
+class Variant;
 namespace dom {
 class Element;
 }
@@ -78,22 +79,43 @@ class nsCSPContext : public nsIContentSecurityPolicy {
                     uint32_t aLineNumber, uint32_t aColumnNumber,
                     uint32_t aSeverityFlag);
 
+  enum BlockedContentSource {
+    eUnknown,
+    eInline,
+    eEval,
+    eSelf,
+    eWasmEval,
+  };
+
+  // Roughly implements a violation's resource
+  // (https://w3c.github.io/webappsec-csp/#framework-violation).
+  using Resource = mozilla::Variant<nsIURI*, BlockedContentSource>;
+
   /**
    * Construct SecurityPolicyViolationEventInit structure.
    *
+   * @param aResource
+   *        The source of the violation.
    * @param aOriginalUri
    *        The original URI if the blocked content is a redirect, else null
    * @param aViolatedDirective
    *        the directive that was violated (string).
+   * @param aSourceFile
+   *        name of the file containing the inline script violation
    * @param aScriptSample
    *        a sample of the violating inline script
+   * @param aLineNum
+   *        source line number of the violation (if available)
+   * @param aColumnNum
+   *        source column number of the violation (if available)
    * @param aViolationEventInit
    *        The output
    */
   nsresult GatherSecurityPolicyViolationEventData(
-      nsIURI* aOriginalURI, const nsAString& aEffectiveDirective,
-      const mozilla::dom::CSPViolationData& aCSPViolationData,
-      const nsAString& aScriptSample,
+      Resource& aResource, nsIURI* aOriginalURI,
+      const nsAString& aViolatedDirective, uint32_t aViolatedPolicyIndex,
+      const nsAString& aSourceFile, const nsAString& aScriptSample,
+      uint32_t aLineNum, uint32_t aColumnNum,
       mozilla::dom::SecurityPolicyViolationEventInit& aViolationEventInit);
 
   nsresult SendReports(
@@ -107,11 +129,15 @@ class nsCSPContext : public nsIContentSecurityPolicy {
           aViolationEventInit);
 
   nsresult AsyncReportViolation(
-      nsICSPEventListener* aCSPEventListener,
-      mozilla::dom::CSPViolationData&& aCSPViolationData, nsIURI* aOriginalURI,
+      mozilla::dom::Element* aTriggeringElement,
+      nsICSPEventListener* aCSPEventListener, nsIURI* aBlockedURI,
+      BlockedContentSource aBlockedContentSource, nsIURI* aOriginalURI,
       const nsAString& aViolatedDirectiveName,
       const nsAString& aViolatedDirectiveNameAndValue,
-      const nsAString& aObserverSubject, bool aReportSample);
+      const CSPDirective aEffectiveDirective, uint32_t aViolatedPolicyIndex,
+      const nsAString& aObserverSubject, const nsAString& aSourceFile,
+      bool aReportSample, const nsAString& aScriptSample, uint32_t aLineNum,
+      uint32_t aColumnNum);
 
   // Hands off! Don't call this method unless you know what you
   // are doing. It's only supposed to be called from within
@@ -156,7 +182,7 @@ class nsCSPContext : public nsIContentSecurityPolicy {
                              uint32_t aLineNumber, uint32_t aColumnNumber);
 
   nsCString mReferrer;
-  uint64_t mInnerWindowID;          // See `nsPIDOMWindowInner::mWindowID`.
+  uint64_t mInnerWindowID;          // used for web console logging
   bool mSkipAllowInlineStyleCheck;  // used to allow Devtools to edit styles
   // When deserializing an nsCSPContext instance, we initially just keep the
   // policies unparsed. We will only reconstruct actual CSP policy instances

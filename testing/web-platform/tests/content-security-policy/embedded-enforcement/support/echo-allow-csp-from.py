@@ -32,15 +32,11 @@ def main(request, response):
             background-color: maroon;
         }
     </style>
-    <script nonce="123">
+    <script nonce="abc">
         var response = {};
         response["id"] = "%s";
         response["loaded"] = true;
         window.top.postMessage(response, '*');
-    </script>
-    <script>
-        // Inline script which might be blocked by CSP.
-        navigator.userAgent;
     </script>
 </body>
 </html>

@@ -363,9 +363,7 @@ void PictureIdTest::TestPictureIdIncreaseAfterRecreateStreams(
 
 TEST_P(PictureIdTest, ContinuousAfterReconfigureVp8) {
   test::FunctionVideoEncoderFactory encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return CreateVp8Encoder(env);
-      });
+      []() { return VP8Encoder::Create(); });
   SetupEncoder(&encoder_factory, "VP8");
   TestPictureIdContinuousAfterReconfigure({1, 3, 3, 1, 1});
 }
@@ -373,18 +371,14 @@ TEST_P(PictureIdTest, ContinuousAfterReconfigureVp8) {
 // TODO(bugs.webrtc.org/14985): Investigate and reenable.
 TEST_P(PictureIdTest, DISABLED_IncreasingAfterRecreateStreamVp8) {
   test::FunctionVideoEncoderFactory encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return CreateVp8Encoder(env);
-      });
+      []() { return VP8Encoder::Create(); });
   SetupEncoder(&encoder_factory, "VP8");
   TestPictureIdIncreaseAfterRecreateStreams({1, 3, 3, 1, 1});
 }
 
 TEST_P(PictureIdTest, ContinuousAfterStreamCountChangeVp8) {
   test::FunctionVideoEncoderFactory encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return CreateVp8Encoder(env);
-      });
+      []() { return VP8Encoder::Create(); });
   // Make sure that the picture id is not reset if the stream count goes
   // down and then up.
   SetupEncoder(&encoder_factory, "VP8");
@@ -434,9 +428,7 @@ TEST_P(PictureIdTest, ContinuousAfterStreamCountChangeSimulcastEncoderAdapter) {
 // TODO(bugs.webrtc.org/14985): Investigate and reenable.
 TEST_P(PictureIdTest, DISABLED_IncreasingAfterRecreateStreamVp9) {
   test::FunctionVideoEncoderFactory encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return CreateVp9Encoder(env);
-      });
+      []() { return VP9Encoder::Create(); });
   SetupEncoder(&encoder_factory, "VP9");
   TestPictureIdIncreaseAfterRecreateStreams({1, 1});
 }

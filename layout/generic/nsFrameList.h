@@ -81,7 +81,7 @@ class nsFrameList {
   using reverse_iterator = Iterator<BackwardFrameTraversal>;
   using const_reverse_iterator = Iterator<BackwardFrameTraversal>;
 
-  constexpr nsFrameList() : mFirstChild(nullptr), mLastChild(nullptr) {}
+  nsFrameList() : mFirstChild(nullptr), mLastChild(nullptr) {}
 
   nsFrameList(nsIFrame* aFirstFrame, nsIFrame* aLastFrame)
       : mFirstChild(aFirstFrame), mLastChild(aLastFrame) {
@@ -336,7 +336,7 @@ class nsFrameList {
   void List(FILE* out) const;
 #endif
 
-  static inline const nsFrameList& EmptyList() { return sEmptyList; };
+  static inline const nsFrameList& EmptyList();
 
   /**
    * A class representing a slice of a frame list.
@@ -425,8 +425,6 @@ class nsFrameList {
  private:
   void operator delete(void*) = delete;
 
-  static const nsFrameList sEmptyList;
-
 #ifdef DEBUG_FRAME_LIST
   void VerifyList() const;
 #else
@@ -480,6 +478,19 @@ class MOZ_RAII AutoFrameListPtr final {
   nsFrameList* mFrameList;
 };
 
+namespace detail {
+union AlignedFrameListBytes {
+  void* ptr;
+  char bytes[sizeof(nsFrameList)];
+};
+extern const AlignedFrameListBytes gEmptyFrameListBytes;
+}  // namespace detail
+
 }  // namespace mozilla
+
+/* static */ inline const nsFrameList& nsFrameList::EmptyList() {
+  return *reinterpret_cast<const nsFrameList*>(
+      &mozilla::detail::gEmptyFrameListBytes);
+}
 
 #endif /* nsFrameList_h___ */

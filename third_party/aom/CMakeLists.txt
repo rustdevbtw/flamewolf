@@ -323,28 +323,11 @@ if(NOT WIN32 AND NOT APPLE)
   endif()
 endif()
 
-if(CONFIG_AV1_ENCODER)
+if(CONFIG_AV1_ENCODER AND NOT BUILD_SHARED_LIBS)
   list(APPEND AOM_AV1_RC_SOURCES "${AOM_ROOT}/av1/ratectrl_rtc.h"
               "${AOM_ROOT}/av1/ratectrl_rtc.cc")
   add_library(aom_av1_rc ${AOM_AV1_RC_SOURCES})
-  # aom_av1_rc calls libaom's internal functions, so it must be linked with the
-  # libaom static library.
-  if(BUILD_SHARED_LIBS)
-    target_link_libraries(aom_av1_rc ${AOM_LIB_LINK_TYPE} aom_static)
-  else()
-    target_link_libraries(aom_av1_rc ${AOM_LIB_LINK_TYPE} aom)
-  endif()
-  if(BUILD_SHARED_LIBS)
-    # On Windows, global symbols are not exported from a DLL by default. Enable
-    # the WINDOWS_EXPORT_ALL_SYMBOLS property to export all global symbols from
-    # the aom_av1_rc DLL on Windows, to match the default behavior on other
-    # platforms.
-    set_target_properties(aom_av1_rc PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
-    # The aom_av1_rc library and its header "av1/ratectrl_rtc.h" are not
-    # installed by the "install" command, so we don't need to worry about
-    # versioning the aom_av1_rc shared library. If we start to install the
-    # aom_av1_rc library, the library should be versioned.
-  endif()
+  target_link_libraries(aom_av1_rc ${AOM_LIB_LINK_TYPE} aom)
   if(NOT WIN32 AND NOT APPLE)
     target_link_libraries(aom_av1_rc ${AOM_LIB_LINK_TYPE} m)
   endif()
@@ -353,7 +336,7 @@ endif()
 
 # List of object and static library targets.
 set(AOM_LIB_TARGETS ${AOM_LIB_TARGETS} aom_rtcd aom_mem aom_scale aom)
-if(CONFIG_AV1_ENCODER)
+if(CONFIG_AV1_ENCODER AND NOT BUILD_SHARED_LIBS)
   set(AOM_LIB_TARGETS ${AOM_LIB_TARGETS} aom_av1_rc)
 endif()
 if(BUILD_SHARED_LIBS)
@@ -504,15 +487,19 @@ if(CONFIG_AV1_ENCODER)
     add_executable(scalable_encoder "${AOM_ROOT}/examples/scalable_encoder.c"
                                     $<TARGET_OBJECTS:aom_common_app_util>
                                     $<TARGET_OBJECTS:aom_encoder_app_util>)
-    add_executable(svc_encoder_rtc "${AOM_ROOT}/examples/svc_encoder_rtc.cc"
-                                   $<TARGET_OBJECTS:aom_common_app_util>
-                                   $<TARGET_OBJECTS:aom_encoder_app_util>)
-    target_link_libraries(svc_encoder_rtc ${AOM_LIB_LINK_TYPE} aom_av1_rc)
 
     # Maintain a list of encoder example targets.
     list(APPEND AOM_ENCODER_EXAMPLE_TARGETS aomenc lossless_encoder noise_model
                 photon_noise_table set_maps simple_encoder scalable_encoder
-                svc_encoder_rtc twopass_encoder)
+                twopass_encoder)
+
+    if(NOT BUILD_SHARED_LIBS)
+      add_executable(svc_encoder_rtc "${AOM_ROOT}/examples/svc_encoder_rtc.cc"
+                                     $<TARGET_OBJECTS:aom_common_app_util>
+                                     $<TARGET_OBJECTS:aom_encoder_app_util>)
+      target_link_libraries(svc_encoder_rtc ${AOM_LIB_LINK_TYPE} aom_av1_rc)
+      list(APPEND AOM_ENCODER_EXAMPLE_TARGETS svc_encoder_rtc)
+    endif()
   endif()
 
   if(ENABLE_TOOLS)

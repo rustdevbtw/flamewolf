@@ -15,7 +15,6 @@ from gecko_taskgraph.transforms.job import configure_taskdesc_for_run, run_job_u
 from gecko_taskgraph.transforms.job.common import get_expiration, support_vcs_checkout
 from gecko_taskgraph.transforms.test import normpath, test_description_schema
 from gecko_taskgraph.util.attributes import is_try
-from gecko_taskgraph.util.chunking import get_test_tags
 from gecko_taskgraph.util.perftest import is_external_browser
 
 VARIANTS = [
@@ -231,11 +230,6 @@ def mozharness_test_on_docker(config, job, taskdesc):
             {test["suite"]: test["test-manifests"]}, sort_keys=True
         )
 
-    test_tags = get_test_tags(config, env)
-    if test_tags:
-        env["MOZHARNESS_TEST_TAG"] = json.dumps(test_tags)
-        command.extend(["--tag={}".format(x) for x in test_tags])
-
     # TODO: remove the need for run['chunked']
     elif mozharness.get("chunked") or test["chunks"] > 1:
         command.append("--total-chunk={}".format(test["chunks"]))
@@ -445,11 +439,6 @@ def mozharness_test_on_generic_worker(config, job, taskdesc):
         env["MOZHARNESS_TEST_PATHS"] = json.dumps(
             {test["suite"]: test["test-manifests"]}, sort_keys=True
         )
-
-    test_tags = get_test_tags(config, env)
-    if test_tags:
-        env["MOZHARNESS_TEST_TAG"] = json.dumps(test_tags)
-        mh_command.extend(["--tag={}".format(x) for x in test_tags])
 
     # TODO: remove the need for run['chunked']
     elif mozharness.get("chunked") or test["chunks"] > 1:

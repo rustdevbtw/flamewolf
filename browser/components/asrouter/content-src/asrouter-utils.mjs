@@ -3,6 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { MESSAGE_TYPE_HASH as msg } from "../modules/ActorConstants.mjs";
+import { actionCreators as ac } from "../../newtab/common/Actions.mjs";
 
 export const ASRouterUtils = {
   addListener(listener) {
@@ -45,26 +46,6 @@ export const ASRouterUtils = {
       data: { id },
     });
   },
-  unblockAll() {
-    return ASRouterUtils.sendMessage({
-      type: msg.UNBLOCK_ALL,
-    });
-  },
-  resetGroupImpressions() {
-    return ASRouterUtils.sendMessage({
-      type: msg.RESET_GROUPS_STATE,
-    });
-  },
-  resetMessageImpressions() {
-    return ASRouterUtils.sendMessage({
-      type: msg.RESET_MESSAGE_STATE,
-    });
-  },
-  resetScreenImpressions() {
-    return ASRouterUtils.sendMessage({
-      type: msg.RESET_SCREEN_IMPRESSIONS,
-    });
-  },
   blockBundle(bundle) {
     return ASRouterUtils.sendMessage({
       type: msg.BLOCK_BUNDLE,
@@ -89,17 +70,8 @@ export const ASRouterUtils = {
       data: { [key]: value },
     });
   },
-  openPBWindow(content) {
-    ASRouterUtils.sendMessage({
-      type: "FORCE_PRIVATE_BROWSING_WINDOW",
-      data: { message: { content } },
-    });
-  },
   sendTelemetry(ping) {
-    return ASRouterUtils.sendMessage({
-      type: msg.AS_ROUTER_TELEMETRY_USER_EVENT,
-      data: ping,
-    });
+    return ASRouterUtils.sendMessage(ac.ASRouterUserEvent(ping));
   },
   getPreviewEndpoint() {
     return null;

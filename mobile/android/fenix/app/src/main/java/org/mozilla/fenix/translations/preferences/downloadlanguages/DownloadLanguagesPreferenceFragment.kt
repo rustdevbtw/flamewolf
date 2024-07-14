@@ -19,9 +19,9 @@ import mozilla.components.concept.engine.translate.ModelManagementOptions
 import mozilla.components.concept.engine.translate.ModelOperation
 import mozilla.components.concept.engine.translate.ModelState
 import mozilla.components.concept.engine.translate.OperationLevel
-import mozilla.components.concept.engine.translate.TranslationError
 import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
+import mozilla.components.support.locale.LocaleManager
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
@@ -60,14 +60,9 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
                 )
                 val downloadLanguageItemsPreference = getDownloadLanguageItemsPreference()
 
-                val engineError = browserStore.observeAsComposableState { state ->
-                    state.translationEngine.engineError
-                }.value
-
                 DownloadLanguagesPreference(
                     downloadLanguageItemPreferences = downloadLanguageItemsPreference,
                     learnMoreUrl = learnMoreUrl,
-                    downloadLanguagesError = engineError as? TranslationError.ModelCouldNotRetrieveError,
                     onLearnMoreClicked = { openBrowserAndLoad(learnMoreUrl) },
                     onItemClick = { downloadLanguageItemPreference ->
                         if (downloadLanguageItemPreference.languageModel.status ==
@@ -95,21 +90,9 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
                                 downloadLanguageItemPreference.type ==
                                 DownloadLanguageItemTypePreference.AllLanguages
                             ) {
-                                val options = ModelManagementOptions(
-                                    operation = if (
-                                        downloadLanguageItemPreference.languageModel.status ==
-                                        ModelState.NOT_DOWNLOADED
-                                    ) {
-                                        ModelOperation.DOWNLOAD
-                                    } else {
-                                        ModelOperation.DELETE
-                                    },
-                                    operationLevel = OperationLevel.ALL,
-                                )
-                                browserStore.dispatch(
-                                    TranslationsAction.ManageLanguageModelsAction(
-                                        options = options,
-                                    ),
+                                deleteOrDownloadAllLanguagesModel(
+                                    allLanguagesItemPreference = downloadLanguageItemPreference,
+                                    allLanguages = downloadLanguageItemsPreference,
                                 )
                             } else {
                                 deleteOrDownloadModel(downloadLanguageItemPreference)
@@ -156,6 +139,34 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
         )
     }
 
+    private fun deleteOrDownloadAllLanguagesModel(
+        allLanguagesItemPreference: DownloadLanguageItemPreference,
+        allLanguages: List<DownloadLanguageItemPreference>,
+    ) {
+        if (allLanguagesItemPreference.languageModel.status == ModelState.DOWNLOADED) {
+            val downloadedItems = allLanguages.filter {
+                it.languageModel.status == ModelState.DOWNLOADED &&
+                    it.type == DownloadLanguageItemTypePreference.GeneralLanguage
+            }
+
+            for (downloadedItem in downloadedItems) {
+                if (!downloadedItem.languageModel.language?.code.equals(Locale.ENGLISH.language)) {
+                    deleteOrDownloadModel(downloadedItem)
+                }
+            }
+        } else {
+            if (allLanguagesItemPreference.languageModel.status == ModelState.NOT_DOWNLOADED) {
+                val notDownloadedItems = allLanguages.filter {
+                    it.languageModel.status == ModelState.NOT_DOWNLOADED &&
+                        it.type == DownloadLanguageItemTypePreference.GeneralLanguage
+                }
+                for (notDownloadedItem in notDownloadedItems) {
+                    deleteOrDownloadModel(notDownloadedItem)
+                }
+            }
+        }
+    }
+
     private fun openBrowserAndLoad(learnMoreUrl: String) {
         (requireActivity() as HomeActivity).openToBrowserAndLoad(
             searchTermOrURL = learnMoreUrl,
@@ -170,6 +181,7 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
             state.translationEngine.languageModels
         }.value?.toMutableList()
         val languageItemPreferenceList = mutableListOf<DownloadLanguageItemPreference>()
+        val appLocale = browserStore.state.locale ?: LocaleManager.getSystemDefault()
 
         languageModels?.let {
             var allLanguagesSizeNotDownloaded = 0L
@@ -184,7 +196,10 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
                 }
 
                 if (
-                    languageModel.status == ModelState.DOWNLOADED
+                    languageModel.status == ModelState.DOWNLOADED &&
+                    !languageModel.language?.code.equals(
+                        Locale.ENGLISH.language,
+                    )
                 ) {
                     allLanguagesSizeDownloaded += size
                 }
@@ -203,7 +218,7 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
             val iterator = languageModels.iterator()
             while (iterator.hasNext()) {
                 val languageModel = iterator.next()
-                if (languageModel.language?.code.equals(
+                if (!appLocale.language.equals(Locale.ENGLISH.language) && languageModel.language?.code.equals(
                         Locale.ENGLISH.language,
                     )
                 ) {
@@ -222,10 +237,8 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
                         DownloadLanguageItemPreference(
                             languageModel = languageModel,
                             type = DownloadLanguageItemTypePreference.GeneralLanguage,
-                            enabled = !(
-                                languageModel.status == ModelState.DOWNLOAD_IN_PROGRESS ||
-                                    languageModel.status == ModelState.DELETION_IN_PROGRESS
-                                ),
+                            enabled = languageModel.status == ModelState.DOWNLOADED ||
+                                languageModel.status == ModelState.NOT_DOWNLOADED,
                         ),
                     )
                 }

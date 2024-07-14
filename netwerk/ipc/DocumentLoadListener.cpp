@@ -161,15 +161,12 @@ static auto CreateDocumentLoadInfo(CanonicalBrowsingContext* aBrowsingContext,
   }
 
   loadInfo->SetWasSchemelessInput(aLoadState->GetWasSchemelessInput());
-  loadInfo->SetHttpsUpgradeTelemetry(aLoadState->GetHttpsUpgradeTelemetry());
 
   loadInfo->SetTriggeringSandboxFlags(aLoadState->TriggeringSandboxFlags());
   loadInfo->SetTriggeringWindowId(aLoadState->TriggeringWindowId());
   loadInfo->SetTriggeringStorageAccess(aLoadState->TriggeringStorageAccess());
   loadInfo->SetHasValidUserGestureActivation(
       aLoadState->HasValidUserGestureActivation());
-  loadInfo->SetTextDirectiveUserActivation(
-      aLoadState->GetTextDirectiveUserActivation());
   loadInfo->SetIsMetaRefresh(aLoadState->IsMetaRefresh());
 
   return loadInfo.forget();
@@ -193,8 +190,6 @@ static auto CreateObjectLoadInfo(
 
   loadInfo->SetHasValidUserGestureActivation(
       aLoadState->HasValidUserGestureActivation());
-  loadInfo->SetTextDirectiveUserActivation(
-      aLoadState->GetTextDirectiveUserActivation());
   loadInfo->SetTriggeringSandboxFlags(aLoadState->TriggeringSandboxFlags());
   loadInfo->SetTriggeringWindowId(aLoadState->TriggeringWindowId());
   loadInfo->SetTriggeringStorageAccess(aLoadState->TriggeringStorageAccess());
@@ -2507,7 +2502,7 @@ DocumentLoadListener::OnStartRequest(nsIRequest* aRequest) {
   // do not kick in.
   if (httpChannel) {
     nsCOMPtr<nsILoadInfo> loadInfo = httpChannel->LoadInfo();
-    bool isPrivateWin = loadInfo->GetOriginAttributes().IsPrivateBrowsing();
+    bool isPrivateWin = loadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
     if (nsHTTPSOnlyUtils::IsHttpsOnlyModeEnabled(isPrivateWin)) {
       uint32_t httpsOnlyStatus = loadInfo->GetHttpsOnlyStatus();
       httpsOnlyStatus |= nsILoadInfo::HTTPS_ONLY_TOP_LEVEL_LOAD_IN_PROGRESS;
@@ -2677,10 +2672,8 @@ DocumentLoadListener::OnStartRequest(nsIRequest* aRequest) {
 
   if (httpChannel) {
     uint32_t responseStatus = 0;
-    nsAutoCString protocol;
     Unused << httpChannel->GetResponseStatus(&responseStatus);
-    Unused << httpChannel->GetProtocolVersion(protocol);
-    mEarlyHintsService.FinalResponse(responseStatus, protocol);
+    mEarlyHintsService.FinalResponse(responseStatus);
   } else {
     mEarlyHintsService.Cancel(
         "DocumentLoadListener::OnStartRequest: no httpChannel"_ns);

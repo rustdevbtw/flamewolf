@@ -5,9 +5,8 @@
 /*---
 esid: sec-Intl.DurationFormat.prototype.format
 description: >
-  The correct separator is used for numeric hours with zero minutes and non-zero seconds.
+  Minutes with numeric or 2-digit style are included in the output when between displayed hours and seconds, even when the minutes value is zero.
 locale: [en]
-includes: [testIntl.js]
 features: [Intl.DurationFormat]
 ---*/
 
@@ -16,33 +15,18 @@ const df = new Intl.DurationFormat("en", {
   hours: "numeric",
 });
 
-const durations = [
-  // Test all eight possible combinations for zero and non-zero hours, minutes,
-  // and seconds.
-  {hours: 0, minutes: 0, seconds: 0},
-  {hours: 0, minutes: 0, seconds: 1},
-  {hours: 0, minutes: 1, seconds: 0},
-  {hours: 0, minutes: 1, seconds: 1},
-  {hours: 1, minutes: 0, seconds: 0},
-  {hours: 1, minutes: 0, seconds: 1},
-  {hours: 1, minutes: 1, seconds: 0},
-  {hours: 1, minutes: 1, seconds: 1},
+const duration = {
+  hours: 1,
+  minutes: 0,
+  seconds: 3,
+};
 
-  // Additionally test when hours is non-zero and a sub-seconds unit is non-zero,
-  // but minutes and seconds are both zero.
-  {hours: 1, minutes: 0, seconds: 0, milliseconds: 1},
-  {hours: 1, minutes: 0, seconds: 0, microseconds: 1},
-  {hours: 1, minutes: 0, seconds: 0, nanoseconds: 1},
-];
+const expected = "1:00:03"
 
-for (const duration of durations) {
-  const expected = formatDurationFormatPattern(df, duration);
-
-  assert.sameValue(
-    df.format(duration),
-    expected,
-    `Duration is ${JSON.stringify(duration)}`
-  );
-}
+assert.sameValue(
+  df.format(duration),
+  expected,
+  `Minutes always displayed when between displayed hours and seconds, even if minutes is 0`
+);
 
 reportCompare(0, 0);

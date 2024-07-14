@@ -14,7 +14,6 @@ import { toEditorLine } from "../../utils/editor/index";
 import { createEditor } from "../../utils/editor/create-editor";
 import { prefs, features } from "../../utils/prefs";
 import actions from "../../actions/index";
-import { markerTypes } from "../../constants";
 
 import {
   getClosestBreakpoint,
@@ -23,6 +22,7 @@ import {
 } from "../../selectors/index";
 
 const classnames = require("resource://devtools/client/shared/classnames.js");
+const CONDITIONAL_BP_MARKER = "conditional-breakpoint-panel-marker";
 
 function addNewLine(doc) {
   const cursor = doc.getCursor();
@@ -118,16 +118,16 @@ export class ConditionalPanel extends PureComponent {
     const { location, editor, breakpoint, selectedSource } = this.props;
     // When breakpoint is removed
     if (prevProps?.breakpoint && !breakpoint) {
-      editor.removeLineContentMarker(markerTypes.CONDITIONAL_BP_MARKER);
+      editor.removeLineContentMarker(CONDITIONAL_BP_MARKER);
       return;
     }
     if (selectedSource.id !== location.source.id) {
-      editor.removeLineContentMarker(markerTypes.CONDITIONAL_BP_MARKER);
+      editor.removeLineContentMarker(CONDITIONAL_BP_MARKER);
       return;
     }
     const editorLine = toEditorLine(location.source.id, location.line || 0);
     editor.setLineContentMarker({
-      id: markerTypes.CONDITIONAL_BP_MARKER,
+      id: CONDITIONAL_BP_MARKER,
       condition: line => line == editorLine,
       createLineElementNode: () => {
         // Create a Codemirror 5 editor for the breakpoint panel
@@ -170,7 +170,7 @@ export class ConditionalPanel extends PureComponent {
     // as soon as this component gets remounted
     const { editor } = this.props;
     if (features.codemirrorNext) {
-      editor.removeLineContentMarker(markerTypes.CONDITIONAL_BP_MARKER);
+      editor.removeLineContentMarker(CONDITIONAL_BP_MARKER);
     } else {
       this.clearConditionalPanel();
     }

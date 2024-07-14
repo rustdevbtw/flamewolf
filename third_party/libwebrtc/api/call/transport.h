@@ -25,9 +25,9 @@ struct PacketOptions {
   PacketOptions(const PacketOptions&);
   ~PacketOptions();
 
-  // Negative ids are invalid and should be interpreted
+  // A 16 bits positive id. Negative ids are invalid and should be interpreted
   // as packet_id not being set.
-  int64_t packet_id = -1;
+  int packet_id = -1;
   // Whether this is a retransmission of an earlier packet.
   bool is_retransmit = false;
   bool included_in_feedback = false;

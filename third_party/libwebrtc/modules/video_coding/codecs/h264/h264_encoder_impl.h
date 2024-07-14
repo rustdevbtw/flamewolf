@@ -40,7 +40,7 @@ class ISVCEncoder;
 
 namespace webrtc {
 
-class H264EncoderImpl : public VideoEncoder {
+class H264EncoderImpl : public H264Encoder {
  public:
   struct LayerConfig {
     int simulcast_idx = 0;
@@ -60,6 +60,8 @@ class H264EncoderImpl : public VideoEncoder {
 
   H264EncoderImpl(const Environment& env, H264EncoderSettings settings);
 
+  // Deprecated, bugs.webrtc.org/15860
+  explicit H264EncoderImpl(const cricket::VideoCodec& codec);
   ~H264EncoderImpl() override;
 
   // `settings.max_payload_size` is ignored.
@@ -90,6 +92,8 @@ class H264EncoderImpl : public VideoEncoder {
   }
 
  private:
+  explicit H264EncoderImpl(H264PacketizationMode packetization_mode);
+
   SEncParamExt CreateEncoderParams(size_t i) const;
 
   webrtc::H264BitstreamParser h264_bitstream_parser_;

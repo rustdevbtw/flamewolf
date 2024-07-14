@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
@@ -41,33 +40,29 @@ fun MicroSurveyHeader(
     onCloseButtonClick: () -> Unit,
 ) {
     Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(
-            modifier = Modifier
-                .wrapContentWidth()
-                .padding(start = 32.dp),
-        ) {
-            Image(
-                painter = painterResource(R.drawable.ic_firefox),
-                contentDescription = stringResource(id = R.string.microsurvey_app_icon_content_description),
-                modifier = Modifier.size(24.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = title,
-                style = FirefoxTheme.typography.headline6,
-                color = FirefoxTheme.colors.textPrimary,
-            )
-        }
+        Image(
+            painter = painterResource(R.drawable.ic_firefox),
+            contentDescription = null, // todo update to string res once a11y strings are available.
+            modifier = Modifier.size(24.dp),
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(
+            text = title,
+            style = FirefoxTheme.typography.headline7,
+            color = FirefoxTheme.colors.textPrimary,
+            modifier = Modifier.weight(1f),
+        )
+
         IconButton(onClick = onCloseButtonClick) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_close),
-                contentDescription = stringResource(id = R.string.microsurvey_close_button_content_description),
+                contentDescription = null, // todo update to string res once a11y strings are available.
                 tint = FirefoxTheme.colors.iconPrimary,
                 modifier = Modifier.size(20.dp),
             )
@@ -81,7 +76,9 @@ fun MicroSurveyHeader(
 private fun MicroSurveyHeaderPreview() {
     FirefoxTheme {
         Box(
-            modifier = Modifier.background(color = FirefoxTheme.colors.layer1),
+            modifier = Modifier
+                .background(color = FirefoxTheme.colors.layer1)
+                .padding(16.dp),
         ) {
             MicroSurveyHeader(stringResource(R.string.micro_survey_survey_header_2)) {}
         }

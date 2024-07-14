@@ -180,32 +180,22 @@ module.exports = function (config) {
                 functions: 0,
                 branches: 0,
               },
-            "content-src/components/DiscoveryStreamComponents/DSCard/DSCard.jsx":
-              {
-                statements: 85.05,
-                lines: 84.62,
-                functions: 90.48,
-                branches: 67.44,
-              },
             "content-src/components/DiscoveryStreamComponents/**/*.jsx": {
               statements: 90.48,
               lines: 90.48,
               functions: 85.71,
               branches: 68.75,
             },
+            "content-src/asrouter/**/*.jsx": {
+              statements: 57,
+              lines: 58,
+              functions: 60,
+              branches: 50,
+            },
             /**
              * WallpaperSection.jsx is tested via an xpcshell test
              */
             "content-src/components/WallpapersSection/*.jsx": {
-              statements: 0,
-              lines: 0,
-              functions: 0,
-              branches: 0,
-            },
-            /**
-             * Notifications.jsx is tested via an xpcshell test
-             */
-            "content-src/components/Notifications/**/*.jsx": {
               statements: 0,
               lines: 0,
               functions: 0,
@@ -263,6 +253,9 @@ module.exports = function (config) {
       resolve: {
         extensions: [".js", ".jsx", ".mjs"],
         modules: [PATHS.moduleResolveDirectory, "node_modules"],
+        alias: {
+          asrouter: path.join(__dirname, "../asrouter"),
+        },
       },
       plugins: [
         // The ResourceUriPlugin handles translating resource URIs in import

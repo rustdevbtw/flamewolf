@@ -110,11 +110,6 @@ interface nsIUpdate : nsISupports
   readonly attribute AString appVersion;
 
   /**
-   * The platform version of this update.
-   */
-  readonly attribute AString platformVersion;
-
-  /**
    * The Application version prior to the application being updated.
    */
   readonly attribute AString previousAppVersion;
@@ -898,12 +893,6 @@ interface nsIUpdateManager : nsISupports
    * will contain that update. If not, this will be `null`.
    */
   readonly attribute nsIUpdate updateInstalledAtStartup;
-
-  /**
-   * Returns the most recent update that has been installed,
-   * null if it does not exist.
-   */
-  readonly attribute nsIUpdate lastUpdateInstalled;
 
   /**
    * Adds the specified update to the update history. The update history is

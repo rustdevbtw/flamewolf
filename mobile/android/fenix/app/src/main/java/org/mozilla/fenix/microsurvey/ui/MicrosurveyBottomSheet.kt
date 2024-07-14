@@ -21,8 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
@@ -42,42 +40,41 @@ private val bottomSheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.
  * @param question The question text.
  * @param answers The answer text options available for the given [question].
  * @param icon The icon that represents the feature for the given [question].
- * @param onPrivacyPolicyLinkClick Invoked when the privacy policy link is clicked.
- * @param onCloseButtonClicked Invoked when the close button is clicked.
- * @param modifier [Modifier] to be applied to the layout.
  */
 @Composable
 fun MicrosurveyBottomSheet(
     question: String,
     answers: List<String>,
-    @DrawableRes icon: Int,
-    onPrivacyPolicyLinkClick: () -> Unit,
-    onCloseButtonClicked: () -> Unit,
-    modifier: Modifier,
+    @DrawableRes icon: Int = R.drawable.ic_print, // todo currently unknown if default is used FXDROID-1921.
 ) {
     var selectedAnswer by remember { mutableStateOf<String?>(null) }
     var isSubmitted by remember { mutableStateOf(false) }
 
     Surface(
-        modifier = modifier,
         color = FirefoxTheme.colors.layer1,
         shape = bottomSheetShape,
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 8.dp),
+            modifier = Modifier
+                .padding(
+                    vertical = 8.dp,
+                    horizontal = 16.dp,
+                ),
         ) {
             BottomSheetHandle(
                 onRequestDismiss = {},
-                contentDescription = stringResource(R.string.microsurvey_close_handle_content_description),
+                contentDescription = stringResource(R.string.review_quality_check_close_handle_content_description),
                 modifier = Modifier
                     .fillMaxWidth(BOTTOM_SHEET_HANDLE_WIDTH_PERCENT)
                     .align(Alignment.CenterHorizontally)
                     .semantics { traversalIndex = -1f },
             )
 
-            MicroSurveyHeader(title = stringResource(id = R.string.micro_survey_survey_header_2)) {
-                onCloseButtonClicked()
-            }
+            Spacer(modifier = Modifier.height(4.dp))
+
+            MicroSurveyHeader(title = stringResource(id = R.string.micro_survey_survey_header_2)) {}
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 if (isSubmitted) {
@@ -97,7 +94,7 @@ fun MicrosurveyBottomSheet(
                 MicroSurveyFooter(
                     isSubmitted = isSubmitted,
                     isContentAnswerSelected = selectedAnswer != null,
-                    onPrivacyPolicyLinkClick = onPrivacyPolicyLinkClick,
+                    onLinkClick = {}, // todo add privacy policy link and open new tab FXDROID-1876.
                     onButtonClick = { isSubmitted = true },
                 )
             }
@@ -111,18 +108,14 @@ fun MicrosurveyBottomSheet(
 private fun MicroSurveyBottomSheetPreview() {
     FirefoxTheme {
         MicrosurveyBottomSheet(
-            modifier = Modifier.nestedScroll(rememberNestedScrollInteropConnection()),
             question = "How satisfied are you with printing in Firefox?",
             icon = R.drawable.ic_print,
-            onPrivacyPolicyLinkClick = {},
-            onCloseButtonClicked = {},
             answers = listOf(
                 stringResource(id = R.string.likert_scale_option_1),
                 stringResource(id = R.string.likert_scale_option_2),
                 stringResource(id = R.string.likert_scale_option_3),
                 stringResource(id = R.string.likert_scale_option_4),
                 stringResource(id = R.string.likert_scale_option_5),
-                stringResource(id = R.string.likert_scale_option_6),
             ),
         )
     }

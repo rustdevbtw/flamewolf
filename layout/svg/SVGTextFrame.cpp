@@ -2548,8 +2548,14 @@ void SVGTextDrawPathCallbacks::SetupContext() {
   // XXX This is copied from nsSVGGlyphFrame::Render, but cairo doesn't actually
   // seem to do anything with the antialias mode.  So we can perhaps remove it,
   // or make SetAntialiasMode set cairo text antialiasing too.
-  mContext.SetAntialiasMode(
-      SVGUtils::ToAntialiasMode(mFrame->StyleText()->mTextRendering));
+  switch (mFrame->StyleText()->mTextRendering) {
+    case StyleTextRendering::Optimizespeed:
+      mContext.SetAntialiasMode(AntialiasMode::NONE);
+      break;
+    default:
+      mContext.SetAntialiasMode(AntialiasMode::SUBPIXEL);
+      break;
+  }
 }
 
 void SVGTextDrawPathCallbacks::HandleTextGeometry() {
@@ -4506,8 +4512,7 @@ already_AddRefed<Path> SVGTextFrame::GetTextPath(nsIFrame* aTextPathFrame) {
   if (tp->mPath.IsRendered()) {
     // This is just an attribute so there's no transform that can apply
     // so we can just return the path directly.
-    return tp->mPath.GetAnimValue().BuildPathForMeasuring(
-        aTextPathFrame->Style()->EffectiveZoom().ToFloat());
+    return tp->mPath.GetAnimValue().BuildPathForMeasuring();
   }
 
   SVGGeometryElement* geomElement =

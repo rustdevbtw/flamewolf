@@ -163,7 +163,7 @@ static void SendPing(void* aClosure, nsIContent* aContent, nsIURI* aURI,
     bool isPrivateWin = false;
     if (doc) {
       isPrivateWin =
-          doc->NodePrincipal()->OriginAttributesRef().IsPrivateBrowsing();
+          doc->NodePrincipal()->OriginAttributesRef().mPrivateBrowsingId > 0;
     }
 
     bool sameOrigin = NS_SUCCEEDED(

@@ -1856,8 +1856,8 @@ nsDOMWindowUtils::TransformRectLayoutToVisual(float aX, float aY, float aWidth,
   return NS_OK;
 }
 
-Result<mozilla::LayoutDeviceRect, nsresult> nsDOMWindowUtils::ConvertTo(
-    float aX, float aY, float aWidth, float aHeight, CoordsType aCoordsType) {
+Result<mozilla::ScreenRect, nsresult> nsDOMWindowUtils::ConvertToScreenRect(
+    float aX, float aY, float aWidth, float aHeight) {
   nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryReferent(mWindow);
   if (!window) {
     return Err(NS_ERROR_NOT_AVAILABLE);
@@ -1894,27 +1894,24 @@ Result<mozilla::LayoutDeviceRect, nsresult> nsDOMWindowUtils::ConvertTo(
   LayoutDeviceRect devPixelsRect = LayoutDeviceRect::FromAppUnits(
       appUnitsRect, presContext->AppUnitsPerDevPixel());
   devPixelsRect =
-      widget->WidgetToTopLevelWidgetTransform().TransformBounds(devPixelsRect);
+      widget->WidgetToTopLevelWidgetTransform().TransformBounds(devPixelsRect) +
+      widget->TopLevelWidgetToScreenOffset();
 
-  switch (aCoordsType) {
-    case CoordsType::Screen:
-      devPixelsRect += widget->TopLevelWidgetToScreenOffset();
-      break;
-    case CoordsType::TopLevelWidget:
-      // There's nothing to do.
-      break;
-  }
-  return devPixelsRect;
+  return ViewAs<ScreenPixel>(
+      devPixelsRect, PixelCastJustification::ScreenIsParentLayerForRoot);
 }
 
 NS_IMETHODIMP
 nsDOMWindowUtils::ToScreenRectInCSSUnits(float aX, float aY, float aWidth,
                                          float aHeight, DOMRect** aResult) {
-  LayoutDeviceRect devRect;
-  MOZ_TRY_VAR(devRect, ConvertTo(aX, aY, aWidth, aHeight, CoordsType::Screen));
+  ScreenRect rect;
+  MOZ_TRY_VAR(rect, ConvertToScreenRect(aX, aY, aWidth, aHeight));
 
   nsPresContext* presContext = GetPresContext();
   MOZ_ASSERT(presContext);
+
+  const auto devRect = ViewAs<LayoutDevicePixel>(
+      rect, PixelCastJustification::ScreenIsParentLayerForRoot);
 
   // We want to return the screen rect in CSS units of the browser chrome.
   //
@@ -1934,25 +1931,8 @@ nsDOMWindowUtils::ToScreenRectInCSSUnits(float aX, float aY, float aWidth,
 NS_IMETHODIMP
 nsDOMWindowUtils::ToScreenRect(float aX, float aY, float aWidth, float aHeight,
                                DOMRect** aResult) {
-  LayoutDeviceRect devPixelsRect;
-  MOZ_TRY_VAR(devPixelsRect,
-              ConvertTo(aX, aY, aWidth, aHeight, CoordsType::Screen));
-
-  ScreenRect rect = ViewAs<ScreenPixel>(
-      devPixelsRect, PixelCastJustification::ScreenIsParentLayerForRoot);
-
-  RefPtr<DOMRect> outRect = new DOMRect(mWindow);
-  outRect->SetRect(rect.x, rect.y, rect.width, rect.height);
-  outRect.forget(aResult);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::ToTopLevelWidgetRect(float aX, float aY, float aWidth,
-                                       float aHeight, DOMRect** aResult) {
-  LayoutDeviceRect rect;
-  MOZ_TRY_VAR(rect,
-              ConvertTo(aX, aY, aWidth, aHeight, CoordsType::TopLevelWidget));
+  ScreenRect rect;
+  MOZ_TRY_VAR(rect, ConvertToScreenRect(aX, aY, aWidth, aHeight));
 
   RefPtr<DOMRect> outRect = new DOMRect(mWindow);
   outRect->SetRect(rect.x, rect.y, rect.width, rect.height);
@@ -4306,6 +4286,61 @@ struct StateTableEntry {
   const char* mStateString;
   ElementState mState;
 };
+
+static constexpr StateTableEntry kManuallyManagedStates[] = {
+    {"autofill", ElementState::AUTOFILL},
+    // :-moz-autofill-preview implies :autofill.
+    {"-moz-autofill-preview",
+     ElementState::AUTOFILL_PREVIEW | ElementState::AUTOFILL},
+    {nullptr, ElementState()},
+};
+
+static_assert(!kManuallyManagedStates[ArrayLength(kManuallyManagedStates) - 1]
+                   .mStateString,
+              "last kManuallyManagedStates entry must be a sentinel with "
+              "mStateString == nullptr");
+
+static ElementState GetEventStateForString(const nsAString& aStateString) {
+  for (const StateTableEntry* entry = kManuallyManagedStates;
+       entry->mStateString; ++entry) {
+    if (aStateString.EqualsASCII(entry->mStateString)) {
+      return entry->mState;
+    }
+  }
+  return ElementState();
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::AddManuallyManagedState(Element* aElement,
+                                          const nsAString& aStateString) {
+  if (!aElement) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  ElementState state = GetEventStateForString(aStateString);
+  if (state.IsEmpty()) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  aElement->AddStates(state);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::RemoveManuallyManagedState(Element* aElement,
+                                             const nsAString& aStateString) {
+  if (!aElement) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  ElementState state = GetEventStateForString(aStateString);
+  if (state.IsEmpty()) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  aElement->RemoveStates(state);
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 nsDOMWindowUtils::GetStorageUsage(Storage* aStorage, int64_t* aRetval) {

@@ -3808,15 +3808,12 @@ const char* MediaDecoderStateMachine::ToStateStr() {
 void MediaDecoderStateMachine::VolumeChanged() {
   AUTO_PROFILER_LABEL("MediaDecoderStateMachine::VolumeChanged",
                       MEDIA_PLAYBACK);
-  PROFILER_MARKER_TEXT("MDSM::VolumeChanged", MEDIA_PLAYBACK, {},
-                       nsPrintfCString("%f", mVolume.Ref()));
   MOZ_ASSERT(OnTaskQueue());
   mMediaSink->SetVolume(mVolume);
 }
 
 RefPtr<ShutdownPromise> MediaDecoderStateMachine::Shutdown() {
   AUTO_PROFILER_LABEL("MediaDecoderStateMachine::Shutdown", MEDIA_PLAYBACK);
-  PROFILER_MARKER_UNTYPED("MDSM::Shutdown", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
   mShuttingDown = true;
   return mStateObj->HandleShutdown();
@@ -3825,9 +3822,6 @@ RefPtr<ShutdownPromise> MediaDecoderStateMachine::Shutdown() {
 void MediaDecoderStateMachine::PlayStateChanged() {
   AUTO_PROFILER_LABEL("MediaDecoderStateMachine::PlayStateChanged",
                       MEDIA_PLAYBACK);
-  PROFILER_MARKER_TEXT(
-      "MDSM::PlayStateChanged", MEDIA_PLAYBACK, {},
-      nsPrintfCString("%s", MediaDecoder::ToPlayStateStr(mPlayState.Ref())));
   MOZ_ASSERT(OnTaskQueue());
 
   if (mPlayState != MediaDecoder::PLAY_STATE_PLAYING) {
@@ -3925,12 +3919,6 @@ void MediaDecoderStateMachine::BufferedRangeUpdated() {
   // the estimated duration is larger.
   if (mDuration.Ref().isNothing() || mDuration.Ref()->IsInfinite() ||
       end > mDuration.Ref().ref()) {
-    PROFILER_MARKER_TEXT(
-        "MDSM::BufferedRangeUpdated", MEDIA_PLAYBACK, {},
-        nsPrintfCString(
-            "duration:%" PRId64 "->%" PRId64,
-            mDuration.Ref().isNothing() ? 0 : mDuration.Ref()->ToMicroseconds(),
-            end.ToMicroseconds()));
     mDuration = Some(end);
     DDLOG(DDLogCategory::Property, "duration_us",
           mDuration.Ref()->ToMicroseconds());
@@ -4442,8 +4430,7 @@ bool MediaDecoderStateMachine::IsStateMachineScheduled() const {
 void MediaDecoderStateMachine::SetPlaybackRate(double aPlaybackRate) {
   MOZ_ASSERT(OnTaskQueue());
   MOZ_ASSERT(aPlaybackRate != 0, "Should be handled by MediaDecoder::Pause()");
-  PROFILER_MARKER_TEXT("MDSM::SetPlaybackRate", MEDIA_PLAYBACK, {},
-                       nsPrintfCString("PlaybackRate:%f", aPlaybackRate));
+
   mPlaybackRate = aPlaybackRate;
   mMediaSink->SetPlaybackRate(mPlaybackRate);
 
@@ -4454,9 +4441,6 @@ void MediaDecoderStateMachine::SetPlaybackRate(double aPlaybackRate) {
 void MediaDecoderStateMachine::PreservesPitchChanged() {
   AUTO_PROFILER_LABEL("MediaDecoderStateMachine::PreservesPitchChanged",
                       MEDIA_PLAYBACK);
-  PROFILER_MARKER_TEXT(
-      "MDSM::PreservesPitchChanged", MEDIA_PLAYBACK, {},
-      nsPrintfCString("PreservesPitch:%d", mPreservesPitch.Ref()));
   MOZ_ASSERT(OnTaskQueue());
   mMediaSink->SetPreservesPitch(mPreservesPitch);
 }

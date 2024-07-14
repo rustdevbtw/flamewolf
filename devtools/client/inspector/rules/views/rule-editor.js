@@ -45,9 +45,6 @@ const STYLE_INSPECTOR_PROPERTIES =
 const { LocalizationHelper } = require("resource://devtools/shared/l10n.js");
 const STYLE_INSPECTOR_L10N = new LocalizationHelper(STYLE_INSPECTOR_PROPERTIES);
 
-const COMPONENT_PROPERTIES = "devtools/client/locales/components.properties";
-const COMPONENT_L10N = new LocalizationHelper(COMPONENT_PROPERTIES);
-
 loader.lazyGetter(this, "NEW_PROPERTY_NAME_INPUT_LABEL", function () {
   return STYLE_INSPECTOR_L10N.getStr("rule.newPropertyName.label");
 });
@@ -145,11 +142,7 @@ RuleEditor.prototype = {
     });
     this.source.addEventListener("click", this._onSourceClick);
 
-    // inline style are not visible in the StyleEditor, so don't create an actual link
-    // element for their location.
-    const sourceLabel = this.doc.createElement(
-      this.rule.domRule.type === ELEMENT_STYLE ? "span" : "a"
-    );
+    const sourceLabel = this.doc.createElement("span");
     sourceLabel.classList.add("ruleview-rule-source-label");
     this.source.appendChild(sourceLabel);
 
@@ -189,8 +182,10 @@ RuleEditor.prototype = {
             }`,
           });
 
-          const jumpToNodeButton = createChild(selectorContainer, "button", {
+          // We can't use a button, otherwise a line break is added when copy/pasting the rule
+          const jumpToNodeButton = createChild(selectorContainer, "span", {
             class: "open-inspector",
+            role: "button",
             title: l10n("rule.containerQuery.selectContainerButton.tooltip"),
           });
 
@@ -268,8 +263,6 @@ RuleEditor.prototype = {
             }
           }
           selectorContainer.append(this.doc.createTextNode(text));
-        } else if (ancestorData.type == "starting-style") {
-          selectorContainer.append(this.doc.createTextNode(`@starting-style`));
         } else if (ancestorData.selectors) {
           ancestorData.selectors.forEach((selector, i) => {
             if (i !== 0) {
@@ -523,8 +516,7 @@ RuleEditor.prototype = {
     this.updateSourceLink();
   },
 
-  _onSourceClick(e) {
-    e.preventDefault();
+  _onSourceClick() {
     if (this.source.hasAttribute("unselectable")) {
       return;
     }
@@ -560,22 +552,17 @@ RuleEditor.prototype = {
       constructed,
       href: displayURL,
     });
-
-    let displayLocation = displayURL ? displayURL : sourceTextContent;
+    let title = displayURL ? displayURL : sourceTextContent;
     if (line > 0) {
       sourceTextContent += ":" + line;
-      displayLocation += ":" + line;
+      title += ":" + line;
     }
-    const title = COMPONENT_L10N.getFormatStr(
-      "frame.viewsourceinstyleeditor",
-      displayLocation
-    );
 
     const sourceLabel = this.element.querySelector(
       ".ruleview-rule-source-label"
     );
     sourceLabel.setAttribute("title", title);
-    sourceLabel.setAttribute("href", displayURL);
+    sourceLabel.setAttribute("data-url", displayURL);
     sourceLabel.textContent = sourceTextContent;
   },
 
@@ -586,7 +573,7 @@ RuleEditor.prototype = {
       );
       const uaLabel = STYLE_INSPECTOR_L10N.getStr("rule.userAgentStyles");
       sourceLabel.textContent = uaLabel + " " + this.rule.title;
-      sourceLabel.setAttribute("href", this.rule.sheet?.href);
+      sourceLabel.setAttribute("data-url", this.rule.sheet?.href);
     } else {
       this._updateLocation(null);
     }
@@ -895,9 +882,6 @@ RuleEditor.prototype = {
     this.editor = new InplaceEditor({
       element: this.newPropSpan,
       done: this._onNewProperty,
-      // (Shift+)Tab will move the focus to the previous/next editable field
-      focusEditableFieldAfterApply: true,
-      focusEditableFieldContainerSelector: ".ruleview-rule",
       destroy: this._newPropertyDestroy,
       advanceChars: ":",
       contentType: InplaceEditor.CONTENT_TYPES.CSS_PROPERTY,

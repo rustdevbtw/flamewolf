@@ -9,6 +9,7 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.annotation.VisibleForTesting
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.toolbar.ScrollableToolbar
 import mozilla.components.support.ktx.android.view.findViewInHierarchy
@@ -70,11 +71,15 @@ class EngineViewClippingBehavior(
             return true
         }
 
-        val dependantAtTop = dependency.top < parent.height / 2
-        if (dependantAtTop) {
-            recentTopToolbarTranslation = dependency.translationY
-        } else {
-            recentBottomToolbarTranslation = dependency.translationY
+        when (dependency) {
+            is BrowserToolbar -> {
+                if (hasTopToolbar) {
+                    recentTopToolbarTranslation = dependency.translationY
+                } else {
+                    recentBottomToolbarTranslation = dependency.translationY
+                }
+            }
+            is ToolbarContainerView -> recentBottomToolbarTranslation = dependency.translationY
         }
 
         engineView?.let {

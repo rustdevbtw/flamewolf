@@ -164,22 +164,22 @@ function getClipboardDataSnapshotSync(aClipboardType) {
   );
 }
 
-function getClipboardDataSnapshot(
+function asyncGetClipboardData(
   aClipboardType,
   aFormats = ["text/plain", "text/html", "image/png"]
 ) {
   return new Promise((resolve, reject) => {
     try {
-      clipboard.getDataSnapshot(
+      clipboard.asyncGetData(
         aFormats,
         aClipboardType,
         null,
         SpecialPowers.Services.scriptSecurityManager.getSystemPrincipal(),
         {
           QueryInterface: SpecialPowers.ChromeUtils.generateQI([
-            "nsIClipboardGetDataSnapshotCallback",
+            "nsIAsyncClipboardGetCallback",
           ]),
-          // nsIClipboardGetDataSnapshotCallback
+          // nsIAsyncClipboardGetCallback
           onSuccess: SpecialPowers.wrapCallback(function (
             aAsyncGetClipboardData
           ) {
@@ -191,7 +191,7 @@ function getClipboardDataSnapshot(
         }
       );
     } catch (e) {
-      ok(false, `getDataSnapshot should not throw`);
+      ok(false, `asyncGetData should not throw`);
       reject(e);
     }
   });

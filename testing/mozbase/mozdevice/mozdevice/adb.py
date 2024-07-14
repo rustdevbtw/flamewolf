@@ -18,12 +18,15 @@ import traceback
 from shutil import copytree
 from threading import Thread
 
+import six
+from six.moves import range
+
 from . import version_codes
 
 _TEST_ROOT = None
 
 
-class ADBProcess:
+class ADBProcess(object):
     """ADBProcess encapsulates the data related to executing the adb process."""
 
     def __init__(self, args, use_stdout_pipe=False, timeout=None):
@@ -35,7 +38,10 @@ class ADBProcess:
         if use_stdout_pipe:
             self.stdout_file = subprocess.PIPE
             # Reading utf-8 from the stdout pipe
-            Popen_args["encoding"] = "utf-8"
+            if sys.version_info >= (3, 6):
+                Popen_args["encoding"] = "utf-8"
+            else:
+                Popen_args["universal_newlines"] = True
         else:
             self.stdout_file = tempfile.NamedTemporaryFile(mode="w+b")
         Popen_args["stdout"] = self.stdout_file
@@ -78,7 +84,7 @@ class ADBProcess:
             content = ""
         else:
             self.stdout_file.seek(0, os.SEEK_SET)
-            content = self.stdout_file.read().rstrip().decode()
+            content = six.ensure_str(self.stdout_file.read().rstrip())
         return content
 
     def __str__(self):
@@ -86,7 +92,7 @@ class ADBProcess:
         # to be independent of the individual failing device.
         arg_string = " ".join(self.args)
         arg_string = re.sub(r" -s [\w-]+", "", arg_string)
-        return "args: {}, exitcode: {}, stdout: {}".format(
+        return "args: %s, exitcode: %s, stdout: %s" % (
             arg_string,
             self.exitcode,
             self.stdout,
@@ -173,7 +179,7 @@ class ADBDeviceFactoryError(Exception):
     pass
 
 
-class ADBCommand:
+class ADBCommand(object):
     """ADBCommand provides a basic interface to adb commands
     which is used to provide the 'command' methods for the
     classes ADBHost and ADBDevice.
@@ -230,7 +236,7 @@ class ADBCommand:
         self._polling_interval = 0.001
         self._adb_version = ""
 
-        self._logger.debug(f"{self.__class__.__name__}: {self.__dict__}")
+        self._logger.debug("%s: %s" % (self.__class__.__name__, self.__dict__))
 
         # catch early a missing or non executable adb command
         # and get the adb version while we are at it.
@@ -239,7 +245,7 @@ class ADBCommand:
                 [adb, "version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
             ).communicate()
             re_version = re.compile(r"Android Debug Bridge version (.*)")
-            if isinstance(output[0], bytes):
+            if isinstance(output[0], six.binary_type):
                 self._adb_version = re_version.match(
                     output[0].decode("utf-8", "replace")
                 ).group(1)
@@ -252,7 +258,7 @@ class ADBCommand:
                 )
 
         except Exception as exc:
-            raise ADBError(f"{exc}: {adb} is not executable.")
+            raise ADBError("%s: %s is not executable." % (exc, adb))
 
     def _get_logger(self, logger_name, verbose):
         logger = None
@@ -905,7 +911,7 @@ class ADBDevice(ADBCommand):
                 boot_completed = True
                 self._ls = "/system/bin/ls"
             except ADBError as e1:
-                self._logger.debug(f"detect /system/bin/ls {e1}")
+                self._logger.debug("detect /system/bin/ls {}".format(e1))
                 try:
                     self.shell_output(
                         "/system/xbin/ls /system/xbin/ls", timeout=timeout
@@ -913,7 +919,7 @@ class ADBDevice(ADBCommand):
                     boot_completed = True
                     self._ls = "/system/xbin/ls"
                 except ADBError as e2:
-                    self._logger.debug(f"detect /system/xbin/ls : {e2}")
+                    self._logger.debug("detect /system/xbin/ls : {}".format(e2))
             if not boot_completed:
                 time.sleep(2)
         if not boot_completed:
@@ -927,11 +933,11 @@ class ADBDevice(ADBCommand):
         boot_completed = False
         while not boot_completed and (time.time() - start_time) <= float(timeout):
             try:
-                self.shell_output(f"{self._ls} -1A {ls_dir}", timeout=timeout)
+                self.shell_output("{} -1A {}".format(self._ls, ls_dir), timeout=timeout)
                 boot_completed = True
                 self._ls += " -1A"
             except ADBError as e:
-                self._logger.debug(f"detect ls -1A: {e}")
+                self._logger.debug("detect ls -1A: {}".format(e))
                 if "No such file or directory" not in str(e):
                     boot_completed = True
                     self._ls += " -a"
@@ -989,11 +995,11 @@ class ADBDevice(ADBCommand):
             if match:
                 self._chmod_R = True
         except ADBError as e:
-            self._logger.debug(f"Check chmod -R: {e}")
+            self._logger.debug("Check chmod -R: {}".format(e))
             match = re_recurse.search(str(e))
             if match:
                 self._chmod_R = True
-        self._logger.info(f"Native chmod -R support: {self._chmod_R}")
+        self._logger.info("Native chmod -R support: {}".format(self._chmod_R))
 
         # Do we have chown -R?
         try:
@@ -1003,8 +1009,8 @@ class ADBDevice(ADBCommand):
             if match:
                 self._chown_R = True
         except ADBError as e:
-            self._logger.debug(f"Check chown -R: {e}")
-        self._logger.info(f"Native chown -R support: {self._chown_R}")
+            self._logger.debug("Check chown -R: {}".format(e))
+        self._logger.info("Native chown -R support: {}".format(self._chown_R))
 
         try:
             cleared = self.shell_bool('logcat -P ""', timeout=timeout)
@@ -1080,7 +1086,7 @@ class ADBDevice(ADBCommand):
                         self._have_su = True
                         self._logger.info("su -c supported")
                 except ADBError as e:
-                    self._logger.debug(f"Check for su -c failed: {e}")
+                    self._logger.debug("Check for su -c failed: {}".format(e))
 
                 # Check if Android's su 0 command works.
                 # If we already have detected su -c support, we can skip this check.
@@ -1093,7 +1099,7 @@ class ADBDevice(ADBCommand):
                         self._have_android_su = True
                         self._logger.info("su 0 supported")
                 except ADBError as e:
-                    self._logger.debug(f"Check for su 0 failed: {e}")
+                    self._logger.debug("Check for su 0 failed: {}".format(e))
 
         # Guarantee that /data/local/tmp exists and is accessible to all.
         # It is a fatal error if /data/local/tmp does not exist and can not be created.
@@ -1175,7 +1181,7 @@ class ADBDevice(ADBCommand):
                 or ":" not in serial
             )
 
-        if isinstance(device, str):
+        if isinstance(device, six.string_types):
             # Treat this as a device serial
             if not is_valid_serial(device):
                 raise ValueError(
@@ -1324,7 +1330,7 @@ class ADBDevice(ADBCommand):
         offset = 1
         while length - offset >= 0:
             file_obj.seek(-offset, os.SEEK_END)
-            char = file_obj.read(1).decode()
+            char = six.ensure_str(file_obj.read(1))
             if not char:
                 break
             if char != "\r" and char != "\n":
@@ -1349,8 +1355,8 @@ class ADBDevice(ADBCommand):
             # appropriate match.
             file_obj.seek(0, os.SEEK_SET)
             for line in file_obj:
-                line_str = line.decode()
-                match = re_returncode.search(line_str)
+                line = six.ensure_str(line)
+                match = re_returncode.search(line)
                 if match:
                     exitcode = int(match.group(1))
                     break
@@ -1405,7 +1411,7 @@ class ADBDevice(ADBCommand):
             self._debuggable_packages[package] = True
         except ADBError as e:
             self._debuggable_packages[package] = False
-            self._logger.warning(f"Package {package} is not debuggable: {str(e)}")
+            self._logger.warning("Package %s is not debuggable: %s" % (package, str(e)))
         return self._debuggable_packages[package]
 
     @property
@@ -1614,7 +1620,7 @@ class ADBDevice(ADBCommand):
         global _TEST_ROOT
         if self._test_root == value:
             return
-        self._logger.debug(f"Setting test_root from {self._test_root} to {value}")
+        self._logger.debug("Setting test_root from %s to %s" % (self._test_root, value))
         old_test_root = self._test_root
         self._test_root = value
         if self._share_test_root:
@@ -1680,7 +1686,7 @@ class ADBDevice(ADBCommand):
             self.mkdir(proof_dir)
             self.rm(proof_dir, recursive=True)
         except ADBError as e:
-            self._logger.warning(f"{test_root} is not writable: {str(e)}")
+            self._logger.warning("%s is not writable: %s" % (test_root, str(e)))
             return False
 
         return True
@@ -1770,7 +1776,7 @@ class ADBDevice(ADBCommand):
             self.SOCKET_DIRECTION_FORWARD,
             self.SOCKET_DIRECTION_REVERSE,
         ]:
-            raise ValueError(f"Invalid direction specifier {direction}")
+            raise ValueError("Invalid direction specifier {}".format(direction))
 
     def create_socket_connection(
         self, direction, local, remote, allow_rebind=True, timeout=None
@@ -1989,7 +1995,7 @@ class ADBDevice(ADBCommand):
         """
 
         def _timed_read_line_handler(signum, frame):
-            raise OSError("ReadLineTimeout")
+            raise IOError("ReadLineTimeout")
 
         def _timed_read_line(filehandle, timeout=None):
             """
@@ -2025,15 +2031,15 @@ class ADBDevice(ADBCommand):
         elif self._have_su:
             cmd = "su -c %s" % ADBDevice._quote(cmd)
         elif self._run_as_package and enable_run_as:
-            cmd = f"run-as {self._run_as_package} {cmd}"
+            cmd = "run-as %s %s" % (self._run_as_package, cmd)
         else:
             pass
 
         # prepend cwd and env to command if necessary
         if cwd:
-            cmd = f"cd {cwd} && {cmd}"
+            cmd = "cd %s && %s" % (cwd, cmd)
         if env:
-            envstr = "&& ".join([f"export {x[0]}={x[1]}" for x in env.items()])
+            envstr = "&& ".join(["export %s=%s" % (x[0], x[1]) for x in env.items()])
             cmd = envstr + "&& " + cmd
         # Before Android 7, an exitcode 0 for the process on the host
         # did not mean that the exitcode of the Android process was
@@ -2077,7 +2083,7 @@ class ADBDevice(ADBCommand):
                 time.sleep(self._polling_interval)
                 exitcode = adb_process.proc.poll()
         else:
-            stdout2 = open(adb_process.stdout_file.name, "rb")
+            stdout2 = io.open(adb_process.stdout_file.name, "rb")
             partial = b""
             while ((time.time() - start_time) <= float(timeout)) and exitcode is None:
                 try:
@@ -2088,7 +2094,7 @@ class ADBDevice(ADBCommand):
                             partial = b""
                             line = line.rstrip()
                             if self._verbose:
-                                self._logger.info(line.decode())
+                                self._logger.info(six.ensure_str(line))
                             stdout_callback(line)
                         else:
                             # no more output available now, but more to come?
@@ -2096,7 +2102,7 @@ class ADBDevice(ADBCommand):
                     else:
                         # no new output, so sleep and poll
                         time.sleep(self._polling_interval)
-                except OSError:
+                except IOError:
                     pass
                 exitcode = adb_process.proc.poll()
         if exitcode is None:
@@ -2271,7 +2277,7 @@ class ADBDevice(ADBCommand):
             if "failed to clear" not in str(e):
                 raise
             self._logger.warning(
-                f"retryable logcat clear error?: {str(e)}. Retrying..."
+                "retryable logcat clear error?: {}. Retrying...".format(str(e))
             )
             try:
                 self.command_output(cmds, timeout=timeout)
@@ -2279,7 +2285,9 @@ class ADBDevice(ADBCommand):
             except ADBProcessError as e2:
                 if "failed to clear" not in str(e):
                     raise
-                self._logger.warning(f"Ignoring failure to clear logcat: {str(e2)}.")
+                self._logger.warning(
+                    "Ignoring failure to clear logcat: {}.".format(str(e2))
+                )
 
     def get_logcat(
         self,
@@ -2423,7 +2431,9 @@ class ADBDevice(ADBCommand):
             try:
                 output = self.shell_output("ifconfig %s" % interface, timeout=timeout)
             except ADBError as e:
-                self._logger.warning(f"get_ip_address ifconfig {interface}: {str(e)}")
+                self._logger.warning(
+                    "get_ip_address ifconfig %s: %s" % (interface, str(e))
+                )
                 output = ""
 
             for line in output.splitlines():
@@ -2484,7 +2494,7 @@ class ADBDevice(ADBCommand):
                     matched_ip = None
                 elif matched_ip and matched_interface in interfaces:
                     self._logger.debug(
-                        f"get_ip_address: found: {matched_interface} {matched_ip}"
+                        "get_ip_address: found: %s %s" % (matched_interface, matched_ip)
                     )
                     return matched_ip
         self._logger.debug("get_ip_address: not found")
@@ -2528,10 +2538,10 @@ class ADBDevice(ADBCommand):
             tmpf = tempfile.NamedTemporaryFile(mode="w", delete=False)
             tmpf.write("\n".join(commands))
             tmpf.close()
-            script = f"/sdcard/{os.path.basename(tmpf.name)}"
+            script = "/sdcard/{}".format(os.path.basename(tmpf.name))
             self.push(tmpf.name, script)
             self.shell_output(
-                f"sh {script}", enable_run_as=enable_run_as, timeout=timeout
+                "sh {}".format(script), enable_run_as=enable_run_as, timeout=timeout
             )
         finally:
             if tmpf:
@@ -2567,7 +2577,9 @@ class ADBDevice(ADBCommand):
         # detected.
         path = posixpath.normpath(path.strip())
         enable_run_as = self.enable_run_as_for_path(path)
-        self._logger.debug(f"chmod: path={path}, recursive={recursive}, mask={mask}")
+        self._logger.debug(
+            "chmod: path=%s, recursive=%s, mask=%s" % (path, recursive, mask)
+        )
         if self.is_path_internal_storage(path, timeout=timeout):
             # External storage on Android is case-insensitive and permissionless
             # therefore even with the proper privileges it is not possible
@@ -2634,7 +2646,7 @@ class ADBDevice(ADBCommand):
         if group:
             # officially supported notation is : but . has been checked with
             # sdk 17 and it works.
-            command.append(f"{owner}.{group}")
+            command.append("{owner}.{group}".format(owner=owner, group=group))
         else:
             command.append(owner)
 
@@ -2675,7 +2687,7 @@ class ADBDevice(ADBCommand):
         enable_run_as = self.enable_run_as_for_path(path)
         if not enable_run_as and not self._device_serial.startswith("emulator"):
             return self.shell_bool(
-                f"test -{argument} {path}",
+                "test -{arg} {path}".format(arg=argument, path=path),
                 timeout=timeout,
                 enable_run_as=False,
             )
@@ -2687,11 +2699,11 @@ class ADBDevice(ADBCommand):
             )
         if argument == "d":
             return self.shell_bool(
-                f"ls -a {path}/", timeout=timeout, enable_run_as=enable_run_as
+                "ls -a {}/".format(path), timeout=timeout, enable_run_as=enable_run_as
             )
         if argument == "e":
             return self.shell_bool(
-                f"ls -a {path}", timeout=timeout, enable_run_as=enable_run_as
+                "ls -a {}".format(path), timeout=timeout, enable_run_as=enable_run_as
             )
         raise ADBError("_test_path: Unknown argument %s" % argument)
 
@@ -2767,7 +2779,7 @@ class ADBDevice(ADBCommand):
         if self.is_dir(path, timeout=timeout):
             try:
                 data = self.shell_output(
-                    f"{self._ls} {path}",
+                    "%s %s" % (self._ls, path),
                     timeout=timeout,
                     enable_run_as=enable_run_as,
                 ).splitlines()
@@ -2838,25 +2850,25 @@ class ADBDevice(ADBCommand):
                 if model == "Nexus 4":
                     path += "*"
         lines = self.shell_output(
-            f"{self._ls} {recursive_flag} {path}",
+            "%s %s %s" % (self._ls, recursive_flag, path),
             timeout=timeout,
             enable_run_as=enable_run_as,
         ).splitlines()
         for line in lines:
-            stripped_line = line.strip()
-            if not stripped_line:
+            line = line.strip()
+            if not line:
                 parent = ""
                 continue
-            if stripped_line.endswith(":"):  # This is a directory
-                parent = stripped_line.replace(":", "/")
+            if line.endswith(":"):  # This is a directory
+                parent = line.replace(":", "/")
                 entry = parent
                 # Remove earlier entry which is marked as a file.
                 if parent[:-1] in entries:
                     del entries[parent[:-1]]
             elif parent:
-                entry = f"{parent}{stripped_line}"
+                entry = "%s%s" % (parent, line)
             else:
-                entry = stripped_line
+                entry = line
             entries[entry] = 1
         entry_list = list(entries.keys())
         entry_list.sort()
@@ -3117,7 +3129,7 @@ class ADBDevice(ADBCommand):
                     self.cp(remote, intermediate, recursive=True, timeout=timeout)
                     self.command_output(["pull", intermediate, local], timeout=timeout)
                 except ADBError as e:
-                    self._logger.error(f"pull {intermediate} {local}: {str(e)}")
+                    self._logger.error("pull %s %s: %s" % (intermediate, local, str(e)))
                 finally:
                     self.rm(intermediate, recursive=True, force=True, timeout=timeout)
         finally:
@@ -3144,7 +3156,7 @@ class ADBDevice(ADBCommand):
 
         with tempfile.NamedTemporaryFile() as tf:
             self.pull(remote, tf.name, timeout=timeout)
-            with open(tf.name, mode="rb") as tf2:
+            with io.open(tf.name, mode="rb") as tf2:
                 # ADB pull does not support offset and length, but we can
                 # instead read only the requested portion of the local file
                 if offset is not None and length is not None:
@@ -3182,7 +3194,7 @@ class ADBDevice(ADBCommand):
             cmd += " -r"
         try:
             self.shell_output(
-                f"{cmd} {path}", timeout=timeout, enable_run_as=enable_run_as
+                "%s %s" % (cmd, path), timeout=timeout, enable_run_as=enable_run_as
             )
             self._sync(timeout=timeout)
             if self.exists(path, timeout=timeout):
@@ -3247,7 +3259,7 @@ class ADBDevice(ADBCommand):
                 if adb_process.exitcode:
                     raise ADBProcessError(adb_process)
                 # first line is the headers
-                header = adb_process.stdout_file.readline().decode()
+                header = six.ensure_str(adb_process.stdout_file.readline())
                 pid_i = -1
                 user_i = -1
                 els = header.split()
@@ -3270,7 +3282,7 @@ class ADBDevice(ADBCommand):
                         % (header, adb_process)
                     )
             ret = []
-            line = adb_process.stdout_file.readline().decode()
+            line = six.ensure_str(adb_process.stdout_file.readline())
             while line:
                 els = line.split()
                 try:
@@ -3280,7 +3292,9 @@ class ADBDevice(ADBCommand):
                         "get_process_list: %s %s\n%s"
                         % (header, line, traceback.format_exc())
                     )
-                    raise ADBError(f"get_process_list: {header}: {line}: {adb_process}")
+                    raise ADBError(
+                        "get_process_list: %s: %s: %s" % (header, line, adb_process)
+                    )
                 except IndexError:
                     self._logger.error(
                         "get_process_list: %s %s els %s pid_i %s user_i %s\n%s"
@@ -3290,7 +3304,7 @@ class ADBDevice(ADBCommand):
                         "get_process_list: %s: %s els %s pid_i %s user_i %s: %s"
                         % (header, line, els, pid_i, user_i, adb_process)
                     )
-                line = adb_process.stdout_file.readline().decode()
+                line = six.ensure_str(adb_process.stdout_file.readline())
             self._logger.debug("get_process_list: %s" % ret)
             return ret
         finally:
@@ -3391,7 +3405,7 @@ class ADBDevice(ADBCommand):
         :raises: :exc:`ADBTimeoutError`
                  :exc:`ADBError`
         """
-        if not isinstance(process_name, str):
+        if not isinstance(process_name, six.string_types):
             raise ADBError("Process name %s is not a string" % process_name)
 
         # Filter out extra spaces.
@@ -3439,7 +3453,7 @@ class ADBDevice(ADBCommand):
         if self._have_cp:
             r = "-R" if recursive else ""
             self.shell_output(
-                f"cp {r} {source} {destination}",
+                "cp %s %s %s" % (r, source, destination),
                 timeout=timeout,
                 enable_run_as=enable_run_as,
             )
@@ -3456,7 +3470,7 @@ class ADBDevice(ADBCommand):
             if self.is_dir(destination, timeout=timeout):
                 # Copy the source file into the destination directory
                 destination = posixpath.join(destination, os.path.basename(source))
-            self.shell_output(f"dd if={source} of={destination}", timeout=timeout)
+            self.shell_output("dd if=%s of=%s" % (source, destination), timeout=timeout)
             self.chmod(destination, recursive=recursive, timeout=timeout)
             self._sync(timeout=timeout)
             return
@@ -3513,7 +3527,7 @@ class ADBDevice(ADBCommand):
             source
         ) or self.enable_run_as_for_path(destination)
         self.shell_output(
-            f"mv {source} {destination}",
+            "mv %s %s" % (source, destination),
             timeout=timeout,
             enable_run_as=enable_run_as,
         )
@@ -3729,7 +3743,7 @@ class ADBDevice(ADBCommand):
             data = self.shell_output(cmd, timeout=timeout)
         except Exception as e:
             # dumpsys intermittently fails on some platforms.
-            self._logger.info(f"_get_top_activity_P: Exception {cmd}: {e}")
+            self._logger.info("_get_top_activity_P: Exception %s: %s" % (cmd, e))
             return package
         finally:
             self._verbose = verbose
@@ -3760,7 +3774,7 @@ class ADBDevice(ADBCommand):
             data = self.shell_output(cmd, timeout=timeout)
         except Exception as e:
             # dumpsys intermittently fails on some platforms (4.3 arm emulator)
-            self._logger.info(f"_get_top_activity_Q: Exception {cmd}: {e}")
+            self._logger.info("_get_top_activity_Q: Exception %s: %s" % (cmd, e))
             return package
         finally:
             self._verbose = verbose
@@ -3901,7 +3915,7 @@ class ADBDevice(ADBCommand):
             for permission in permissions:
                 try:
                     self.shell_output(
-                        f"pm grant {app_name} {permission}",
+                        "pm grant %s %s" % (app_name, permission),
                         timeout=timeout,
                         enable_run_as=False,
                     )
@@ -3959,19 +3973,19 @@ class ADBDevice(ADBCommand):
             except subprocess.TimeoutExpired:
                 raise ADBTimeoutError("ADBDevice: unable to generate key")
 
-            apks_path = f"{temporaryDirectory}/tmp.apks"
+            apks_path = "{}/tmp.apks".format(temporaryDirectory)
             java_path = os.path.join(java_home, "bin", "java")
             build_apks = [
                 java_path,
                 "-jar",
                 bundletool,
                 "build-apks",
-                f"--bundle={bundle_path}",
-                f"--output={apks_path}",
+                "--bundle={}".format(bundle_path),
+                "--output={}".format(apks_path),
                 "--connected-device",
-                f"--device-id={device_serial}",
-                f"--adb={self._adb_path}",
-                f"--ks={keystore_path}",
+                "--device-id={}".format(device_serial),
+                "--adb={}".format(self._adb_path),
+                "--ks={}".format(keystore_path),
                 "--ks-key-alias=androiddebugkey",
                 "--key-pass=pass:android",
                 "--ks-pass=pass:android",
@@ -3987,9 +4001,9 @@ class ADBDevice(ADBCommand):
                 "-jar",
                 bundletool,
                 "install-apks",
-                f"--apks={apks_path}",
-                f"--device-id={device_serial}",
-                f"--adb={self._adb_path}",
+                "--apks={}".format(apks_path),
+                "--device-id={}".format(device_serial),
+                "--adb={}".format(self._adb_path),
             ]
             self._logger.info("install_apks: %s" % install_apks)
 
@@ -4021,7 +4035,7 @@ class ADBDevice(ADBCommand):
         cmd.append(apk_path)
         data = self.command_output(cmd, timeout=timeout)
         if data.find("Success") == -1:
-            raise ADBError(f"install failed for {apk_path}. Got: {data}")
+            raise ADBError("install failed for %s. Got: %s" % (apk_path, data))
         packages_after = set(self.shell_output(dump_packages).split("\n"))
         packages_diff = packages_after - packages_before
         package_name = None
@@ -4052,7 +4066,7 @@ class ADBDevice(ADBCommand):
         if pm_error_string in data:
             raise ADBError(pm_error_string)
         output = [line for line in data.splitlines() if line.strip()]
-        return any([f"package:{app_name}" == out for out in output])
+        return any(["package:{}".format(app_name) == out for out in output])
 
     def launch_application(
         self,
@@ -4108,7 +4122,7 @@ class ADBDevice(ADBCommand):
         acmd.extend(
             [
                 "-n",
-                f"{app_name}/{activity_name}",
+                "%s/%s" % (app_name, activity_name),
             ]
         )
         if intent:
@@ -4137,7 +4151,9 @@ class ADBDevice(ADBCommand):
         if "Error:" in cmd_output:
             for line in cmd_output.split("\n"):
                 self._logger.info(line)
-            raise ADBError(f"launch_application {app_name}/{activity_name} failed")
+            raise ADBError(
+                "launch_application %s/%s failed" % (app_name, activity_name)
+            )
 
     def launch_fennec(
         self,
@@ -4255,7 +4271,7 @@ class ADBDevice(ADBCommand):
         extras["out_file"] = out_file
         self.launch_application(
             app_name,
-            f"{app_name}.{activity_name}",
+            "%s.%s" % (app_name, activity_name),
             intent,
             url=url,
             extras=extras,
@@ -4321,7 +4337,7 @@ class ADBDevice(ADBCommand):
 
         self.launch_application(
             app_name,
-            f"{app_name}.{activity_name}",
+            "%s.%s" % (app_name, activity_name),
             intent,
             url=url,
             extras=extras,
@@ -4392,7 +4408,7 @@ class ADBDevice(ADBCommand):
             data = self.command_output(["uninstall", app_name], timeout=timeout)
             if data.find("Success") == -1:
                 self._logger.debug("uninstall_app failed: %s" % data)
-                raise ADBError(f"uninstall failed for {app_name}. Got: {data}")
+                raise ADBError("uninstall failed for %s. Got: %s" % (app_name, data))
             self.run_as_package = None
             if reboot:
                 self.reboot(timeout=timeout)

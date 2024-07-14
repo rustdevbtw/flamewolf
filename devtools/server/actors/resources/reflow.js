@@ -4,6 +4,9 @@
 
 "use strict";
 
+const {
+  TYPES: { REFLOW },
+} = require("resource://devtools/server/actors/resources/index.js");
 const Targets = require("resource://devtools/server/actors/targets/index.js");
 
 const {
@@ -36,6 +39,7 @@ class ReflowWatcher {
     const onReflows = reflows => {
       onAvailable([
         {
+          resourceType: REFLOW,
           reflows,
         },
       ]);

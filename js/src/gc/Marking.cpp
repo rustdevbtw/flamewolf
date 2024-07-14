@@ -35,7 +35,6 @@ using namespace js;
 using namespace js::gc;
 
 using JS::MapTypeToTraceKind;
-using JS::SliceBudget;
 
 using mozilla::DebugOnly;
 using mozilla::IntegerRange;
@@ -236,41 +235,38 @@ template void CheckTracedThing<wasm::AnyRef>(JSTracer*, const wasm::AnyRef&);
 
 static inline bool ShouldMarkCrossCompartment(GCMarker* marker, JSObject* src,
                                               Cell* dstCell, const char* name) {
+  MarkColor color = marker->markColor();
+
+  if (!dstCell->isTenured()) {
 #ifdef DEBUG
-  if (src->isMarkedGray() && !dstCell->isTenured()) {
     // Bug 1743098: This shouldn't be possible but it does seem to happen. Log
     // some useful information in debug builds.
-    SEprinter printer;
-    printer.printf(
-        "ShouldMarkCrossCompartment: cross compartment edge '%s' from gray "
-        "object to nursery thing\n",
-        name);
-    printer.put("src: ");
-    src->dump(printer);
-    printer.put("dst: ");
-    dstCell->dump(printer);
-    MOZ_CRASH("Found cross compartment edge from gray object to nursery thing");
-  }
+    if (color != MarkColor::Black) {
+      SEprinter printer;
+      printer.printf(
+          "ShouldMarkCrossCompartment: cross compartment edge '%s' from gray "
+          "object to nursery thing\n",
+          name);
+      printer.put("src: ");
+      src->dump(printer);
+      printer.put("dst: ");
+      dstCell->dump(printer);
+    }
 #endif
-
-  CellColor targetColor = AsCellColor(marker->markColor());
-  CellColor currentColor = dstCell->color();
-  if (currentColor >= targetColor) {
-    // Cell is already sufficiently marked. Nothing to do.
+    MOZ_ASSERT(color == MarkColor::Black);
     return false;
   }
-
   TenuredCell& dst = dstCell->asTenured();
+
   JS::Zone* dstZone = dst.zone();
   if (!src->zone()->isGCMarking() && !dstZone->isGCMarking()) {
     return false;
   }
 
-  if (targetColor == CellColor::Black) {
+  if (color == MarkColor::Black) {
     // Check our sweep groups are correct: we should never have to
     // mark something in a zone that we have started sweeping.
-    MOZ_ASSERT(currentColor < CellColor::Black);
-    MOZ_ASSERT(!dstZone->isGCSweeping());
+    MOZ_ASSERT_IF(!dst.isMarkedBlack(), !dstZone->isGCSweeping());
 
     /*
      * Having black->gray edges violates our promise to the cycle collector so
@@ -290,7 +286,7 @@ static inline bool ShouldMarkCrossCompartment(GCMarker* marker, JSObject* src,
      * We handle the first case before returning whereas the second case happens
      * as part of normal marking.
      */
-    if (currentColor == CellColor::Gray && !dstZone->isGCMarking()) {
+    if (dst.isMarkedGray() && !dstZone->isGCMarking()) {
       UnmarkGrayGCThingUnchecked(marker,
                                  JS::GCCellPtr(&dst, dst.getTraceKind()));
       return false;
@@ -300,8 +296,7 @@ static inline bool ShouldMarkCrossCompartment(GCMarker* marker, JSObject* src,
   }
 
   // Check our sweep groups are correct as above.
-  MOZ_ASSERT(currentColor == CellColor::White);
-  MOZ_ASSERT(!dstZone->isGCSweeping());
+  MOZ_ASSERT_IF(!dst.isMarkedAny(), !dstZone->isGCSweeping());
 
   if (dstZone->isGCMarkingBlackOnly()) {
     /*
@@ -309,7 +304,9 @@ static inline bool ShouldMarkCrossCompartment(GCMarker* marker, JSObject* src,
      * but it will be later, so record the cell so it can be marked gray
      * at the appropriate time.
      */
-    DelayCrossCompartmentGrayMarking(marker, src);
+    if (!dst.isMarkedAny()) {
+      DelayCrossCompartmentGrayMarking(marker, src);
+    }
     return false;
   }
 
@@ -1413,9 +1410,6 @@ void GCMarker::updateRangesAtStartOfSlice() {
       MarkStack::SlotsOrElementsRange& range = iter.slotsOrElementsRange();
       JSObject* obj = range.ptr().asRangeObject();
       if (!obj->is<NativeObject>()) {
-        // The object owning the range was swapped with a non-native object by
-        // the mutator. The barriers at the end of JSObject::swap ensure that
-        // everything gets marked so there's nothing to do here.
         range.setEmpty();
       } else if (range.kind() == SlotsOrElementsKind::Elements) {
         NativeObject* obj = &range.ptr().asRangeObject()->as<NativeObject>();
@@ -1756,10 +1750,6 @@ inline void MarkStack::SlotsOrElementsRange::setStart(size_t newStart) {
 }
 
 inline void MarkStack::SlotsOrElementsRange::setEmpty() {
-  // Replace this SlotsOrElementsRange with something that's valid for marking
-  // but doesn't involve accessing this range, which is now invalid. This
-  // replaces the two-word range with two single-word entries for the owning
-  // object.
   TaggedPtr entry = TaggedPtr(ObjectTag, ptr().asRangeObject());
   ptr_ = entry;
   startAndKind_ = entry.asBits();
@@ -2615,7 +2605,7 @@ namespace js::gc {
 
 template <typename T>
 JS_PUBLIC_API bool TraceWeakEdge(JSTracer* trc, JS::Heap<T>* thingp) {
-  return TraceEdgeInternal(trc, gc::ConvertToBase(thingp->unsafeAddress()),
+  return TraceEdgeInternal(trc, gc::ConvertToBase(thingp->unsafeGet()),
                            "JS::Heap edge");
 }
 
@@ -2849,10 +2839,7 @@ namespace js::debug {
 MarkInfo GetMarkInfo(void* vp) {
   GCRuntime& gc = TlsGCContext.get()->runtime()->gc;
   if (gc.nursery().isInside(vp)) {
-    ChunkBase* chunk = js::gc::detail::GetGCAddressChunkBase(vp);
-    return chunk->getKind() == js::gc::ChunkKind::NurseryFromSpace
-               ? MarkInfo::NURSERY_FROMSPACE
-               : MarkInfo::NURSERY_TOSPACE;
+    return MarkInfo::NURSERY;
   }
 
   if (!gc.isPointerWithinTenuredCell(vp)) {

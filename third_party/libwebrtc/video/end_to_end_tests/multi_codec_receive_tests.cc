@@ -202,13 +202,13 @@ void MultiCodecReceiveTest::RunTestWithCodecs(
       [](const Environment& env,
          const SdpVideoFormat& format) -> std::unique_ptr<VideoEncoder> {
         if (format.name == "VP8") {
-          return CreateVp8Encoder(env);
+          return VP8Encoder::Create();
         }
         if (format.name == "VP9") {
-          return CreateVp9Encoder(env);
+          return VP9Encoder::Create();
         }
         if (format.name == "H264") {
-          return CreateH264Encoder(env);
+          return H264Encoder::Create();
         }
         RTC_DCHECK_NOTREACHED() << format.name;
         return nullptr;

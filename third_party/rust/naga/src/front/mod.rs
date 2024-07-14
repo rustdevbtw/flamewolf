@@ -5,8 +5,6 @@ Frontend parsers that consume binary and text shaders and load them into [`Modul
 mod interpolator;
 mod type_gen;
 
-#[cfg(feature = "spv-in")]
-pub mod atomic_upgrade;
 #[cfg(feature = "glsl-in")]
 pub mod glsl;
 #[cfg(feature = "spv-in")]
@@ -15,7 +13,7 @@ pub mod spv;
 pub mod wgsl;
 
 use crate::{
-    arena::{Arena, Handle, HandleVec, UniqueArena},
+    arena::{Arena, Handle, UniqueArena},
     proc::{ResolveContext, ResolveError, TypeResolution},
     FastHashMap,
 };
@@ -52,13 +50,13 @@ use std::ops;
 /// [`LocalVariable`]: crate::LocalVariable
 #[derive(Debug, Default)]
 pub struct Typifier {
-    resolutions: HandleVec<crate::Expression, TypeResolution>,
+    resolutions: Vec<TypeResolution>,
 }
 
 impl Typifier {
     pub const fn new() -> Self {
         Typifier {
-            resolutions: HandleVec::new(),
+            resolutions: Vec::new(),
         }
     }
 
@@ -71,7 +69,7 @@ impl Typifier {
         expr_handle: Handle<crate::Expression>,
         types: &'a UniqueArena<crate::Type>,
     ) -> &'a crate::TypeInner {
-        self.resolutions[expr_handle].inner_with(types)
+        self.resolutions[expr_handle.index()].inner_with(types)
     }
 
     /// Add an expression's type to an `Arena<Type>`.
@@ -111,9 +109,9 @@ impl Typifier {
         if self.resolutions.len() <= expr_handle.index() {
             for (eh, expr) in expressions.iter().skip(self.resolutions.len()) {
                 //Note: the closure can't `Err` by construction
-                let resolution = ctx.resolve(expr, |h| Ok(&self.resolutions[h]))?;
+                let resolution = ctx.resolve(expr, |h| Ok(&self.resolutions[h.index()]))?;
                 log::debug!("Resolving {:?} = {:?} : {:?}", eh, expr, resolution);
-                self.resolutions.insert(eh, resolution);
+                self.resolutions.push(resolution);
             }
         }
         Ok(())
@@ -137,8 +135,8 @@ impl Typifier {
         } else {
             let expr = &expressions[expr_handle];
             //Note: the closure can't `Err` by construction
-            let resolution = ctx.resolve(expr, |h| Ok(&self.resolutions[h]))?;
-            self.resolutions[expr_handle] = resolution;
+            let resolution = ctx.resolve(expr, |h| Ok(&self.resolutions[h.index()]))?;
+            self.resolutions[expr_handle.index()] = resolution;
             Ok(())
         }
     }
@@ -147,7 +145,7 @@ impl Typifier {
 impl ops::Index<Handle<crate::Expression>> for Typifier {
     type Output = TypeResolution;
     fn index(&self, handle: Handle<crate::Expression>) -> &Self::Output {
-        &self.resolutions[handle]
+        &self.resolutions[handle.index()]
     }
 }
 

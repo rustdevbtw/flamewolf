@@ -372,11 +372,6 @@ class FontList {
    * of the shmem blocks; these are what will be shared to child processes.
    */
   nsTArray<mozilla::UniquePtr<base::SharedMemory>> mReadOnlyShmems;
-
-#ifdef XP_WIN
-  // Bool array to track whether we have read face names from the name table.
-  nsTArray<bool> mFaceNamesRead;
-#endif
 };
 
 }  // namespace fontlist

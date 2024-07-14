@@ -56,8 +56,6 @@ using namespace js::gc;
 
 using mozilla::TimeStamp;
 
-using JS::SliceBudget;
-
 struct js::gc::FinalizePhase {
   gcstats::PhaseKind statsPhase;
   AllocKinds kinds;
@@ -558,6 +556,7 @@ IncrementalProgress GCRuntime::markWeakReferencesInCurrentGroup(
   return markWeakReferences<SweepGroupZonesIter>(budget);
 }
 
+template <class ZoneIterT>
 IncrementalProgress GCRuntime::markGrayRoots(SliceBudget& budget,
                                              gcstats::PhaseKind phase) {
   MOZ_ASSERT(marker().markColor() == MarkColor::Gray);
@@ -587,15 +586,8 @@ IncrementalProgress GCRuntime::markAllWeakReferences() {
 }
 
 void GCRuntime::markAllGrayReferences(gcstats::PhaseKind phase) {
-#ifdef DEBUG
-  // Check zones are in the correct state to be marked.
-  for (GCZonesIter zone(this); !zone.done(); zone.next()) {
-    MOZ_ASSERT(zone->isGCMarkingBlackAndGray());
-  }
-#endif
-
   SliceBudget budget = SliceBudget::unlimited();
-  markGrayRoots(budget, phase);
+  markGrayRoots<GCZonesIter>(budget, phase);
   drainMarkStack();
 }
 
@@ -778,7 +770,7 @@ void GCRuntime::groupZonesForSweeping(JS::GCReason reason) {
 #endif
 }
 
-void GCRuntime::moveToNextSweepGroup() {
+void GCRuntime::getNextSweepGroup() {
   currentSweepGroup = currentSweepGroup->nextGroup();
   ++sweepGroupIndex;
   if (!currentSweepGroup) {
@@ -791,7 +783,7 @@ void GCRuntime::moveToNextSweepGroup() {
     ZoneComponentFinder::mergeGroups(currentSweepGroup);
   }
 
-  for (SweepGroupZonesIter zone(this); !zone.done(); zone.next()) {
+  for (Zone* zone = currentSweepGroup; zone; zone = zone->nextNodeInGroup()) {
     MOZ_ASSERT(zone->gcState() == zone->initialMarkingState());
     MOZ_ASSERT(!zone->isQueuedForBackgroundSweep());
   }
@@ -802,7 +794,7 @@ void GCRuntime::moveToNextSweepGroup() {
     // Abort collection of subsequent sweep groups.
     for (SweepGroupZonesIter zone(this); !zone.done(); zone.next()) {
       MOZ_ASSERT(!zone->gcNextGraphComponent);
-      zone->changeGCState(zone->initialMarkingState(), Zone::Finished);
+      zone->changeGCState(zone->initialMarkingState(), Zone::NoGC);
       zone->arenas.unmarkPreMarkedFreeCells();
       zone->arenas.mergeArenasFromCollectingLists();
       zone->clearGCSliceThresholds();
@@ -1126,30 +1118,14 @@ IncrementalProgress GCRuntime::beginMarkingSweepGroup(JS::GCContext* gcx,
   return Finished;
 }
 
-#ifdef DEBUG
-bool GCRuntime::zoneInCurrentSweepGroup(Zone* zone) const {
-  MOZ_ASSERT_IF(!zone->wasGCStarted(), !zone->gcNextGraphComponent);
-  return zone->wasGCStarted() &&
-         zone->gcNextGraphComponent == currentSweepGroup->nextGroup();
-}
-#endif
-
 IncrementalProgress GCRuntime::markGrayRootsInCurrentGroup(
     JS::GCContext* gcx, SliceBudget& budget) {
   gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::MARK);
 
   AutoSetMarkColor setColorGray(marker(), MarkColor::Gray);
 
-  // Check that the zone state is set correctly for the current sweep group as
-  // that determines what gets marked.
-  MOZ_ASSERT(atomsZone()->wasGCStarted() ==
-             atomsZone()->isGCMarkingBlackAndGray());
-  for (NonAtomZonesIter zone(this); !zone.done(); zone.next()) {
-    MOZ_ASSERT(zone->isGCMarkingBlackAndGray() ==
-               zoneInCurrentSweepGroup(zone));
-  }
-
-  return markGrayRoots(budget, gcstats::PhaseKind::MARK_GRAY);
+  return markGrayRoots<SweepGroupZonesIter>(budget,
+                                            gcstats::PhaseKind::MARK_GRAY);
 }
 
 IncrementalProgress GCRuntime::markGray(JS::GCContext* gcx,
@@ -2114,7 +2090,7 @@ class js::gc::SweepGroupsIter {
 
   void next() {
     MOZ_ASSERT(!done());
-    gc->moveToNextSweepGroup();
+    gc->getNextSweepGroup();
   }
 };
 

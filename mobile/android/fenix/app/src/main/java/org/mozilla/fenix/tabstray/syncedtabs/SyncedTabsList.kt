@@ -101,16 +101,16 @@ fun SyncedTabsList(
                                 when (syncedTab.action) {
                                     is SyncedTabsListItem.Tab.Action.Close -> FaviconListItem(
                                         label = syncedTab.displayTitle,
-                                        url = syncedTab.displayURL,
                                         description = syncedTab.displayURL,
+                                        url = syncedTab.displayURL,
                                         onClick = { onTabClick(syncedTab.tab) },
                                         iconPainter = painterResource(R.drawable.ic_close),
                                         onIconClick = { onTabCloseClick(syncedTab.action.deviceId, syncedTab.tab) },
                                     )
                                     is SyncedTabsListItem.Tab.Action.None -> FaviconListItem(
                                         label = syncedTab.displayTitle,
-                                        url = syncedTab.displayURL,
                                         description = syncedTab.displayURL,
+                                        url = syncedTab.displayURL,
                                         onClick = { onTabClick(syncedTab.tab) },
                                     )
                                 }
@@ -254,8 +254,8 @@ private fun SyncedTabsListItemsPreview() {
 
             FaviconListItem(
                 label = "Mozilla",
-                url = "www.mozilla.org",
                 description = "www.mozilla.org",
+                url = "www.mozilla.org",
                 onClick = {},
             )
 

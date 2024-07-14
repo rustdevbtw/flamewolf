@@ -302,7 +302,7 @@ JS_PUBLIC_API void JS::NonIncrementalGC(JSContext* cx, JS::GCOptions options,
 
 JS_PUBLIC_API void JS::StartIncrementalGC(JSContext* cx, JS::GCOptions options,
                                           GCReason reason,
-                                          const JS::SliceBudget& budget) {
+                                          const js::SliceBudget& budget) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
   CheckGCOptions(options);
@@ -311,7 +311,7 @@ JS_PUBLIC_API void JS::StartIncrementalGC(JSContext* cx, JS::GCOptions options,
 }
 
 JS_PUBLIC_API void JS::IncrementalGCSlice(JSContext* cx, GCReason reason,
-                                          const JS::SliceBudget& budget) {
+                                          const js::SliceBudget& budget) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
 
@@ -431,8 +431,13 @@ JS_PUBLIC_API void JS::SetLowMemoryState(JSContext* cx, bool newState) {
   return cx->runtime()->gc.setLowMemoryState(newState);
 }
 
+JS_PUBLIC_API void JS::DisableIncrementalGC(JSContext* cx) {
+  cx->runtime()->gc.disallowIncrementalGC();
+}
+
 JS_PUBLIC_API bool JS::IsIncrementalGCEnabled(JSContext* cx) {
-  return cx->runtime()->gc.isIncrementalGCEnabled();
+  GCRuntime& gc = cx->runtime()->gc;
+  return gc.isIncrementalGCEnabled() && gc.isIncrementalGCAllowed();
 }
 
 JS_PUBLIC_API bool JS::IsIncrementalGCInProgress(JSContext* cx) {

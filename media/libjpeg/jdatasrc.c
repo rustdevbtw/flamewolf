@@ -56,12 +56,13 @@ init_source(j_decompress_ptr cinfo)
   src->start_of_file = TRUE;
 }
 
+#if JPEG_LIB_VERSION >= 80 || defined(MEM_SRCDST_SUPPORTED)
 METHODDEF(void)
 init_mem_source(j_decompress_ptr cinfo)
 {
   /* no work necessary here */
 }
-
+#endif
 
 /*
  * Fill the input buffer --- called whenever buffer is emptied.
@@ -121,6 +122,7 @@ fill_input_buffer(j_decompress_ptr cinfo)
   return TRUE;
 }
 
+#if JPEG_LIB_VERSION >= 80 || defined(MEM_SRCDST_SUPPORTED)
 METHODDEF(boolean)
 fill_mem_input_buffer(j_decompress_ptr cinfo)
 {
@@ -141,7 +143,7 @@ fill_mem_input_buffer(j_decompress_ptr cinfo)
 
   return TRUE;
 }
-
+#endif
 
 /*
  * Skip data --- used to skip over a potentially large amount of
@@ -248,7 +250,7 @@ jpeg_stdio_src(j_decompress_ptr cinfo, FILE *infile)
   src->pub.next_input_byte = NULL; /* until buffer loaded */
 }
 
-
+#if JPEG_LIB_VERSION >= 80 || defined(MEM_SRCDST_SUPPORTED)
 /*
  * Prepare for input from a supplied memory buffer.
  * The buffer must contain the whole JPEG data.
@@ -287,3 +289,4 @@ jpeg_mem_src(j_decompress_ptr cinfo, const unsigned char *inbuffer,
   src->bytes_in_buffer = (size_t)insize;
   src->next_input_byte = (const JOCTET *)inbuffer;
 }
+#endif

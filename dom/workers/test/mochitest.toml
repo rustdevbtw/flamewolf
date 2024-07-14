@@ -112,6 +112,7 @@ support-files = [
   "multi_sharedWorker_frame_nobfcache.html^headers^",
   "multi_sharedWorker_frame_bfcache.html",
   "navigate.html",
+  "!/dom/notification/test/mochitest/MockServices.js",
   "!/dom/notification/test/mochitest/NotificationTest.js",
   "!/dom/xhr/tests/relativeLoad_import.js",
   "!/dom/xhr/tests/relativeLoad_worker.js",
@@ -120,8 +121,6 @@ support-files = [
   "!/dom/xhr/tests/subdir/relativeLoad_sub_worker2.js",
   "!/dom/xhr/tests/subdir/relativeLoad_sub_import.js",
   "!/dom/events/test/event_leak_utils.js",
-  "test_worker_in_background.js",
-  "test_worker_in_background_child.js",
 ]
 
 ["test_404.html"]
@@ -281,14 +280,8 @@ support-files = [
 ["test_newError.html"]
 
 ["test_notification.html"]
-skip-if = [
-  "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
-]
 
 ["test_notification_child.html"]
-skip-if = [
-  "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
-]
 
 ["test_notification_permission.html"]
 
@@ -371,11 +364,6 @@ scheme = "https"
 skip-if = [
   "http3",
   "http2",
-]
-
-["test_worker_in_background.html"]
-skip-if = [
-"os == 'android'", # since geckoview does not support multiple tabs
 ]
 
 ["test_worker_interfaces_secureContext.html"]

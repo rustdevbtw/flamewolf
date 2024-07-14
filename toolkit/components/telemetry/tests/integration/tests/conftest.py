@@ -84,9 +84,7 @@ def fixture_marionette(binary, ping_server):
 @pytest.fixture(name="ping_server")
 def fixture_ping_server():
     """Run a ping server on localhost on a free port assigned by the OS"""
-    server = PingServer(
-        os.path.join(build.topsrcdir, SERVER_ROOT), "http://localhost:0"
-    )
+    server = PingServer(SERVER_ROOT, "http://localhost:0")
     server.start()
     yield server
     server.stop()

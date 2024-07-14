@@ -19,6 +19,7 @@ export const INITIAL_STATE = {
     isForStartupCache: false,
     customizeMenuVisible: false,
   },
+  ASRouter: { initialized: false },
   TopSites: {
     // Have we received real data from history yet?
     initialized: false,
@@ -87,14 +88,6 @@ export const INITIAL_STATE = {
     isUserLoggedIn: false,
     recentSavesEnabled: false,
   },
-  Notifications: {
-    showNotifications: false,
-    toastCounter: 0,
-    toastId: "",
-    // This queue is reset each time SHOW_TOAST_MESSAGE is ran.
-    // For can be a queue in the future, but for now is one item
-    toastQueue: [],
-  },
   Personalization: {
     lastUpdated: null,
     initialized: false,
@@ -150,6 +143,15 @@ function App(prevState = INITIAL_STATE.App, action) {
       return Object.assign({}, prevState, {
         customizeMenuVisible: false,
       });
+    default:
+      return prevState;
+  }
+}
+
+function ASRouter(prevState = INITIAL_STATE.ASRouter, action) {
+  switch (action.type) {
+    case at.AS_ROUTER_INITIALIZED:
+      return { ...action.data, initialized: true };
     default:
       return prevState;
   }
@@ -881,26 +883,6 @@ function Wallpapers(prevState = INITIAL_STATE.Wallpapers, action) {
   }
 }
 
-function Notifications(prevState = INITIAL_STATE.Notifications, action) {
-  switch (action.type) {
-    case at.SHOW_TOAST_MESSAGE:
-      return {
-        ...prevState,
-        showNotifications: action.data.showNotifications,
-        toastCounter: prevState.toastCounter + 1,
-        toastId: action.data.toastId,
-        toastQueue: [action.data.toastId],
-      };
-    case at.HIDE_TOAST_MESSAGE:
-      return {
-        ...prevState,
-        showNotifications: action.data.showNotifications,
-      };
-    default:
-      return prevState;
-  }
-}
-
 function Weather(prevState = INITIAL_STATE.Weather, action) {
   switch (action.type) {
     case at.WEATHER_UPDATE:
@@ -927,10 +909,10 @@ function Weather(prevState = INITIAL_STATE.Weather, action) {
 export const reducers = {
   TopSites,
   App,
+  ASRouter,
   Prefs,
   Dialog,
   Sections,
-  Notifications,
   Pocket,
   Personalization,
   DiscoveryStream,

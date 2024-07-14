@@ -2445,12 +2445,6 @@ bool BytecodeEmitter::emitScript(ParseNode* body) {
 
     switchToMain();
 
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-    if (!emitterScope.prepareForModuleDisposableScopeBody(this)) {
-      return false;
-    }
-#endif
-
     if (topLevelAwait) {
       if (!topLevelAwait->prepareForBody()) {
         return false;
@@ -2474,8 +2468,10 @@ bool BytecodeEmitter::emitScript(ParseNode* body) {
   }
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  if (!emitterScope.emitModuleDisposableScopeBodyEnd(this)) {
-    return false;
+  if (emitterScope.hasDisposables()) {
+    if (!emit1(JSOp::DisposeDisposables)) {
+      return false;
+    }
   }
 #endif
 
@@ -4259,8 +4255,9 @@ bool BytecodeEmitter::emitSingleDeclaration(ListNode* declList, NameNode* decl,
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
   if (declList->isKind(ParseNodeKind::UsingDecl)) {
-    if (!innermostEmitterScope()->prepareForDisposableAssignment(
-            UsingEmitter::Kind::Sync)) {
+    UsingEmitter uem(this);
+
+    if (!uem.prepareForAssignment(UsingEmitter::Kind::Sync)) {
       //            [stack] ENV? V
       return false;
     }
@@ -5809,8 +5806,9 @@ bool BytecodeEmitter::emitInitializeForInOrOfTarget(TernaryNode* forHead) {
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
     if (declarationList->isKind(ParseNodeKind::UsingDecl)) {
-      if (!innermostEmitterScope()->prepareForDisposableAssignment(
-              UsingEmitter::Kind::Sync)) {
+      UsingEmitter uem(this);
+
+      if (!uem.prepareForAssignment(UsingEmitter::Kind::Sync)) {
         //            [stack] ENV? V
         return false;
       }

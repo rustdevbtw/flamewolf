@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "AnimationHelper.h"
-#include "CompositorAnimationStorage.h"
 #include "base/process_util.h"
 #include "gfx2DGlue.h"                 // for ThebesRect
 #include "gfxLineSegment.h"            // for gfxLineSegment
@@ -318,7 +317,7 @@ AnimationHelper::SampleResult AnimationHelper::SampleAnimationForEachNode(
     const MutexAutoLock& aProofOfMapLock, TimeStamp aPreviousFrameTime,
     TimeStamp aCurrentFrameTime, const AnimatedValue* aPreviousValue,
     nsTArray<PropertyAnimationGroup>& aPropertyAnimationGroups,
-    SampledAnimationArray& aAnimationValues /* output */) {
+    nsTArray<RefPtr<StyleAnimationValue>>& aAnimationValues /* out */) {
   MOZ_ASSERT(!aPropertyAnimationGroups.IsEmpty(),
              "Should be called with animation data");
   MOZ_ASSERT(aAnimationValues.IsEmpty(),
@@ -446,9 +445,7 @@ static bool HasTransformLikeAnimations(const AnimationArray& aAnimations) {
 #endif
 
 AnimationStorageData AnimationHelper::ExtractAnimations(
-    const LayersId& aLayersId, const AnimationArray& aAnimations,
-    const CompositorAnimationStorage* aStorage,
-    const TimeStamp& aPreviousSampleTime) {
+    const LayersId& aLayersId, const AnimationArray& aAnimations) {
   AnimationStorageData storageData;
   storageData.mLayersId = aLayersId;
 
@@ -540,37 +537,12 @@ AnimationStorageData AnimationHelper::ExtractAnimations(
     propertyAnimation->mScrollTimelineOptions =
         animation.scrollTimelineOptions();
 
-    RefPtr<StyleAnimationValue> startValue;
-    if (animation.replacedTransitionId()) {
-      if (const auto* animatedValue =
-              aStorage->GetAnimatedValue(*animation.replacedTransitionId())) {
-        startValue = animatedValue->AsAnimationValue(animation.property());
-        // Basically, the timeline time is increasing monotonically, so it may
-        // not make sense to have a negative start time (i.e. the case when
-        // aPreviousSampleTime is behind the origin time). Therefore, if the
-        // previous sample time is less than the origin time, we skip the
-        // replacement of the start time.
-        if (!aPreviousSampleTime.IsNull() &&
-            (aPreviousSampleTime >= animation.originTime())) {
-          propertyAnimation->mStartTime =
-              Some(aPreviousSampleTime - animation.originTime());
-        }
-
-        MOZ_ASSERT(animation.segments().Length() == 1,
-                   "The CSS Transition only has one segement");
-      }
-    }
-
     nsTArray<PropertyAnimation::SegmentData>& segmentData =
         propertyAnimation->mSegments;
     for (const AnimationSegment& segment : animation.segments()) {
       segmentData.AppendElement(PropertyAnimation::SegmentData{
-          // Note that even though we re-compute the start value on the main
-          // thread, we still replace it with the last sampled value, to avoid
-          // any possible lag.
-          startValue ? startValue
-                     : AnimationValue::FromAnimatable(animation.property(),
-                                                      segment.startState()),
+          AnimationValue::FromAnimatable(animation.property(),
+                                         segment.startState()),
           AnimationValue::FromAnimatable(animation.property(),
                                          segment.endState()),
           segment.sampleFn(), segment.startPortion(), segment.endPortion(),
@@ -628,8 +600,8 @@ uint64_t AnimationHelper::GetNextCompositorAnimationsId() {
 }
 
 gfx::Matrix4x4 AnimationHelper::ServoAnimationValueToMatrix4x4(
-    const SampledAnimationArray& aValues, const TransformData& aTransformData,
-    gfx::Path* aCachedMotionPath) {
+    const nsTArray<RefPtr<StyleAnimationValue>>& aValues,
+    const TransformData& aTransformData, gfx::Path* aCachedMotionPath) {
   using nsStyleTransformMatrix::TransformReferenceBox;
 
   // This is a bit silly just to avoid the transform list copy from the

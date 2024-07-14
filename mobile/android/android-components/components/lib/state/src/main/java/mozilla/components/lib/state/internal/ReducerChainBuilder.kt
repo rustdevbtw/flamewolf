@@ -16,7 +16,7 @@ import mozilla.components.lib.state.Store
  * [reducer].
  */
 internal class ReducerChainBuilder<S : State, A : Action>(
-    private val storeDispatcher: StoreDispatcher,
+    private val storeThreadFactory: StoreThreadFactory,
     private val reducer: Reducer<S, A>,
     private val middleware: List<Middleware<S, A>>,
 ) {
@@ -53,7 +53,7 @@ internal class ReducerChainBuilder<S : State, A : Action>(
         }
 
         val threadCheck: Middleware<S, A> = { _, next, action ->
-            storeDispatcher.assertOnThread()
+            storeThreadFactory.assertOnThread()
             next(action)
         }
 

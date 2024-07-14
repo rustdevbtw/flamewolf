@@ -35,8 +35,7 @@ promise_test(async(t) => {
       .pointerUp()
       .send();
 
-  await verifyBeaconData(beacon_event.eventType, "<No data>",
-      get_host_info().HTTPS_REMOTE_ORIGIN);
+  await verifyBeaconData(beacon_event.eventType, "<No data>");
 }, 'Automatic beacon in a cross-origin subframe should send without data ' +
    'when crossOrigin=false.');
 </script>

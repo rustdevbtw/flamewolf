@@ -145,7 +145,7 @@ static LocaleObject* CreateLocaleObject(JSContext* cx, HandleObject prototype,
 }
 
 static inline bool IsValidUnicodeExtensionValue(JSContext* cx,
-                                                const JSLinearString* linear,
+                                                JSLinearString* linear,
                                                 bool* isValid) {
   if (linear->length() == 0) {
     *isValid = false;
@@ -167,11 +167,7 @@ static inline bool IsValidUnicodeExtensionValue(JSContext* cx,
   return true;
 }
 
-/**
- * Iterate through (sep keyword) in a valid Unicode extension.
- *
- * The Unicode extension value is not required to be in canonical case.
- */
+/** Iterate through (sep keyword) in a valid, lowercased Unicode extension. */
 template <typename CharT>
 class SepKeywordIterator {
   const CharT* iter_;
@@ -197,8 +193,7 @@ class SepKeywordIterator {
                "overall Unicode locale extension or non-leading subtags must "
                "be at least key-sized");
 
-    MOZ_ASSERT(((iter_[0] == 'u' || iter_[0] == 'U') && iter_[1] == '-') ||
-               iter_[0] == '-');
+    MOZ_ASSERT((iter_[0] == 'u' && iter_[1] == '-') || iter_[0] == '-');
 
     while (true) {
       // Skip past '-' so |std::char_traits::find| makes progress. Skipping
@@ -223,8 +218,9 @@ class SepKeywordIterator {
     }
 
     MOZ_ASSERT(iter_[0] == '-');
-    MOZ_ASSERT(mozilla::IsAsciiAlphanumeric(iter_[1]));
-    MOZ_ASSERT(mozilla::IsAsciiAlpha(iter_[2]));
+    MOZ_ASSERT(mozilla::IsAsciiLowercaseAlpha(iter_[1]) ||
+               mozilla::IsAsciiDigit(iter_[1]));
+    MOZ_ASSERT(mozilla::IsAsciiLowercaseAlpha(iter_[2]));
     MOZ_ASSERT_IF(iter_ + SepKeyLength < end_, iter_[SepKeyLength] == '-');
     return iter_;
   }
@@ -801,8 +797,8 @@ static mozilla::Maybe<IndexAndLength> FindUnicodeExtensionType(
                                       size_t(endType - beginType)});
 }
 
-static inline auto FindUnicodeExtensionType(
-    const JSLinearString* unicodeExtension, UnicodeKey key) {
+static inline auto FindUnicodeExtensionType(JSLinearString* unicodeExtension,
+                                            UnicodeKey key) {
   JS::AutoCheckCannotGC nogc;
   return unicodeExtension->hasLatin1Chars()
              ? FindUnicodeExtensionType(
@@ -922,7 +918,7 @@ static BaseNamePartsResult BaseNameParts(const CharT* baseName, size_t length) {
   return {language, script, region};
 }
 
-static inline auto BaseNameParts(const JSLinearString* baseName) {
+static inline auto BaseNameParts(JSLinearString* baseName) {
   JS::AutoCheckCannotGC nogc;
   return baseName->hasLatin1Chars()
              ? BaseNameParts(

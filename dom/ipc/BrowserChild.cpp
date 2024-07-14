@@ -1596,24 +1596,10 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealMouseButtonEvent(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult BrowserChild::RecvRealPointerButtonEvent(
-    const WidgetPointerEvent& aEvent, const ScrollableLayerGuid& aGuid,
-    const uint64_t& aInputBlockId) {
-  return RecvRealMouseButtonEvent(aEvent, aGuid, aInputBlockId);
-}
-
 void BrowserChild::HandleRealMouseButtonEvent(const WidgetMouseEvent& aEvent,
                                               const ScrollableLayerGuid& aGuid,
                                               const uint64_t& aInputBlockId) {
-  Maybe<WidgetPointerEvent> pointerEvent;
-  Maybe<WidgetMouseEvent> mouseEvent;
-  if (aEvent.mClass == ePointerEventClass) {
-    pointerEvent.emplace(aEvent);
-  } else {
-    mouseEvent.emplace(aEvent);
-  }
-  WidgetMouseEvent& localEvent =
-      pointerEvent.isSome() ? pointerEvent.ref() : mouseEvent.ref();
+  WidgetMouseEvent localEvent(aEvent);
   localEvent.mWidget = mPuppetWidget;
 
   // We need one InputAPZContext here to propagate |aGuid| to places in
@@ -1659,12 +1645,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvNormalPriorityRealMouseButtonEvent(
     const WidgetMouseEvent& aEvent, const ScrollableLayerGuid& aGuid,
     const uint64_t& aInputBlockId) {
   return RecvRealMouseButtonEvent(aEvent, aGuid, aInputBlockId);
-}
-
-mozilla::ipc::IPCResult BrowserChild::RecvNormalPriorityRealPointerButtonEvent(
-    const WidgetPointerEvent& aEvent, const ScrollableLayerGuid& aGuid,
-    const uint64_t& aInputBlockId) {
-  return RecvNormalPriorityRealMouseButtonEvent(aEvent, aGuid, aInputBlockId);
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvRealMouseEnterExitWidgetEvent(

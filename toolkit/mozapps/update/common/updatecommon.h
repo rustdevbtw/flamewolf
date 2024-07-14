@@ -27,8 +27,6 @@ class UpdateLog {
 
  protected:
   UpdateLog();
-  void PrintTimestampPrefix();
-
   FILE* logFP;
   NS_tchar mDstFilePath[MAXPATHLEN];
 };

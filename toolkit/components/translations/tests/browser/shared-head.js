@@ -922,7 +922,6 @@ function createRecordsForLanguagePair(fromLang, toLang) {
     filename: `model.${lang}.intgemm.alphas.bin`,
     location: `main-workspace/translations-models/${crypto.randomUUID()}.bin`,
     mimetype: "application/octet-stream",
-    isDownloaded: false,
   };
 
   if (models.length !== FILES_PER_LANGUAGE_PAIR) {
@@ -939,7 +938,7 @@ function createRecordsForLanguagePair(fromLang, toLang) {
       version: TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION + ".0",
       last_modified: Date.now(),
       schema: Date.now(),
-      attachment: JSON.parse(JSON.stringify(attachment)), // Making a deep copy.
+      attachment,
     });
   }
   return records;
@@ -1271,8 +1270,12 @@ class TestTranslationsTelemetry {
   static async assertCounter(name, counter, expectedCount) {
     // Ensures that glean metrics are collected from all child processes
     // so that calls to testGetValue() are up to date.
-    await Services.fog.testFlushAllChildren();
-    const count = counter.testGetValue() ?? 0;
+    let count;
+    await waitForCondition(async () => {
+      await Services.fog.testFlushAllChildren();
+      count = counter.testGetValue() ?? 0;
+      return expectedCount === count;
+    });
     is(
       count,
       expectedCount,
@@ -1321,9 +1324,15 @@ class TestTranslationsTelemetry {
   ) {
     // Ensures that glean metrics are collected from all child processes
     // so that calls to testGetValue() are up to date.
-    await Services.fog.testFlushAllChildren();
-    const events = event.testGetValue() ?? [];
-    const eventCount = events.length;
+    let events;
+    let eventCount;
+    await waitForCondition(async () => {
+      await Services.fog.testFlushAllChildren();
+      events = event.testGetValue() ?? [];
+      eventCount = events.length;
+      return expectedEventCount === eventCount;
+    });
+
     const name =
       eventCount > 0 ? `${events[0].category}.${events[0].name}` : null;
 

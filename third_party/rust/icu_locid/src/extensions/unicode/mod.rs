@@ -32,8 +32,6 @@ mod key;
 mod keywords;
 mod value;
 
-use core::cmp::Ordering;
-
 #[doc(inline)]
 pub use attribute::{attribute, Attribute};
 pub use attributes::Attributes;
@@ -43,9 +41,9 @@ pub use keywords::Keywords;
 #[doc(inline)]
 pub use value::{value, Value};
 
+use crate::helpers::ShortSlice;
 use crate::parser::ParserError;
 use crate::parser::SubtagIterator;
-use crate::shortvec::ShortBoxSlice;
 use litemap::LiteMap;
 
 /// Unicode Extensions provide information about user preferences in a given locale.
@@ -136,22 +134,8 @@ impl Unicode {
         self.attributes.clear();
     }
 
-    pub(crate) fn as_tuple(&self) -> (&Attributes, &Keywords) {
-        (&self.attributes, &self.keywords)
-    }
-
-    /// Returns an ordering suitable for use in [`BTreeSet`].
-    ///
-    /// The ordering may or may not be equivalent to string ordering, and it
-    /// may or may not be stable across ICU4X releases.
-    ///
-    /// [`BTreeSet`]: alloc::collections::BTreeSet
-    pub fn total_cmp(&self, other: &Self) -> Ordering {
-        self.as_tuple().cmp(&other.as_tuple())
-    }
-
     pub(crate) fn try_from_iter(iter: &mut SubtagIterator) -> Result<Self, ParserError> {
-        let mut attributes = ShortBoxSlice::new();
+        let mut attributes = ShortSlice::new();
 
         while let Some(subtag) = iter.peek() {
             if let Ok(attr) = Attribute::try_from_bytes(subtag) {
@@ -167,14 +151,14 @@ impl Unicode {
         let mut keywords = LiteMap::new();
 
         let mut current_keyword = None;
-        let mut current_value = ShortBoxSlice::new();
+        let mut current_value = ShortSlice::new();
 
         while let Some(subtag) = iter.peek() {
             let slen = subtag.len();
             if slen == 2 {
                 if let Some(kw) = current_keyword.take() {
                     keywords.try_insert(kw, Value::from_short_slice_unchecked(current_value));
-                    current_value = ShortBoxSlice::new();
+                    current_value = ShortSlice::new();
                 }
                 current_keyword = Some(Key::try_from_bytes(subtag)?);
             } else if current_keyword.is_some() {

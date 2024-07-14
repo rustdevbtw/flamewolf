@@ -17,7 +17,6 @@ import {
   isSourceBlackBoxed,
 } from "../../selectors/index";
 import actions from "../../actions/index";
-import { markerTypes } from "../../constants";
 import { connect } from "devtools/client/shared/vendor/react-redux";
 import { makeBreakpointId } from "../../utils/breakpoint/index";
 import { fromEditorLine } from "../../utils/editor/index";
@@ -37,6 +36,8 @@ path.setAttributeNS(
 
 svg.appendChild(path);
 breakpointButton.appendChild(svg);
+
+const COLUMN_BREAKPOINT_MARKER = "column-breakpoint-marker";
 
 class ColumnBreakpoints extends Component {
   static get propTypes() {
@@ -65,12 +66,12 @@ class ColumnBreakpoints extends Component {
     }
 
     if (!columnBreakpoints.length) {
-      editor.removePositionContentMarker(markerTypes.COLUMN_BREAKPOINT_MARKER);
+      editor.removePositionContentMarker(COLUMN_BREAKPOINT_MARKER);
       return;
     }
 
     editor.setPositionContentMarker({
-      id: markerTypes.COLUMN_BREAKPOINT_MARKER,
+      id: COLUMN_BREAKPOINT_MARKER,
       positions: columnBreakpoints.map(bp => bp.location),
       createPositionElementNode: (line, column) => {
         const lineNumber = fromEditorLine(selectedSource.id, line);

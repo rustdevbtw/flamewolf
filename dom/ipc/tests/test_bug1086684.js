@@ -48,9 +48,6 @@ function childFrameScript() {
       message.target.sendAsyncMessage("testBug1086684:childDone", { value });
     });
 
-    // Activate the page to allow opening the file picker.
-    content.document.notifyUserGestureActivation();
-
     input.focus();
     input.click();
   }

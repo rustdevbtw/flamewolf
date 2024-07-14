@@ -678,7 +678,7 @@ impl super::Validator {
         }
 
         {
-            let mut used_push_constants = module
+            let used_push_constants = module
                 .global_variables
                 .iter()
                 .filter(|&(_, var)| var.space == crate::AddressSpace::PushConstant)
@@ -686,7 +686,8 @@ impl super::Validator {
                 .filter(|&handle| !info[handle].is_empty());
             // Check if there is more than one push constant, and error if so.
             // Use a loop for when returning multiple errors is supported.
-            if let Some(handle) = used_push_constants.nth(1) {
+            #[allow(clippy::never_loop)]
+            for handle in used_push_constants.skip(1) {
                 return Err(EntryPointError::MoreThanOnePushConstantUsed
                     .with_span_handle(handle, &module.global_variables));
             }

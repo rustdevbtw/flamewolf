@@ -37,7 +37,6 @@ import org.mozilla.fenix.ext.navigateSafe
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.home.HomeScreenViewModel
-import org.mozilla.fenix.utils.Settings
 
 /**
  * An interface that handles the view manipulation of the BrowserToolbar, triggered by the Interactor
@@ -80,11 +79,6 @@ interface BrowserToolbarController {
      * @see [BrowserToolbarInteractor.onShareActionClicked]
      */
     fun onShareActionClicked()
-
-    /**
-     * @see [BrowserToolbarInteractor.onNewTabButtonClicked]
-     */
-    fun handleNewTabButtonClick()
 }
 
 private const val MAX_DISPLAY_NUMBER_SHOPPING_CFR = 3
@@ -94,7 +88,6 @@ class DefaultBrowserToolbarController(
     private val store: BrowserStore,
     private val tabsUseCases: TabsUseCases,
     private val activity: HomeActivity,
-    private val settings: Settings,
     private val navController: NavController,
     private val readerModeController: ReaderModeController,
     private val engineView: EngineView,
@@ -261,19 +254,6 @@ class DefaultBrowserToolbarController(
             showPage = true,
         )
         navController.navigate(directions)
-    }
-
-    override fun handleNewTabButtonClick() {
-        if (settings.enableHomepageAsNewTab) {
-            tabsUseCases.addTab.invoke(
-                startLoading = false,
-                private = currentSession?.content?.private ?: false,
-            )
-        }
-
-        navController.navigate(
-            BrowserFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
-        )
     }
 
     companion object {

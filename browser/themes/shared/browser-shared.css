@@ -69,6 +69,8 @@ body {
   --tabs-navbar-separator-color: ThreeDShadow;
   --tabs-navbar-separator-style: solid;
 
+  --panelui-subview-transition-duration: 150ms;
+
   --short-notification-background: #0250BB;
   --short-notification-gradient: #9059FF;
 
@@ -352,13 +354,6 @@ body {
     border-top-style: none;
   }
 
-  /* The address bar needs to be able to render outside of the toolbar, but as
-   * long as it's within the toolbar's bounds we can clip the toolbar so that the
-   * rendering pipeline doesn't reserve an enormous texture for it. */
-  &:not([urlbar-exceeds-toolbar-bounds]) {
-    overflow: clip;
-  }
-
   :root[sessionrestored][lwtheme] & {
     transition: var(--ext-theme-background-transition);
   }
@@ -526,11 +521,7 @@ menupopup::part(drop-indicator) {
   pointer-events: none;
 }
 
-/* Back / Forward buttons context menu */
-
-.unified-nav-current {
-  font-weight: var(--font-weight-bold);
-}
+/* Back / Forward context menu */
 
 .unified-nav-back,
 .unified-nav-forward {

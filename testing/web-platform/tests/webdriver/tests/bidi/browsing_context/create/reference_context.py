@@ -32,7 +32,7 @@ async def test_reference_context(bidi_session, value):
         contexts[0],
         new_context["context"],
         children=None,
-        parent_expected=True,
+        is_root=True,
         parent=None,
         url="about:blank",
     )

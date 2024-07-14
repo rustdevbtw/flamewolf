@@ -31,4 +31,10 @@ ADD topsrcdir/taskcluster/scripts/run-task /builds/worker/bin/run-task
 # %include taskcluster/scripts/misc/fetch-content
 ADD topsrcdir/taskcluster/scripts/misc/fetch-content /builds/worker/bin/fetch-content
 
+# %include taskcluster/scripts/misc/fetch-chromium.py
+ADD topsrcdir/taskcluster/scripts/misc/fetch-chromium.py /builds/worker/bin/fetch-chromium.py
+
+# %include taskcluster/scripts/misc/fetch-cft-chromedriver.py
+ADD topsrcdir/taskcluster/scripts/misc/fetch-cft-chromedriver.py /builds/worker/bin/fetch-cft-chromedriver.py
+
 RUN pip3 install redo==2.0.4 --break-system-packages

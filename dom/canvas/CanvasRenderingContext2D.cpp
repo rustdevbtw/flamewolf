@@ -5429,29 +5429,18 @@ MaybeGetSurfaceDescriptorForRemoteCanvas(
     return Nothing();
   }
 
-  auto& sdv = sd.ref().get_SurfaceDescriptorGPUVideo();
+  const auto& sdv = sd.ref().get_SurfaceDescriptorGPUVideo();
   const auto& sdvType = sdv.type();
   if (sdvType ==
       layers::SurfaceDescriptorGPUVideo::TSurfaceDescriptorRemoteDecoder) {
-    auto& sdrd = sdv.get_SurfaceDescriptorRemoteDecoder();
-    auto& subdesc = sdrd.subdesc();
+    const auto& sdrd = sdv.get_SurfaceDescriptorRemoteDecoder();
+    const auto& subdesc = sdrd.subdesc();
     const auto& subdescType = subdesc.type();
     if (subdescType == layers::RemoteDecoderVideoSubDescriptor::Tnull_t) {
       return sd;
     }
     if (subdescType == layers::RemoteDecoderVideoSubDescriptor::
                            TSurfaceDescriptorMacIOSurface) {
-      return sd;
-    }
-    if (subdescType ==
-        layers::RemoteDecoderVideoSubDescriptor::TSurfaceDescriptorD3D10) {
-      auto& descD3D10 = subdesc.get_SurfaceDescriptorD3D10();
-      // Clear FileHandleWrapper, since FileHandleWrapper::mHandle could not be
-      // cross process delivered by using Shmem. Cross-process delivery of
-      // FileHandleWrapper::mHandle is not possible simply by using shmen. When
-      // it is tried, parent side process just causes crash during destroying
-      // FileHandleWrapper.
-      descD3D10.handle() = nullptr;
       return sd;
     }
   }
@@ -6714,7 +6703,7 @@ already_AddRefed<CanvasPath> CanvasPath::Constructor(
 }
 
 already_AddRefed<CanvasPath> CanvasPath::Constructor(
-    const GlobalObject& aGlobal, const nsACString& aPathString) {
+    const GlobalObject& aGlobal, const nsAString& aPathString) {
   RefPtr<gfx::Path> tempPath = SVGContentUtils::GetPath(aPathString);
   if (!tempPath) {
     return Constructor(aGlobal);

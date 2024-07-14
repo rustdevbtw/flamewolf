@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.experimentintegration
 
-import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -15,7 +14,7 @@ import org.mozilla.fenix.helpers.TestHelper
 import org.mozilla.fenix.ui.robots.homeScreen
 
 class GenericExperimentIntegrationTest {
-    private val experimentName = InstrumentationRegistry.getArguments().getString("EXP_NAME", "Viewpoint")
+    private val experimentName = "Viewpoint"
 
     @get:Rule
     val activityTestRule = HomeActivityTestRule(
@@ -47,16 +46,6 @@ class GenericExperimentIntegrationTest {
             verifyStudiesToggle(true)
             clickStudiesToggle()
             clickStudiesDialogOkButton()
-        }
-    }
-
-    @Test
-    fun testExperimentEnrolled() {
-        homeScreen {
-        }.openThreeDotMenu {
-        }.openSettings {
-        }.openExperimentsMenu {
-            verifyExperimentEnrolled(experimentName)
         }
     }
 

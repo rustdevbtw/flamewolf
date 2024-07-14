@@ -108,7 +108,7 @@ def generate_prefs_header(c_out, yaml_path):
 
         cpp_name = name.replace(".", "_").replace("-", "_")
         type = get_cpp_type(pref["type"])
-        init_value = get_cpp_init_value(pref["value"])
+        init_value = get_cpp_init_value(pref["value"]) if "value" in pref else ""
 
         setter_name = ("setAtStartup_" if is_startup_pref else "set_") + cpp_name
 
@@ -166,9 +166,7 @@ def generate_prefs_header(c_out, yaml_path):
     contents += "\n\n"
 
     contents += "#define SET_NON_STARTUP_JS_PREFS_FROM_BROWSER_PREFS \\\n"
-    contents += "".join(
-        map(lambda s: "  {}\\\n".format(s), browser_set_non_startup_statements)
-    )
+    contents += "".join(map(lambda s: "  {}\\\n".format(s), browser_set_non_startup_statements))
     contents += "\n\n"
 
     c_out.write(

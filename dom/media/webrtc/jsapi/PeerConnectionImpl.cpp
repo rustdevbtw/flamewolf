@@ -4164,9 +4164,9 @@ bool PeerConnectionImpl::ShouldForceProxy() const {
   if (mWindow && mWindow->GetExtantDoc() &&
       mWindow->GetExtantDoc()->GetPrincipal() &&
       mWindow->GetExtantDoc()
-          ->GetPrincipal()
-          ->OriginAttributesRef()
-          .IsPrivateBrowsing()) {
+              ->GetPrincipal()
+              ->OriginAttributesRef()
+              .mPrivateBrowsingId > 0) {
     isPBM = true;
   }
 
@@ -4907,9 +4907,8 @@ std::unique_ptr<NrSocketProxyConfig> PeerConnectionImpl::GetProxyConfig()
 
   TabId id = browserChild->GetTabId();
   nsCOMPtr<nsILoadInfo> loadInfo =
-      new net::LoadInfo(doc->NodePrincipal(), doc->NodePrincipal(), doc,
-                        nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
-                        nsIContentPolicy::TYPE_PROXIED_WEBRTC_MEDIA);
+      new net::LoadInfo(doc->NodePrincipal(), doc->NodePrincipal(), doc, 0,
+                        nsIContentPolicy::TYPE_INVALID);
 
   net::LoadInfoArgs loadInfoArgs;
   MOZ_ALWAYS_SUCCEEDS(

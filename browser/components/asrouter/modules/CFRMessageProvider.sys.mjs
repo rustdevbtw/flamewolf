@@ -847,10 +847,7 @@ const CFR_MESSAGES = [
       buttons: {
         primary: {
           label: {
-            value: "Try it",
-            attributes: {
-              accesskey: "T",
-            },
+            string_id: "firefoxview-cfr-primarybutton",
           },
           action: {
             type: "INSTALL_ADDON_FROM_URL",
@@ -863,10 +860,7 @@ const CFR_MESSAGES = [
         secondary: [
           {
             label: {
-              value: "Not now",
-              attributes: {
-                accesskey: "N",
-              },
+              string_id: "firefoxview-cfr-secondarybutton",
             },
             action: {
               type: "CANCEL",

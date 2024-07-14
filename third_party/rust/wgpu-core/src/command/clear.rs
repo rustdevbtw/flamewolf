@@ -9,12 +9,9 @@ use crate::{
     get_lowest_common_denom,
     global::Global,
     hal_api::HalApi,
-    id::{BufferId, CommandEncoderId, TextureId},
+    id::{BufferId, CommandEncoderId, DeviceId, TextureId},
     init_tracker::{MemoryInitKind, TextureInitRange},
-    resource::{
-        DestroyedResourceError, ParentDevice, Resource, ResourceErrorIdent, Texture,
-        TextureClearMode,
-    },
+    resource::{Resource, Texture, TextureClearMode},
     snatch::SnatchGuard,
     track::{TextureSelector, TextureTracker},
 };
@@ -29,14 +26,14 @@ use wgt::{math::align_to, BufferAddress, BufferUsages, ImageSubresourceRange, Te
 pub enum ClearError {
     #[error("To use clear_texture the CLEAR_TEXTURE feature needs to be enabled")]
     MissingClearTextureFeature,
-    #[error("BufferId {0:?} is invalid")]
-    InvalidBufferId(BufferId),
-    #[error("TextureId {0:?} is invalid")]
-    InvalidTextureId(TextureId),
-    #[error(transparent)]
-    DestroyedResource(#[from] DestroyedResourceError),
-    #[error("{0} can not be cleared")]
-    NoValidTextureClearMode(ResourceErrorIdent),
+    #[error("Device {0:?} is invalid")]
+    InvalidDevice(DeviceId),
+    #[error("Buffer {0:?} is invalid or destroyed")]
+    InvalidBuffer(BufferId),
+    #[error("Texture {0:?} is invalid or destroyed")]
+    InvalidTexture(TextureId),
+    #[error("Texture {0:?} can not be cleared")]
+    NoValidTextureClearMode(TextureId),
     #[error("Buffer clear size {0:?} is not a multiple of `COPY_BUFFER_ALIGNMENT`")]
     UnalignedFillSize(BufferAddress),
     #[error("Buffer offset {0:?} is not a multiple of `COPY_BUFFER_ALIGNMENT`")]
@@ -101,20 +98,27 @@ impl Global {
             list.push(TraceCommand::ClearBuffer { dst, offset, size });
         }
 
-        let dst_buffer = hub
-            .buffers
-            .get(dst)
-            .map_err(|_| ClearError::InvalidBufferId(dst))?;
+        let (dst_buffer, dst_pending) = {
+            let buffer_guard = hub.buffers.read();
+            let dst_buffer = buffer_guard
+                .get(dst)
+                .map_err(|_| ClearError::InvalidBuffer(dst))?;
 
-        dst_buffer.same_device_as(cmd_buf.as_ref())?;
+            if dst_buffer.device.as_info().id() != cmd_buf.device.as_info().id() {
+                return Err(DeviceError::WrongDevice.into());
+            }
 
-        let dst_pending = cmd_buf_data
-            .trackers
-            .buffers
-            .set_single(&dst_buffer, hal::BufferUses::COPY_DST);
-
+            cmd_buf_data
+                .trackers
+                .buffers
+                .set_single(dst_buffer, hal::BufferUses::COPY_DST)
+                .ok_or(ClearError::InvalidBuffer(dst))?
+        };
         let snatch_guard = dst_buffer.device.snatchable_lock.read();
-        let dst_raw = dst_buffer.try_raw(&snatch_guard)?;
+        let dst_raw = dst_buffer
+            .raw
+            .get(&snatch_guard)
+            .ok_or(ClearError::InvalidBuffer(dst))?;
         if !dst_buffer.usage.contains(BufferUsages::COPY_DST) {
             return Err(ClearError::MissingCopyDstUsageFlag(Some(dst), None));
         }
@@ -197,9 +201,11 @@ impl Global {
         let dst_texture = hub
             .textures
             .get(dst)
-            .map_err(|_| ClearError::InvalidTextureId(dst))?;
+            .map_err(|_| ClearError::InvalidTexture(dst))?;
 
-        dst_texture.same_device_as(cmd_buf.as_ref())?;
+        if dst_texture.device.as_info().id() != cmd_buf.device.as_info().id() {
+            return Err(DeviceError::WrongDevice.into());
+        }
 
         // Check if subresource aspects are valid.
         let clear_aspects =
@@ -236,7 +242,9 @@ impl Global {
         }
 
         let device = &cmd_buf.device;
-        device.check_is_valid()?;
+        if !device.is_valid() {
+            return Err(ClearError::InvalidDevice(cmd_buf.device.as_info().id()));
+        }
         let (encoder, tracker) = cmd_buf_data.open_encoder_and_tracker()?;
 
         let snatch_guard = device.snatchable_lock.read();
@@ -264,7 +272,9 @@ pub(crate) fn clear_texture<A: HalApi>(
     zero_buffer: &A::Buffer,
     snatch_guard: &SnatchGuard<'_>,
 ) -> Result<(), ClearError> {
-    let dst_raw = dst_texture.try_raw(snatch_guard)?;
+    let dst_raw = dst_texture
+        .raw(snatch_guard)
+        .ok_or_else(|| ClearError::InvalidTexture(dst_texture.as_info().id()))?;
 
     // Issue the right barrier.
     let clear_usage = match *dst_texture.clear_mode.read() {
@@ -277,7 +287,7 @@ pub(crate) fn clear_texture<A: HalApi>(
         }
         TextureClearMode::None => {
             return Err(ClearError::NoValidTextureClearMode(
-                dst_texture.error_ident(),
+                dst_texture.as_info().id(),
             ));
         }
     };
@@ -302,6 +312,7 @@ pub(crate) fn clear_texture<A: HalApi>(
     // change_replace_tracked whenever possible.
     let dst_barrier = texture_tracker
         .set_single(dst_texture, selector, clear_usage)
+        .unwrap()
         .map(|pending| pending.into_hal(dst_raw));
     unsafe {
         encoder.transition_textures(dst_barrier.into_iter());
@@ -318,14 +329,14 @@ pub(crate) fn clear_texture<A: HalApi>(
             dst_raw,
         ),
         TextureClearMode::Surface { .. } => {
-            clear_texture_via_render_passes(dst_texture, range, true, encoder)
+            clear_texture_via_render_passes(dst_texture, range, true, encoder)?
         }
         TextureClearMode::RenderPass { is_color, .. } => {
-            clear_texture_via_render_passes(dst_texture, range, is_color, encoder)
+            clear_texture_via_render_passes(dst_texture, range, is_color, encoder)?
         }
         TextureClearMode::None => {
             return Err(ClearError::NoValidTextureClearMode(
-                dst_texture.error_ident(),
+                dst_texture.as_info().id(),
             ));
         }
     }
@@ -431,7 +442,7 @@ fn clear_texture_via_render_passes<A: HalApi>(
     range: TextureInitRange,
     is_color: bool,
     encoder: &mut A::CommandEncoder,
-) {
+) -> Result<(), ClearError> {
     assert_eq!(dst_texture.desc.dimension, wgt::TextureDimension::D2);
 
     let extent_base = wgt::Extent3d {
@@ -495,4 +506,5 @@ fn clear_texture_via_render_passes<A: HalApi>(
             }
         }
     }
+    Ok(())
 }

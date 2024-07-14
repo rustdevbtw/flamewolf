@@ -658,11 +658,7 @@ export class FormAutofillParent extends JSWindowActorParent {
 
     // Display the address capture doorhanger only when the submitted form contains all
     // the required fields. This approach is implemented to prevent excessive prompting.
-    let requiredFields = FormAutofill.addressCaptureRequiredFields;
-    requiredFields ??=
-      FormAutofillUtils.getFormFormat(record.country).countryRequiredFields ??
-      [];
-
+    const requiredFields = FormAutofill.addressCaptureRequiredFields ?? [];
     if (!requiredFields.every(field => field in record)) {
       lazy.log.debug(
         "Do not show the address capture prompt when the submitted form doesn't contain all the required fields"

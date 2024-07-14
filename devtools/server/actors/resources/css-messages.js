@@ -25,6 +25,10 @@ loader.lazyRequireGetter(
   true
 );
 
+const {
+  TYPES: { CSS_MESSAGE },
+} = require("resource://devtools/server/actors/resources/index.js");
+
 const { MESSAGE_CATEGORY } = require("resource://devtools/shared/constants.js");
 
 class CSSMessageWatcher extends nsIConsoleListenerWatcher {
@@ -132,6 +136,7 @@ class CSSMessageWatcher extends nsIConsoleListenerWatcher {
 
     return {
       pageError,
+      resourceType: CSS_MESSAGE,
       cssSelectors: error.cssSelectors,
     };
   }

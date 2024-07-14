@@ -4,13 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "EncoderConfig.h"
 #if !defined(MFTEncoder_h_)
 #  define MFTEncoder_h_
 
 #  include <functional>
 #  include <queue>
-#  include <deque>
 #  include "mozilla/RefPtr.h"
 #  include "mozilla/ResultVariant.h"
 #  include "nsISupportsImpl.h"
@@ -22,10 +20,6 @@ namespace mozilla {
 
 class MFTEncoder final {
  public:
-  struct InputSample {
-    RefPtr<IMFSample> mSample{};
-    bool mKeyFrameRequested = false;
-  };
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MFTEncoder)
 
   explicit MFTEncoder(const bool aHardwareNotAllowed)
@@ -34,11 +28,11 @@ class MFTEncoder final {
   HRESULT Create(const GUID& aSubtype);
   HRESULT Destroy();
   HRESULT SetMediaTypes(IMFMediaType* aInputType, IMFMediaType* aOutputType);
-  HRESULT SetModes(const EncoderConfig& aConfig);
+  HRESULT SetModes(UINT32 aBitsPerSec);
   HRESULT SetBitrate(UINT32 aBitsPerSec);
 
   HRESULT CreateInputSample(RefPtr<IMFSample>* aSample, size_t aSize);
-  HRESULT PushInput(const InputSample& aInput);
+  HRESULT PushInput(RefPtr<IMFSample>&& aInput);
   HRESULT TakeOutput(nsTArray<RefPtr<IMFSample>>& aOutput);
   HRESULT Drain(nsTArray<RefPtr<IMFSample>>& aOutput);
 
@@ -139,7 +133,7 @@ class MFTEncoder final {
   enum class DrainState { DRAINED, DRAINABLE, DRAINING };
   DrainState mDrainState = DrainState::DRAINABLE;
 
-  std::deque<InputSample> mPendingInputs;
+  nsRefPtrDeque<IMFSample> mPendingInputs;
   nsTArray<RefPtr<IMFSample>> mOutputs;
 
   EventSource mEventSource;

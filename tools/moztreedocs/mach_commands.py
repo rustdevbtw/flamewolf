@@ -4,6 +4,7 @@
 
 import fnmatch
 import json
+import multiprocessing
 import os
 import re
 import subprocess
@@ -19,7 +20,7 @@ import sentry_sdk
 import yaml
 from mach.decorators import Command, CommandArgument, SubCommand
 from mach.registrar import Registrar
-from mozbuild.util import cpu_count, memoize
+from mozbuild.util import memoize
 from mozfile import load_source
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -80,7 +81,7 @@ BASE_LINK = "http://gecko-docs.mozilla.org-l1.s3-website.us-west-2.amazonaws.com
 @CommandArgument(
     "-j",
     "--jobs",
-    default=str(cpu_count()),
+    default=str(multiprocessing.cpu_count()),
     dest="jobs",
     help="Distribute the build over N processes in parallel.",
 )

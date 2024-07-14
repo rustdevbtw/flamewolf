@@ -178,11 +178,6 @@ class SuspenderObjectData
   void restoreTIBStackFields();
 #endif
 
-#if defined(JS_SIMULATOR_ARM64)
-  void switchSimulatorToMain();
-  void switchSimulatorToSuspendable();
-#endif
-
   static constexpr size_t offsetOfMainFP() {
     return offsetof(SuspenderObjectData, mainFP_);
   }

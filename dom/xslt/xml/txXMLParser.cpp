@@ -36,7 +36,7 @@ nsresult txParseDocumentFromURI(const nsAString& aHref,
   nsAutoSyncOperation sync(loaderDocument,
                            SyncOperationBehavior::eSuspendInput);
   rv = nsSyncLoadService::LoadDocument(
-      documentURI, nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST_SYNC,
+      documentURI, nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST,
       loaderDocument->NodePrincipal(),
       nsILoadInfo::SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT, loadGroup,
       loaderDocument->CookieJarSettings(), true,

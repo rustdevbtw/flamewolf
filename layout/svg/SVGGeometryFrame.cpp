@@ -566,7 +566,11 @@ void SVGGeometryFrame::Render(gfxContext* aContext, uint32_t aRenderComponents,
 
   SVGGeometryElement* element = static_cast<SVGGeometryElement*>(GetContent());
 
-  AntialiasMode aaMode = SVGUtils::ToAntialiasMode(StyleSVG()->mShapeRendering);
+  AntialiasMode aaMode =
+      (StyleSVG()->mShapeRendering == StyleShapeRendering::Optimizespeed ||
+       StyleSVG()->mShapeRendering == StyleShapeRendering::Crispedges)
+          ? AntialiasMode::NONE
+          : AntialiasMode::SUBPIXEL;
 
   // We wait as late as possible before setting the transform so that we don't
   // set it unnecessarily if we return early (it's an expensive operation for

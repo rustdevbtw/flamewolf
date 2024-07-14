@@ -250,6 +250,11 @@ bool BounceTrackingState::ShouldTrackPrincipal(nsIPrincipal* aPrincipal) {
     return false;
   }
 
+  // Skip partitioned principals.
+  if (!aPrincipal->OriginAttributesRef().mPartitionKey.IsEmpty()) {
+    return false;
+  }
+
   return true;
 }
 

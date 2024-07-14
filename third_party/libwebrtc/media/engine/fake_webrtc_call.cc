@@ -16,7 +16,6 @@
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
 #include "api/call/audio_sink.h"
-#include "api/environment/environment.h"
 #include "api/units/timestamp.h"
 #include "call/packet_receiver.h"
 #include "media/base/media_channel.h"
@@ -28,7 +27,6 @@
 
 namespace cricket {
 
-using ::webrtc::Environment;
 using ::webrtc::ParseRtpSsrc;
 
 FakeAudioSendStream::FakeAudioSendStream(
@@ -146,11 +144,9 @@ void FakeAudioReceiveStream::SetGain(float gain) {
 }
 
 FakeVideoSendStream::FakeVideoSendStream(
-    const Environment& env,
     webrtc::VideoSendStream::Config config,
     webrtc::VideoEncoderConfig encoder_config)
-    : env_(env),
-      sending_(false),
+    : sending_(false),
       config_(std::move(config)),
       codec_settings_set_(false),
       resolution_scaling_enabled_(false),
@@ -260,8 +256,7 @@ void FakeVideoSendStream::OnFrame(const webrtc::VideoFrame& frame) {
               encoder_config_.video_format.name, encoder_config_.max_qp,
               encoder_config_.content_type ==
                   webrtc::VideoEncoderConfig::ContentType::kScreen,
-              encoder_config_.legacy_conference_mode, encoder_info,
-              absl::nullopt, &env_.field_trials());
+              encoder_config_.legacy_conference_mode, encoder_info);
 
       video_streams_ = factory->CreateEncoderStreams(
           frame.width(), frame.height(), encoder_config_);
@@ -449,19 +444,19 @@ void FakeFlexfecReceiveStream::OnRtpPacket(const webrtc::RtpPacketReceived&) {
   RTC_DCHECK_NOTREACHED() << "Not implemented.";
 }
 
-FakeCall::FakeCall(const Environment& env)
-    : FakeCall(env, rtc::Thread::Current(), rtc::Thread::Current()) {}
+FakeCall::FakeCall(webrtc::test::ScopedKeyValueConfig* field_trials)
+    : FakeCall(rtc::Thread::Current(), rtc::Thread::Current(), field_trials) {}
 
-FakeCall::FakeCall(const Environment& env,
-                   webrtc::TaskQueueBase* worker_thread,
-                   webrtc::TaskQueueBase* network_thread)
-    : env_(env),
-      network_thread_(network_thread),
+FakeCall::FakeCall(webrtc::TaskQueueBase* worker_thread,
+                   webrtc::TaskQueueBase* network_thread,
+                   webrtc::test::ScopedKeyValueConfig* field_trials)
+    : network_thread_(network_thread),
       worker_thread_(worker_thread),
       audio_network_state_(webrtc::kNetworkUp),
       video_network_state_(webrtc::kNetworkUp),
       num_created_send_streams_(0),
-      num_created_receive_streams_(0) {}
+      num_created_receive_streams_(0),
+      trials_(field_trials ? field_trials : &fallback_trials_) {}
 
 FakeCall::~FakeCall() {
   EXPECT_EQ(0u, video_send_streams_.size());
@@ -579,8 +574,8 @@ void FakeCall::DestroyAudioReceiveStream(
 webrtc::VideoSendStream* FakeCall::CreateVideoSendStream(
     webrtc::VideoSendStream::Config config,
     webrtc::VideoEncoderConfig encoder_config) {
-  FakeVideoSendStream* fake_stream = new FakeVideoSendStream(
-      env_, std::move(config), std::move(encoder_config));
+  FakeVideoSendStream* fake_stream =
+      new FakeVideoSendStream(std::move(config), std::move(encoder_config));
   video_send_streams_.push_back(fake_stream);
   ++num_created_send_streams_;
   return fake_stream;

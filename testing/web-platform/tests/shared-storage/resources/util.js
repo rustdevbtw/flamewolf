@@ -2,65 +2,87 @@
 // META: script=/fenced-frame/resources/utils.js
 'use strict';
 
-async function IsSharedStorageSelectUrlAllowed() {
-  let allowed = true;
+async function IsSharedStorageSelectUrlAllowedByPermissionsPolicy() {
+  const errorMessage = 'The \"shared-storage-select-url\" Permissions Policy denied the usage of window.sharedStorage.selectURL().';
+  let allowedByPermissionsPolicy = true;
   try {
+    // Run selectURL() with without addModule() and this should always fail.
+    // Check the error message to distinguish between the permissions policy
+    // error and the missing addModule() error.
     await sharedStorage.selectURL("operation", [{url: "1.html"}]);
+    assert_unreached("did not fail");
   } catch (e) {
-    allowed = false;
+    if (e.message === errorMessage) {
+      allowedByPermissionsPolicy = false;
+    }
   }
 
-  return allowed;
+  return allowedByPermissionsPolicy;
 }
 
-// Execute all shared storage methods (excluding createWorklet).
-// and capture their errors. Return true if all methods succeed.
-async function AreRegularSharedStorageMethodsAllowed() {
-  let deniedCount = 0;
+// Execute all shared storage methods and capture their errors. Return true if
+// the permissions policy allows all of them; return false if the permissions
+// policy disallows all of them. Precondition: only these two outcomes are
+// possible.
+async function AreSharedStorageMethodsAllowedByPermissionsPolicy() {
+  let permissionsPolicyDeniedCount = 0;
+  const errorMessage = 'The \"shared-storage\" Permissions Policy denied the method on window.sharedStorage.';
 
   try {
     await window.sharedStorage.worklet.addModule('/shared-storage/resources/simple-module.js');
   } catch (e) {
-    ++deniedCount;
+    assert_equals(e.message, errorMessage);
+    ++permissionsPolicyDeniedCount;
   }
 
   try {
-    await window.sharedStorage.run('operation', {keepAlive: true});
+    await window.sharedStorage.run('operation');
   } catch (e) {
-    ++deniedCount;
+    assert_equals(e.message, errorMessage);
+    ++permissionsPolicyDeniedCount;
   }
 
   try {
-    await sharedStorage.selectURL("operation", [{url: "1.html"}], {keepAlive: true});
+    // Run selectURL() with without addModule() and this should always fail.
+    // Check the error message to distinguish between the permissions policy
+    // error and the missing addModule() error.
+    await sharedStorage.selectURL("operation", [{url: "1.html"}]);
+    assert_unreached("did not fail");
   } catch (e) {
-    ++deniedCount;
+    if (e.message === errorMessage) {
+      ++permissionsPolicyDeniedCount;
+    }
   }
 
   try {
     await window.sharedStorage.set('a', 'b');
   } catch (e) {
-    ++deniedCount;
+    assert_equals(e.message, errorMessage);
+    ++permissionsPolicyDeniedCount;
   }
 
   try {
     await window.sharedStorage.append('a', 'b');
   } catch (e) {
-    ++deniedCount;
+    assert_equals(e.message, errorMessage);
+    ++permissionsPolicyDeniedCount;
   }
 
   try {
     await window.sharedStorage.clear();
   } catch (e) {
-    ++deniedCount;
+    assert_equals(e.message, errorMessage);
+    ++permissionsPolicyDeniedCount;
   }
 
   try {
     await window.sharedStorage.delete('a');
   } catch (e) {
-    ++deniedCount;
+    assert_equals(e.message, errorMessage);
+    ++permissionsPolicyDeniedCount;
   }
 
-  if (deniedCount === 0)
+  if (permissionsPolicyDeniedCount === 0)
     return true;
 
   return false;

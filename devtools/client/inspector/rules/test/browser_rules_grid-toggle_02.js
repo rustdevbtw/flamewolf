@@ -49,15 +49,10 @@ add_task(async function () {
     !overriddenGridToggle.hasAttribute("disabled"),
     "Grid highlighter toggle is not disabled."
   );
-  is(
-    gridToggle.getAttribute("aria-pressed"),
-    "false",
-    "Grid highlighter toggle buttons is not active…"
-  );
-  is(
-    overriddenGridToggle.getAttribute("aria-pressed"),
-    "false",
-    "…and overridden Grid highlighter toggle buttons is not active either"
+  ok(
+    !gridToggle.classList.contains("active") &&
+      !overriddenGridToggle.classList.contains("active"),
+    "Grid highlighter toggle buttons are not active."
   );
   ok(!highlighters.gridHighlighters.size, "No CSS grid highlighter is shown.");
 
@@ -72,15 +67,10 @@ add_task(async function () {
     "Checking the CSS grid highlighter is created and toggle buttons are active in " +
       "the rule-view."
   );
-  is(
-    gridToggle.getAttribute("aria-pressed"),
-    "true",
-    "Grid highlighter toggle buttons is active…"
-  );
-  is(
-    overriddenGridToggle.getAttribute("aria-pressed"),
-    "true",
-    "…and overridden Grid highlighter toggle buttons is also active"
+  ok(
+    gridToggle.classList.contains("active") &&
+      overriddenGridToggle.classList.contains("active"),
+    "Grid highlighter toggle is active."
   );
   is(highlighters.gridHighlighters.size, 1, "CSS grid highlighter is shown.");
 
@@ -96,15 +86,10 @@ add_task(async function () {
     "Checking the CSS grid highlighter is not shown and toggle buttons are not " +
       "active in the rule-view."
   );
-  is(
-    gridToggle.getAttribute("aria-pressed"),
-    "false",
-    "Grid highlighter toggle buttons is not active…"
-  );
-  is(
-    overriddenGridToggle.getAttribute("aria-pressed"),
-    "false",
-    "…and overridden Grid highlighter toggle buttons is not active either"
+  ok(
+    !gridToggle.classList.contains("active") &&
+      !overriddenGridToggle.classList.contains("active"),
+    "Grid highlighter toggle buttons are not active."
   );
   ok(!highlighters.gridHighlighters.size, "No CSS grid highlighter is shown.");
 });

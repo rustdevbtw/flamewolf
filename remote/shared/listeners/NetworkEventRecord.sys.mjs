@@ -21,7 +21,6 @@ export class NetworkEventRecord {
   #networkListener;
   #request;
   #response;
-  #responseStartOverride;
 
   /**
    *
@@ -47,7 +46,6 @@ export class NetworkEventRecord {
     networkEventsMap
   ) {
     this.#request = new lazy.NetworkRequest(channel, {
-      eventRecord: this,
       navigationManager,
       rawHeaders: networkEvent.rawHeaders,
     });
@@ -135,8 +133,8 @@ export class NetworkEventRecord {
   addResponseStart(options) {
     const { channel, fromCache, rawHeaders } = options;
     this.#response = new lazy.NetworkResponse(channel, {
-      fromCache: this.#fromCache || !!fromCache,
       rawHeaders,
+      fromCache: this.#fromCache || !!fromCache,
     });
 
     // This should be triggered when all headers have been received, matching
@@ -187,11 +185,6 @@ export class NetworkEventRecord {
     if (this.#request.alreadyCompleted) {
       return;
     }
-
-    if (this.#responseStartOverride) {
-      this.addResponseStart(this.#responseStartOverride);
-    }
-
     if (responseInfo.blockedReason) {
       this.#emitFetchError();
     } else {
@@ -232,10 +225,6 @@ export class NetworkEventRecord {
 
   onAuthPrompt(authDetails, authCallbacks) {
     this.#emitAuthRequired(authCallbacks);
-  }
-
-  prepareResponseStart(options) {
-    this.#responseStartOverride = options;
   }
 
   #emitAuthRequired(authCallbacks) {

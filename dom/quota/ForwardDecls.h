@@ -44,7 +44,6 @@ enum class ResponseRejectReason;
 using BoolResponsePromise =
     MozPromise<BoolResponse, ResponseRejectReason, true>;
 using BoolResponseResolver = std::function<void(const BoolResponse&)>;
-using NSResultResponseResolver = std::function<void(const nsresult&)>;
 
 }  // namespace ipc
 

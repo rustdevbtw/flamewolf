@@ -6,13 +6,10 @@
 
 const { Actor } = require("resource://devtools/shared/protocol.js");
 const {
-  TYPES: { DOCUMENT_EVENT, NETWORK_EVENT_STACKTRACE, CONSOLE_MESSAGE },
+  TYPES,
   getResourceWatcher,
 } = require("resource://devtools/server/actors/resources/index.js");
 const Targets = require("devtools/server/actors/targets/index");
-
-const { throttle } = require("resource://devtools/shared/throttle.js");
-const RESOURCES_THROTTLING_DELAY = 100;
 
 loader.lazyRequireGetter(
   this,
@@ -30,23 +27,7 @@ class BaseTargetActor extends Actor {
      * @return {string}
      */
     this.targetType = targetType;
-
-    // Lists of resources available/updated/destroyed RDP packet
-    // currently queued which will be emitted after a throttle delay.
-    this.#throttledResources = {
-      available: [],
-      updated: [],
-      destroyed: [],
-    };
-
-    this.#throttledEmitResources = throttle(
-      this.emitResources.bind(this),
-      RESOURCES_THROTTLING_DELAY
-    );
   }
-
-  #throttledResources;
-  #throttledEmitResources;
 
   /**
    * Process a new data entry, which can be watched resources, breakpoints, ...
@@ -93,21 +74,14 @@ class BaseTargetActor extends Actor {
 
   /**
    * Called by Resource Watchers, when new resources are available, updated or destroyed.
-   * This will only accumulate resource update packets into throttledResources object.
-   * The actualy sending of resources will happen from emitResources.
    *
    * @param String updateType
    *        Can be "available", "updated" or "destroyed"
-   * @param String resourceType
-   *        The type of resources to be notified about.
-   * @param Array<json|string> resources
-   *        For "available", the array will be a list of new resource JSON objects sent as-is to the client.
+   * @param Array<json> resources
+   *        List of all resource's form. A resource is a JSON object piped over to the client.
    *        It can contain actor IDs, actor forms, to be manually marshalled by the client.
-   *        For "updated", the array will contain a list of objects with the attributes documented in
-   *        `ResourceCommand._onResourceUpdated` jsdoc.
-   *        For "destroyed", the array will contain a list of resource IDs (strings).
    */
-  notifyResources(updateType, resourceType, resources) {
+  notifyResources(updateType, resources) {
     if (resources.length === 0 || this.isDestroyed()) {
       // Don't try to emit if the resources array is empty or the actor was
       // destroyed.
@@ -118,59 +92,7 @@ class BaseTargetActor extends Actor {
       this.overrideResourceBrowsingContextForWebExtension(resources);
     }
 
-    const shouldEmitSynchronously =
-      resourceType == NETWORK_EVENT_STACKTRACE ||
-      (resourceType == DOCUMENT_EVENT &&
-        resources.some(resource => resource.name == "will-navigate"));
-
-    // If the last throttled resources were of the same resource type,
-    // augment the resources array with the new resources
-    const lastResourceInThrottleCache =
-      this.#throttledResources[updateType].at(-1);
-    if (
-      lastResourceInThrottleCache &&
-      lastResourceInThrottleCache[0] === resourceType
-    ) {
-      lastResourceInThrottleCache[1].push.apply(
-        lastResourceInThrottleCache[1],
-        resources
-      );
-    } else {
-      // Otherwise, add a new item in the throttle queue with the resource type
-      this.#throttledResources[updateType].push([resourceType, resources]);
-    }
-
-    // Force firing resources immediately when:
-    // * we receive DOCUMENT_EVENT's will-navigate
-    // This will force clearing resources on the client side ASAP.
-    // Otherwise we might emit some other RDP event (outside of resources),
-    // which will be cleared by the throttled/delayed will-navigate.
-    // * we receive NETWOR_EVENT_STACKTRACE which are meant to be dispatched *before*
-    // the related NETWORK_EVENT fired from the parent process. (we aren't throttling
-    // resources from the parent process, so it is even more likely to be dispatched
-    // in the wrong order)
-    if (shouldEmitSynchronously) {
-      this.emitResources();
-    } else {
-      this.#throttledEmitResources();
-    }
-  }
-
-  /**
-   * Flush resources to DevTools transport layer, actually sending all resource update packets
-   */
-  emitResources() {
-    if (this.isDestroyed()) {
-      return;
-    }
-    for (const updateType of ["available", "updated", "destroyed"]) {
-      const resources = this.#throttledResources[updateType];
-      if (!resources.length) {
-        continue;
-      }
-      this.#throttledResources[updateType] = [];
-      this.emit(`resources-${updateType}-array`, resources);
-    }
+    this.emit(`resource-${updateType}-form`, resources);
   }
 
   /**
@@ -250,7 +172,7 @@ class BaseTargetActor extends Actor {
         if (this.isTopLevelTarget) {
           const consoleMessageWatcher = getResourceWatcher(
             this,
-            CONSOLE_MESSAGE
+            TYPES.CONSOLE_MESSAGE
           );
           if (consoleMessageWatcher) {
             consoleMessageWatcher.emitMessages([

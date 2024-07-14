@@ -520,6 +520,12 @@ async function loadManifestFromWebManifest(aPackage, aLocation) {
     addon.previewImage = "preview.png";
   }
 
+  // TODO(Bug 1789718): Remove after the deprecated XPIProvider-based implementation is also removed.
+  if (addon.type == "sitepermission-deprecated") {
+    addon.sitePermissions = manifest.site_permissions;
+    addon.siteOrigin = manifest.install_origins[0];
+  }
+
   const { optionsPageProperties } = extension;
   if (optionsPageProperties) {
     // Store just the relative path here, the AddonWrapper getURL

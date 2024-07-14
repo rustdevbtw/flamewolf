@@ -46,7 +46,7 @@ to output a [`Module`](crate::Module) into glsl
 pub use features::Features;
 
 use crate::{
-    back::{self, Baked},
+    back,
     proc::{self, NameKey},
     valid, Handle, ShaderStage, TypeInner,
 };
@@ -1982,7 +1982,7 @@ impl<'a, W: Write> Writer<'a, W> {
                         // Also, we use sanitized names! It defense backend from generating variable with name from reserved keywords.
                         Some(self.namer.call(name))
                     } else if self.need_bake_expressions.contains(&handle) {
-                        Some(Baked(handle).to_string())
+                        Some(format!("{}{}", back::BAKE_PREFIX, handle.index()))
                     } else {
                         None
                     };
@@ -2310,7 +2310,7 @@ impl<'a, W: Write> Writer<'a, W> {
                 // This is done in `Emit` by never emitting a variable name for pointer variables
                 self.write_barrier(crate::Barrier::WORK_GROUP, level)?;
 
-                let result_name = Baked(result).to_string();
+                let result_name = format!("{}{}", back::BAKE_PREFIX, result.index());
                 write!(self.out, "{level}")?;
                 // Expressions cannot have side effects, so just writing the expression here is fine.
                 self.write_named_expr(pointer, result_name, result, ctx)?;
@@ -2335,7 +2335,7 @@ impl<'a, W: Write> Writer<'a, W> {
             } => {
                 write!(self.out, "{level}")?;
                 if let Some(expr) = result {
-                    let name = Baked(expr).to_string();
+                    let name = format!("{}{}", back::BAKE_PREFIX, expr.index());
                     let result = self.module.functions[function].result.as_ref().unwrap();
                     self.write_type(result.ty)?;
                     write!(self.out, " {name}")?;
@@ -2368,13 +2368,11 @@ impl<'a, W: Write> Writer<'a, W> {
                 result,
             } => {
                 write!(self.out, "{level}")?;
-                if let Some(result) = result {
-                    let res_name = Baked(result).to_string();
-                    let res_ty = ctx.resolve_type(result, &self.module.types);
-                    self.write_value_type(res_ty)?;
-                    write!(self.out, " {res_name} = ")?;
-                    self.named_expressions.insert(result, res_name);
-                }
+                let res_name = format!("{}{}", back::BAKE_PREFIX, result.index());
+                let res_ty = ctx.resolve_type(result, &self.module.types);
+                self.write_value_type(res_ty)?;
+                write!(self.out, " {res_name} = ")?;
+                self.named_expressions.insert(result, res_name);
 
                 let fun_str = fun.to_glsl();
                 write!(self.out, "atomic{fun_str}(")?;
@@ -2399,7 +2397,7 @@ impl<'a, W: Write> Writer<'a, W> {
             Statement::RayQuery { .. } => unreachable!(),
             Statement::SubgroupBallot { result, predicate } => {
                 write!(self.out, "{level}")?;
-                let res_name = Baked(result).to_string();
+                let res_name = format!("{}{}", back::BAKE_PREFIX, result.index());
                 let res_ty = ctx.info[result].ty.inner_with(&self.module.types);
                 self.write_value_type(res_ty)?;
                 write!(self.out, " {res_name} = ")?;
@@ -2419,7 +2417,7 @@ impl<'a, W: Write> Writer<'a, W> {
                 result,
             } => {
                 write!(self.out, "{level}")?;
-                let res_name = Baked(result).to_string();
+                let res_name = format!("{}{}", back::BAKE_PREFIX, result.index());
                 let res_ty = ctx.info[result].ty.inner_with(&self.module.types);
                 self.write_value_type(res_ty)?;
                 write!(self.out, " {res_name} = ")?;
@@ -2476,7 +2474,7 @@ impl<'a, W: Write> Writer<'a, W> {
                 result,
             } => {
                 write!(self.out, "{level}")?;
-                let res_name = Baked(result).to_string();
+                let res_name = format!("{}{}", back::BAKE_PREFIX, result.index());
                 let res_ty = ctx.info[result].ty.inner_with(&self.module.types);
                 self.write_value_type(res_ty)?;
                 write!(self.out, " {res_name} = ")?;
@@ -3865,8 +3863,9 @@ impl<'a, W: Write> Writer<'a, W> {
         // Define our local and start a call to `clamp`
         write!(
             self.out,
-            "int {}{} = clamp(",
-            Baked(expr),
+            "int {}{}{} = clamp(",
+            back::BAKE_PREFIX,
+            expr.index(),
             CLAMPED_LOD_SUFFIX
         )?;
         // Write the lod that will be clamped
@@ -4204,7 +4203,13 @@ impl<'a, W: Write> Writer<'a, W> {
             // `textureSize` call, but this needs to be the clamped lod, this should
             // have been generated earlier and put in a local.
             if class.is_mipmapped() {
-                write!(self.out, ", {}{}", Baked(handle), CLAMPED_LOD_SUFFIX)?;
+                write!(
+                    self.out,
+                    ", {}{}{}",
+                    back::BAKE_PREFIX,
+                    handle.index(),
+                    CLAMPED_LOD_SUFFIX
+                )?;
             }
             // Close the `textureSize` call
             write!(self.out, ")")?;
@@ -4222,7 +4227,13 @@ impl<'a, W: Write> Writer<'a, W> {
             // Add the clamped lod (if present) as the second argument to the
             // image load function.
             if level.is_some() {
-                write!(self.out, ", {}{}", Baked(handle), CLAMPED_LOD_SUFFIX)?;
+                write!(
+                    self.out,
+                    ", {}{}{}",
+                    back::BAKE_PREFIX,
+                    handle.index(),
+                    CLAMPED_LOD_SUFFIX
+                )?;
             }
 
             // If a sample argument is needed we need to clamp it between 0 and

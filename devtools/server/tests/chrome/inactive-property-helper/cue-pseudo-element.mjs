@@ -368,11 +368,4 @@ export default [
     isActive: false,
     expectedMsgId: "inactive-css-cue-pseudo-element-not-supported",
   },
-  {
-    info: "custom property is active on ::cue",
-    property: "--my-var",
-    tagName: "video",
-    rules: ["video::cue { --my-var: red; }"],
-    isActive: true,
-  },
 ];

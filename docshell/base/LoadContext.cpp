@@ -113,7 +113,7 @@ LoadContext::GetUsePrivateBrowsing(bool* aUsePrivateBrowsing) {
 
   NS_ENSURE_ARG_POINTER(aUsePrivateBrowsing);
 
-  *aUsePrivateBrowsing = mOriginAttributes.IsPrivateBrowsing();
+  *aUsePrivateBrowsing = mOriginAttributes.mPrivateBrowsingId > 0;
   return NS_OK;
 }
 

@@ -4,6 +4,10 @@
 
 "use strict";
 
+const {
+  TYPES: { NETWORK_EVENT_STACKTRACE },
+} = require("resource://devtools/server/actors/resources/index.js");
+
 loader.lazyRequireGetter(
   this,
   "ChannelEventSinkFactory",
@@ -192,6 +196,7 @@ class NetworkEventStackTracesWatcher {
     this.stacktraces.set(resourceId, stacktrace);
     this.onStackTraceAvailable([
       {
+        resourceType: NETWORK_EVENT_STACKTRACE,
         resourceId,
         stacktraceAvailable: stacktrace && !!stacktrace.length,
         lastFrame: stacktrace && stacktrace.length ? stacktrace[0] : undefined,

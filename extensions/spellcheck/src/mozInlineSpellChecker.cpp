@@ -1990,8 +1990,8 @@ NS_IMETHODIMP mozInlineSpellChecker::HandleEvent(Event* aEvent) {
     case eBlur:
       OnBlur(*aEvent);
       return NS_OK;
-    case ePointerClick:
-      OnPointerClick(*aEvent);
+    case eMouseClick:
+      OnMouseClick(*aEvent);
       return NS_OK;
     case eKeyDown:
       OnKeyDown(*aEvent);
@@ -2007,8 +2007,8 @@ void mozInlineSpellChecker::OnBlur(Event& aEvent) {
   HandleNavigationEvent(true);
 }
 
-void mozInlineSpellChecker::OnPointerClick(Event& aPointerEvent) {
-  MouseEvent* const mouseEvent = aPointerEvent.AsMouseEvent();
+void mozInlineSpellChecker::OnMouseClick(Event& aMouseEvent) {
+  MouseEvent* mouseEvent = aMouseEvent.AsMouseEvent();
   if (MOZ_UNLIKELY(!mouseEvent)) {
     return;
   }

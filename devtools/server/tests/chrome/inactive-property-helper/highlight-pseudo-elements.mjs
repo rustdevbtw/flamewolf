@@ -168,12 +168,4 @@ export default [
     rules: ["span::target-text { background: red; }"],
     isActive: true,
   },
-  {
-    // accept custom properties
-    info: "custom property is active on ::target-text",
-    property: "--my-var",
-    tagName: "span",
-    rules: ["span::target-text { -my-var: red; }"],
-    isActive: true,
-  },
 ];

@@ -1450,7 +1450,7 @@ Function OpenManualDownloadURL
   ${IfNot} ${Errors}
     ExecShell "open" "$0"
   ${Else}
-    ExecShell "open" "${URLManualDownload}&installer_arch=$ArchToInstall${URLManualDownloadAppend}"
+    ExecShell "open" "${URLManualDownload}${URLManualDownloadAppend}"
   ${EndIf}
 FunctionEnd
 

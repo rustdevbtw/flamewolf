@@ -50,11 +50,12 @@ async function testTabConsoleMessagesResources(executeInIframe) {
         resourceCommand.TYPES.CONSOLE_MESSAGE,
         "Received a message"
       );
+      ok(resource.message, "message is wrapped into a message attribute");
       const isCachedMessage = !!expectedExistingCalls.length;
       const expected = (
         isCachedMessage ? expectedExistingCalls : expectedRuntimeCalls
       ).shift();
-      checkConsoleAPICall(resource, expected);
+      checkConsoleAPICall(resource.message, expected);
       is(
         resource.isAlreadyExistingResource,
         isCachedMessage,
@@ -144,13 +145,14 @@ async function testTabConsoleMessagesResourcesWithIgnoreExistingResources(
       : targetCommand.targetFront;
   for (let i = 0; i < expectedRuntimeConsoleCalls.length; i++) {
     const resource = availableResources[i];
+    const { message, targetFront } = resource;
     is(
-      resource.targetFront,
+      targetFront,
       expectedTargetFront,
       "The targetFront property is the expected one"
     );
     const expected = expectedRuntimeConsoleCalls[i];
-    checkConsoleAPICall(resource, expected);
+    checkConsoleAPICall(message, expected);
     is(
       resource.isAlreadyExistingResource,
       false,

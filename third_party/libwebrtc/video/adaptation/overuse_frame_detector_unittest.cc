@@ -12,8 +12,6 @@
 
 #include <memory>
 
-#include "api/environment/environment.h"
-#include "api/environment/environment_factory.h"
 #include "api/video/encoded_image.h"
 #include "api/video/i420_buffer.h"
 #include "api/video/video_adaptation_reason.h"
@@ -24,6 +22,7 @@
 #include "rtc_base/task_queue_for_test.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/scoped_key_value_config.h"
 
 namespace webrtc {
 
@@ -62,9 +61,8 @@ class CpuOveruseObserverImpl : public OveruseFrameDetectorObserverInterface {
 class OveruseFrameDetectorUnderTest : public OveruseFrameDetector {
  public:
   explicit OveruseFrameDetectorUnderTest(
-      const Environment& env,
       CpuOveruseMetricsObserver* metrics_observer)
-      : OveruseFrameDetector(env, metrics_observer) {}
+      : OveruseFrameDetector(metrics_observer) {}
   ~OveruseFrameDetectorUnderTest() {}
 
   using OveruseFrameDetector::CheckForOveruse;
@@ -77,8 +75,7 @@ class OveruseFrameDetectorTest : public ::testing::Test,
   void SetUp() override {
     observer_ = &mock_observer_;
     options_.min_process_count = 0;
-    overuse_detector_ = std::make_unique<OveruseFrameDetectorUnderTest>(
-        CreateEnvironment(), this);
+    overuse_detector_ = std::make_unique<OveruseFrameDetectorUnderTest>(this);
     // Unfortunately, we can't call SetOptions here, since that would break
     // single-threading requirements in the RunOnTqNormalUsage test.
   }

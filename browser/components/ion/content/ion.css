@@ -5,7 +5,7 @@
 body {
   margin: 40px auto;
   max-width: 664px;
-  font-family: system-ui;
+  font-family: 'Segoe UI', 'Ubuntu', 'Helvetica Neue', sans-serif;
 }
 
 @media (max-width: 830px) {

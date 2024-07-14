@@ -55,7 +55,7 @@
 }
 
 :root[platform="mac"] .welcomebox .shortcutKey {
-  font-family: system-ui;
+  font-family: system-ui, -apple-system, sans-serif;
   font-weight: 500;
 }
 

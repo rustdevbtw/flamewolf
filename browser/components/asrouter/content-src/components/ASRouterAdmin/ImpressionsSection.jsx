@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { ASRouterUtils } from "../../asrouter-utils.mjs";
+import { ASRouterUtils } from "../../asrouter-utils";
 import React, {
   useState,
   useMemo,
@@ -134,7 +134,11 @@ const ImpressionsItem = ({
           </button>
         </div>
         <div className="impressions-editor">
-          <textarea rows="15" value={json} onChange={handleChange} />
+          <textarea
+            className="general-textarea"
+            value={json}
+            onChange={handleChange}
+          />
         </div>
       </div>
     </div>

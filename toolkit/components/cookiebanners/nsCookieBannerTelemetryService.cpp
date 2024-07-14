@@ -289,7 +289,9 @@ nsresult nsCookieBannerTelemetryService::MaybeReportGoogleGDPRChoiceTelemetry(
 
     // We only report cookies for the default originAttributes or private
     // browsing mode.
-    if (attrs.IsPrivateBrowsing() || attrs == OriginAttributes()) {
+    if (attrs.mPrivateBrowsingId !=
+            nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID ||
+        attrs == OriginAttributes()) {
       cookies.AppendElement(RefPtr<nsICookie>(aCookie));
     }
   } else {
@@ -343,7 +345,8 @@ nsresult nsCookieBannerTelemetryService::MaybeReportGoogleGDPRChoiceTelemetry(
     NS_ENSURE_SUCCESS(rv, rv);
 
     bool isPrivateBrowsing =
-        cookie->AsCookie().OriginAttributesRef().IsPrivateBrowsing();
+        cookie->AsCookie().OriginAttributesRef().mPrivateBrowsingId !=
+        nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID;
 
     MOZ_LOG(gCookieBannerTelemetryLog, LogLevel::Debug,
             ("Record the Google GDPR choice %s on the host %s in region %s for "

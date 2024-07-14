@@ -6,7 +6,7 @@
 [Exposed=DedicatedWorker]
 interface MediaStreamTrackProcessor {
     constructor(MediaStreamTrackProcessorInit init);
-    readonly attribute ReadableStream readable;
+    attribute ReadableStream readable;
 };
 
 dictionary MediaStreamTrackProcessorInit {

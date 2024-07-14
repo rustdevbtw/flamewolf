@@ -160,7 +160,7 @@ const chromeRDPEnums = {
     CONTENT_BLOCKING_GROUP: "contentBlockingWarningGroup",
     STORAGE_ISOLATION_GROUP: "storageIsolationWarningGroup",
     TRACKING_PROTECTION_GROUP: "trackingProtectionWarningGroup",
-    COOKIE_GROUP: "cookieGroup",
+    COOKIE_SAMESITE_GROUP: "cookieSameSiteGroup",
     CORS_GROUP: "CORSWarningGroup",
     CSP_GROUP: "CSPWarningGroup",
     ASSERT: "assert",

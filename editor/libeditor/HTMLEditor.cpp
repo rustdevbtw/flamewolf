@@ -1521,8 +1521,7 @@ NS_IMETHODIMP HTMLEditor::InsertLineBreak() {
     return EditorBase::ToGenericNSResult(rv);
   }
 
-  const RefPtr<Element> editingHost =
-      ComputeEditingHost(LimitInBodyElement::No);
+  const RefPtr<Element> editingHost = ComputeEditingHost();
   if (!editingHost) {
     return NS_SUCCESS_DOM_NO_OPERATION;
   }
@@ -1569,8 +1568,7 @@ nsresult HTMLEditor::InsertParagraphSeparatorAsAction(
     return EditorBase::ToGenericNSResult(rv);
   }
 
-  const RefPtr<Element> editingHost =
-      ComputeEditingHost(LimitInBodyElement::No);
+  const RefPtr<Element> editingHost = ComputeEditingHost();
   if (!editingHost) {
     return NS_SUCCESS_DOM_NO_OPERATION;
   }

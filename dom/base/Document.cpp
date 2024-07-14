@@ -1639,14 +1639,6 @@ void Document::GetNetErrorInfo(NetErrorInfo& aInfo, ErrorResult& aRv) {
     return;
   }
   aInfo.mErrorCodeString.Assign(errorCodeString);
-
-  nsresult channelStatus;
-  rv = mFailedChannel->GetStatus(&channelStatus);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(rv);
-    return;
-  }
-  aInfo.mChannelStatus = static_cast<uint32_t>(channelStatus);
 }
 
 bool Document::CallerIsTrustedAboutCertError(JSContext* aCx,
@@ -1717,14 +1709,6 @@ void Document::GetFailedCertSecurityInfo(FailedCertSecurityInfo& aInfo,
     return;
   }
   aInfo.mErrorCodeString.Assign(errorCodeString);
-
-  nsresult channelStatus;
-  rv = mFailedChannel->GetStatus(&channelStatus);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(rv);
-    return;
-  }
-  aInfo.mChannelStatus = static_cast<uint32_t>(channelStatus);
 
   nsITransportSecurityInfo::OverridableErrorCategory errorCategory;
   rv = tsi->GetOverridableErrorCategory(&errorCategory);
@@ -2023,56 +2007,6 @@ void Document::RecordPageLoadEventTelemetry(
   }
 }
 
-#ifndef ANDROID
-static void AccumulateHttp3FcpGleanPref(const nsCString& http3Key,
-                                        const TimeDuration& duration) {
-  if (http3Key == "http3"_ns) {
-    glean::performance_pageload::http3_fcp_http3.AccumulateRawDuration(
-        duration);
-  } else if (http3Key == "supports_http3"_ns) {
-    glean::performance_pageload::http3_fcp_supports_http3.AccumulateRawDuration(
-        duration);
-  } else {
-    MOZ_ASSERT_UNREACHABLE("Unknown value for http3Key");
-  }
-}
-
-static void AccumulatePriorityFcpGleanPref(
-    const nsCString& http3WithPriorityKey, const TimeDuration& duration) {
-  if (http3WithPriorityKey == "with_priority"_ns) {
-    glean::performance_pageload::h3p_fcp_with_priority.AccumulateRawDuration(
-        duration);
-  } else if (http3WithPriorityKey == "without_priority"_ns) {
-    glean::performance_pageload::http3_fcp_without_priority
-        .AccumulateRawDuration(duration);
-  } else {
-    MOZ_ASSERT_UNREACHABLE("Unknown value for http3WithPriorityKey");
-  }
-}
-
-static void AccumulateEarlyHintFcpGleanPref(const nsCString& earlyHintKey,
-                                            const TimeDuration& duration) {
-  if (earlyHintKey == "preload_1"_ns) {
-    glean::performance_pageload::eh_fcp_preload_with_eh.AccumulateRawDuration(
-        duration);
-  } else if (earlyHintKey == "preload_0"_ns) {
-    glean::performance_pageload::eh_fcp_preload_without_eh
-        .AccumulateRawDuration(duration);
-  } else if (earlyHintKey == "preconnect_"_ns) {
-    glean::performance_pageload::eh_fcp_preconnect.AccumulateRawDuration(
-        duration);
-  } else if (earlyHintKey == "preconnect_preload_1"_ns) {
-    glean::performance_pageload::eh_fcp_preconnect_preload_with_eh
-        .AccumulateRawDuration(duration);
-  } else if (earlyHintKey == "preconnect_preload_0"_ns) {
-    glean::performance_pageload::eh_fcp_preconnect_preload_without_eh
-        .AccumulateRawDuration(duration);
-  } else {
-    MOZ_ASSERT_UNREACHABLE("Unknown value for earlyHintKey");
-  }
-}
-#endif
-
 void Document::AccumulatePageLoadTelemetry(
     glean::perf::PageLoadExtra& aEventTelemetryDataOut) {
   // Interested only in top level documents for real websites that are in the
@@ -2212,30 +2146,18 @@ void Document::AccumulatePageLoadTelemetry(
       Telemetry::AccumulateTimeDelta(
           Telemetry::HTTP3_PERF_FIRST_CONTENTFUL_PAINT_MS, http3Key,
           navigationStart, firstContentfulComposite);
-#ifndef ANDROID
-      AccumulateHttp3FcpGleanPref(http3Key,
-                                  firstContentfulComposite - navigationStart);
-#endif
     }
 
     if (!http3WithPriorityKey.IsEmpty()) {
       Telemetry::AccumulateTimeDelta(
           Telemetry::H3P_PERF_FIRST_CONTENTFUL_PAINT_MS, http3WithPriorityKey,
           navigationStart, firstContentfulComposite);
-#ifndef ANDROID
-      AccumulatePriorityFcpGleanPref(
-          http3WithPriorityKey, firstContentfulComposite - navigationStart);
-#endif
     }
 
     if (!earlyHintKey.IsEmpty()) {
       Telemetry::AccumulateTimeDelta(
           Telemetry::EH_PERF_FIRST_CONTENTFUL_PAINT_MS, earlyHintKey,
           navigationStart, firstContentfulComposite);
-#ifndef ANDROID
-      AccumulateEarlyHintFcpGleanPref(
-          earlyHintKey, firstContentfulComposite - navigationStart);
-#endif
     }
 
     Telemetry::AccumulateTimeDelta(
@@ -5481,20 +5403,9 @@ bool Document::ExecCommand(const nsAString& aHTMLCommandName, bool aShowUI,
   // Next, consider context of command handling which is automatically resolved
   // by order of controllers in `nsCommandManager::GetControllerForCommand()`.
   AutoEditorCommandTarget editCommandTarget(*this, commandData);
-  if (commandData.IsAvailableOnlyWhenEditable()) {
-    if (!editCommandTarget.IsEditable(this)) {
-      return false;
-    }
-    // If currently the editor cannot dispatch `input` events, it means that the
-    // editor value is being set and that caused unexpected composition events.
-    // In this case, the value will be updated to the setting value soon and
-    // Chromium does not dispatch any events during the sequence but we dispatch
-    // `compositionupdate` and `compositionend` events to conform to the UI
-    // Events spec.  Therefore, this execCommand must be called accidentally.
-    EditorBase* targetEditor = editCommandTarget.GetTargetEditor();
-    if (targetEditor && targetEditor->IsSuppressingDispatchingInputEvent()) {
-      return false;
-    }
+  if (commandData.IsAvailableOnlyWhenEditable() &&
+      !editCommandTarget.IsEditable(this)) {
+    return false;
   }
 
   if (editCommandTarget.DoNothing()) {
@@ -13174,50 +13085,31 @@ void Document::ScrollToRef() {
   if (!presShell) {
     return;
   }
-
-  // https://wicg.github.io/scroll-to-text-fragment/#invoking-text-directives
-  // Monkeypatching HTML § 7.4.6.3 Scrolling to a fragment:
-  // 1. Let text directives be the document's pending text directives.
-  const RefPtr fragmentDirective = FragmentDirective();
-  const nsTArray<RefPtr<nsRange>> textDirectives =
-      fragmentDirective->FindTextFragmentsInDocument();
-  // 2. If ranges is non-empty, then:
-  // 2.1 Let firstRange be the first item of ranges
-  const RefPtr<nsRange> textDirectiveToScroll =
-      !textDirectives.IsEmpty() ? textDirectives[0] : nullptr;
-  // 2.2 Visually indicate each range in ranges in an implementation-defined
-  // way. The indication must not be observable from author script. See § 3.7
-  // Indicating The Text Match.
-  fragmentDirective->HighlightTextDirectives(textDirectives);
-
-  // In a subsequent call to `ScrollToRef()` during page load, `textDirectives`
-  // would only contain text directives that were not found in the previous
-  // runs. If an earlier call during the same page load already found a text
-  // directive to scroll to, only highlighting of the text directives needs to
-  // be done.
-  // This is indicated by `mScrolledToRefAlready`.
   if (mScrolledToRefAlready) {
     presShell->ScrollToAnchor();
     return;
   }
+
+  // If text directives is non-null, then highlight the text directives and
+  // scroll to the last one.
+  // XXX(:jjaschke): Document policy integration should happen here
+  // as soon as https://bugzil.la/1860915 lands.
+  // XXX(:jjaschke): Same goes for User Activation and security aspects,
+  // tracked in https://bugzil.la/1888756.
+  const bool didScrollToTextFragment =
+      presShell->HighlightAndGoToTextFragment(true);
+
+  FragmentDirective()->ClearUninvokedDirectives();
+
   // 2. If fragment is the empty string and no text directives have been
   // scrolled to, then return the special value top of the document.
-  if (!textDirectiveToScroll && mScrollToRef.IsEmpty()) {
+  if (didScrollToTextFragment || mScrollToRef.IsEmpty()) {
     return;
   }
   // 3. Let potentialIndicatedElement be the result of finding a potential
   // indicated element given document and fragment.
   NS_ConvertUTF8toUTF16 ref(mScrollToRef);
-  // This also covers 2.3 of the Monkeypatch for text fragments mentioned above:
-  // 2.3 Set firstRange as document's indicated part, return.
-
-  const bool scrollToTextDirective =
-      textDirectiveToScroll
-          ? fragmentDirective->IsTextDirectiveAllowedToBeScrolledTo()
-          : mChangeScrollPosWhenScrollingToRef;
-
-  auto rv =
-      presShell->GoToAnchor(ref, textDirectiveToScroll, scrollToTextDirective);
+  auto rv = presShell->GoToAnchor(ref, mChangeScrollPosWhenScrollingToRef);
 
   // 4. If potentialIndicatedElement is not null, then return
   // potentialIndicatedElement.
@@ -13245,7 +13137,7 @@ void Document::ScrollToRef() {
 
   // 7. Set potentialIndicatedElement to the result of finding a potential
   // indicated element given document and decodedFragment.
-  rv = presShell->GoToAnchor(decodedFragment, nullptr,
+  rv = presShell->GoToAnchor(decodedFragment,
                              mChangeScrollPosWhenScrollingToRef);
   if (NS_SUCCEEDED(rv)) {
     mScrolledToRefAlready = true;
@@ -13458,8 +13350,8 @@ static void CachePrintSelectionRanges(const Document& aSourceDoc,
     const nsRange* range = sourceDocIsStatic ? origRanges->ElementAt(i).get()
                                              : origSelection->GetRangeAt(i);
     MOZ_ASSERT(range);
-    nsINode* startContainer = range->GetMayCrossShadowBoundaryStartContainer();
-    nsINode* endContainer = range->GetMayCrossShadowBoundaryEndContainer();
+    nsINode* startContainer = range->GetStartContainer();
+    nsINode* endContainer = range->GetEndContainer();
 
     if (!startContainer || !endContainer) {
       continue;
@@ -13474,11 +13366,10 @@ static void CachePrintSelectionRanges(const Document& aSourceDoc,
       continue;
     }
 
-    RefPtr<nsRange> clonedRange = nsRange::Create(
-        startNode, range->MayCrossShadowBoundaryStartOffset(), endNode,
-        range->MayCrossShadowBoundaryEndOffset(), IgnoreErrors());
-    if (clonedRange &&
-        !clonedRange->AreNormalRangeAndCrossShadowBoundaryRangeCollapsed()) {
+    RefPtr<nsRange> clonedRange =
+        nsRange::Create(startNode, range->StartOffset(), endNode,
+                        range->EndOffset(), IgnoreErrors());
+    if (clonedRange && !clonedRange->Collapsed()) {
       printRanges->AppendElement(std::move(clonedRange));
     }
   }
@@ -13776,7 +13667,6 @@ void Document::DoUpdateSVGUseElementShadowTrees() {
   MOZ_ASSERT(!mSVGUseElementsNeedingShadowTreeUpdate.IsEmpty());
 
   MOZ_ASSERT(!mCloningForSVGUse);
-  nsAutoScriptBlockerSuppressNodeRemoved blocker;
   mCloningForSVGUse = true;
 
   do {
@@ -16720,17 +16610,15 @@ nsAutoSyncOperation::nsAutoSyncOperation(Document* aDoc,
 }
 
 void nsAutoSyncOperation::SuppressDocument(Document* aDoc) {
-  if (RefPtr<nsGlobalWindowInner> win =
-          nsGlobalWindowInner::Cast(aDoc->GetInnerWindow())) {
-    win->GetTimeoutManager()->BeginSyncOperation();
+  if (nsCOMPtr<nsPIDOMWindowInner> win = aDoc->GetInnerWindow()) {
+    win->TimeoutManager().BeginSyncOperation();
   }
   aDoc->SetIsInSyncOperation(true);
 }
 
 void nsAutoSyncOperation::UnsuppressDocument(Document* aDoc) {
-  if (RefPtr<nsGlobalWindowInner> win =
-          nsGlobalWindowInner::Cast(aDoc->GetInnerWindow())) {
-    win->GetTimeoutManager()->EndSyncOperation();
+  if (nsCOMPtr<nsPIDOMWindowInner> win = aDoc->GetInnerWindow()) {
+    win->TimeoutManager().EndSyncOperation();
   }
   aDoc->SetIsInSyncOperation(false);
 }
@@ -16963,20 +16851,6 @@ void Document::NotifyUserGestureActivation(
 bool Document::HasBeenUserGestureActivated() {
   RefPtr<WindowContext> wc = GetWindowContext();
   return wc && wc->HasBeenUserGestureActivated();
-}
-
-bool Document::ConsumeTextDirectiveUserActivation() {
-  if (!mChannel) {
-    return false;
-  }
-  nsCOMPtr<nsILoadInfo> loadInfo = mChannel->LoadInfo();
-  if (!loadInfo) {
-    return false;
-  }
-  const bool textDirectiveUserActivation =
-      loadInfo->GetTextDirectiveUserActivation();
-  loadInfo->SetTextDirectiveUserActivation(false);
-  return textDirectiveUserActivation;
 }
 
 DOMHighResTimeStamp Document::LastUserGestureTimeStamp() {

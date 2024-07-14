@@ -18,7 +18,7 @@ mod writer;
 
 pub use spirv::Capability;
 
-use crate::arena::{Handle, HandleVec};
+use crate::arena::Handle;
 use crate::proc::{BoundsCheckPolicies, TypeResolution};
 
 use spirv::Word;
@@ -420,7 +420,7 @@ enum Dimension {
 /// [emit]: index.html#expression-evaluation-time-and-scope
 #[derive(Default)]
 struct CachedExpressions {
-    ids: HandleVec<crate::Expression, Word>,
+    ids: Vec<Word>,
 }
 impl CachedExpressions {
     fn reset(&mut self, length: usize) {
@@ -431,7 +431,7 @@ impl CachedExpressions {
 impl ops::Index<Handle<crate::Expression>> for CachedExpressions {
     type Output = Word;
     fn index(&self, h: Handle<crate::Expression>) -> &Word {
-        let id = &self.ids[h];
+        let id = &self.ids[h.index()];
         if *id == 0 {
             unreachable!("Expression {:?} is not cached!", h);
         }
@@ -440,7 +440,7 @@ impl ops::Index<Handle<crate::Expression>> for CachedExpressions {
 }
 impl ops::IndexMut<Handle<crate::Expression>> for CachedExpressions {
     fn index_mut(&mut self, h: Handle<crate::Expression>) -> &mut Word {
-        let id = &mut self.ids[h];
+        let id = &mut self.ids[h.index()];
         if *id != 0 {
             unreachable!("Expression {:?} is already cached!", h);
         }
@@ -537,32 +537,32 @@ struct FunctionArgument {
 /// - OpConstantComposite
 /// - OpConstantNull
 struct ExpressionConstnessTracker {
-    inner: crate::arena::HandleSet<crate::Expression>,
+    inner: bit_set::BitSet,
 }
 
 impl ExpressionConstnessTracker {
     fn from_arena(arena: &crate::Arena<crate::Expression>) -> Self {
-        let mut inner = crate::arena::HandleSet::for_arena(arena);
+        let mut inner = bit_set::BitSet::new();
         for (handle, expr) in arena.iter() {
             let insert = match *expr {
                 crate::Expression::Literal(_)
                 | crate::Expression::ZeroValue(_)
                 | crate::Expression::Constant(_) => true,
                 crate::Expression::Compose { ref components, .. } => {
-                    components.iter().all(|&h| inner.contains(h))
+                    components.iter().all(|h| inner.contains(h.index()))
                 }
-                crate::Expression::Splat { value, .. } => inner.contains(value),
+                crate::Expression::Splat { value, .. } => inner.contains(value.index()),
                 _ => false,
             };
             if insert {
-                inner.insert(handle);
+                inner.insert(handle.index());
             }
         }
         Self { inner }
     }
 
     fn is_const(&self, value: Handle<crate::Expression>) -> bool {
-        self.inner.contains(value)
+        self.inner.contains(value.index())
     }
 }
 
@@ -662,9 +662,9 @@ pub struct Writer {
     lookup_function: crate::FastHashMap<Handle<crate::Function>, Word>,
     lookup_function_type: crate::FastHashMap<LookupFunctionType, Word>,
     /// Indexed by const-expression handle indexes
-    constant_ids: HandleVec<crate::Expression, Word>,
+    constant_ids: Vec<Word>,
     cached_constants: crate::FastHashMap<CachedConstant, Word>,
-    global_variables: HandleVec<crate::GlobalVariable, GlobalVariable>,
+    global_variables: Vec<GlobalVariable>,
     binding_map: BindingMap,
 
     // Cached expressions are only meaningful within a BlockContext, but we
@@ -682,29 +682,16 @@ bitflags::bitflags! {
     pub struct WriterFlags: u32 {
         /// Include debug labels for everything.
         const DEBUG = 0x1;
-
-        /// Flip Y coordinate of [`BuiltIn::Position`] output.
-        ///
-        /// [`BuiltIn::Position`]: crate::BuiltIn::Position
+        /// Flip Y coordinate of `BuiltIn::Position` output.
         const ADJUST_COORDINATE_SPACE = 0x2;
-
-        /// Emit [`OpName`][op] for input/output locations.
-        ///
+        /// Emit `OpName` for input/output locations.
         /// Contrary to spec, some drivers treat it as semantic, not allowing
         /// any conflicts.
-        ///
-        /// [op]: https://registry.khronos.org/SPIR-V/specs/unified1/SPIRV.html#OpName
         const LABEL_VARYINGS = 0x4;
-
-        /// Emit [`PointSize`] output builtin to vertex shaders, which is
+        /// Emit `PointSize` output builtin to vertex shaders, which is
         /// required for drawing with `PointList` topology.
-        ///
-        /// [`PointSize`]: crate::BuiltIn::PointSize
         const FORCE_POINT_SIZE = 0x8;
-
-        /// Clamp [`BuiltIn::FragDepth`] output between 0 and 1.
-        ///
-        /// [`BuiltIn::FragDepth`]: crate::BuiltIn::FragDepth
+        /// Clamp `BuiltIn::FragDepth` output between 0 and 1.
         const CLAMP_FRAG_DEPTH = 0x10;
     }
 }

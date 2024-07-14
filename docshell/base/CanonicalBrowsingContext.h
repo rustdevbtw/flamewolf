@@ -16,7 +16,6 @@
 #include "mozilla/dom/SessionHistoryEntry.h"
 #include "mozilla/dom/SessionStoreRestoreData.h"
 #include "mozilla/dom/SessionStoreUtils.h"
-#include "mozilla/dom/UniqueContentParentKeepAlive.h"
 #include "mozilla/dom/ipc/IdType.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/MozPromise.h"
@@ -96,9 +95,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   // Only set for toplevel content BrowsingContexts, and may be from a different
   // BrowsingContextGroup.
   uint64_t GetCrossGroupOpenerId() const { return mCrossGroupOpenerId; }
-  already_AddRefed<CanonicalBrowsingContext> GetCrossGroupOpener() const;
   void SetCrossGroupOpenerId(uint64_t aOpenerId);
-  void SetCrossGroupOpener(CanonicalBrowsingContext* aCrossGroupOpener,
+  void SetCrossGroupOpener(CanonicalBrowsingContext& aCrossGroupOpener,
                            ErrorResult& aRv);
 
   void GetWindowGlobals(nsTArray<RefPtr<WindowGlobalParent>>& aWindows);
@@ -461,7 +459,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
     RefPtr<CanonicalBrowsingContext> mTarget;
     RefPtr<RemotenessPromise::Private> mPromise;
-    UniqueContentParentKeepAlive mContentParentKeepAlive;
+    RefPtr<ContentParent> mContentParent;
     RefPtr<BrowsingContextGroup> mSpecificGroup;
 
     bool mProcessReady = false;

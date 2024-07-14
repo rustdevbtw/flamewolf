@@ -1553,16 +1553,14 @@ struct MOZ_STACK_CLASS SelectionRangeState {
 void SelectionRangeState::SelectComplementOf(
     Span<const RefPtr<nsRange>> aRanges) {
   for (const auto& range : aRanges) {
-    auto start = Position{range->GetMayCrossShadowBoundaryStartContainer(),
-                          range->MayCrossShadowBoundaryStartOffset()};
-    auto end = Position{range->GetMayCrossShadowBoundaryEndContainer(),
-                        range->MayCrossShadowBoundaryEndOffset()};
+    auto start = Position{range->GetStartContainer(), range->StartOffset()};
+    auto end = Position{range->GetEndContainer(), range->EndOffset()};
     SelectNodesExcept(start, end);
   }
 }
 
 void SelectionRangeState::SelectRange(nsRange* aRange) {
-  if (aRange && !aRange->AreNormalRangeAndCrossShadowBoundaryRangeCollapsed()) {
+  if (aRange && !aRange->Collapsed()) {
     mSelection->AddRangeAndSelectFramesAndNotifyListeners(*aRange,
                                                           IgnoreErrors());
   }
@@ -1571,16 +1569,11 @@ void SelectionRangeState::SelectRange(nsRange* aRange) {
 void SelectionRangeState::SelectNodesExcept(const Position& aStart,
                                             const Position& aEnd) {
   SelectNodesExceptInSubtree(aStart, aEnd);
-  if (!StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()) {
-    if (auto* shadow = ShadowRoot::FromNode(aStart.mNode->SubtreeRoot())) {
-      auto* host = shadow->Host();
-      // Can't just select other nodes except the host, because other nodes that
-      // are not in this particular shadow tree could also be selected
-      SelectNodesExcept(Position{host, 0},
-                        Position{host, host->GetChildCount()});
-    } else {
-      MOZ_ASSERT(aStart.mNode->IsInUncomposedDoc());
-    }
+  if (auto* shadow = ShadowRoot::FromNode(aStart.mNode->SubtreeRoot())) {
+    auto* host = shadow->Host();
+    SelectNodesExcept(Position{host, 0}, Position{host, host->GetChildCount()});
+  } else {
+    MOZ_ASSERT(aStart.mNode->IsInUncomposedDoc());
   }
 }
 
@@ -1588,11 +1581,7 @@ void SelectionRangeState::SelectNodesExceptInSubtree(const Position& aStart,
                                                      const Position& aEnd) {
   static constexpr auto kEllipsis = u"\x2026"_ns;
 
-  // Finish https://bugzilla.mozilla.org/show_bug.cgi?id=1903871 once the pref
-  // is shipped, so that we only need one position.
-  nsINode* root = StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
-                      ? aStart.mNode->OwnerDoc()
-                      : aStart.mNode->SubtreeRoot();
+  nsINode* root = aStart.mNode->SubtreeRoot();
   auto& start =
       mPositions.WithEntryHandle(root, [&](auto&& entry) -> Position& {
         return entry.OrInsertWith([&] { return Position{root, 0}; });

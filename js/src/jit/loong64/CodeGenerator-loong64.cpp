@@ -13,7 +13,6 @@
 #include "jit/CodeGenerator.h"
 #include "jit/InlineScriptTree.h"
 #include "jit/JitRuntime.h"
-#include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 #include "jit/MIRGraph.h"
 #include "vm/JSContext.h"

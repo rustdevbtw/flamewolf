@@ -202,7 +202,7 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
   }
 #endif
 
-  RefPtr<BoolPromise> Drop() override;
+  void Drop() override;
 
   void OnInvalidate(std::function<void()>&& aCallback) override;
 

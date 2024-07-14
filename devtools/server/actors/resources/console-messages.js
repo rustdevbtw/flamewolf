@@ -4,6 +4,9 @@
 
 "use strict";
 
+const {
+  TYPES: { CONSOLE_MESSAGE },
+} = require("devtools/server/actors/resources/index");
 const Targets = require("devtools/server/actors/targets/index");
 
 const consoleAPIListenerModule = isWorker
@@ -44,7 +47,12 @@ class ConsoleMessageWatcher {
 
     // Bug 1642297: Maybe we could merge ConsoleAPI Listener into this module?
     const onConsoleAPICall = message => {
-      onAvailable([prepareConsoleMessageForRemote(targetActor, message)]);
+      onAvailable([
+        {
+          resourceType: CONSOLE_MESSAGE,
+          message: prepareConsoleMessageForRemote(targetActor, message),
+        },
+      ]);
     };
 
     const isTargetActorContentProcess =
@@ -96,7 +104,10 @@ class ConsoleMessageWatcher {
       ) {
         continue;
       }
-      messages.push(prepareConsoleMessageForRemote(targetActor, message));
+      messages.push({
+        resourceType: CONSOLE_MESSAGE,
+        message: prepareConsoleMessageForRemote(targetActor, message),
+      });
     }
     onAvailable(messages);
   }
@@ -131,7 +142,10 @@ class ConsoleMessageWatcher {
           throw new Error("timeStamp property is mandatory");
         }
 
-        return prepareConsoleMessageForRemote(this.targetActor, message);
+        return {
+          resourceType: CONSOLE_MESSAGE,
+          message: prepareConsoleMessageForRemote(this.targetActor, message),
+        };
       })
     );
   }

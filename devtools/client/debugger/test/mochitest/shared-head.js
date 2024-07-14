@@ -1386,7 +1386,6 @@ const keyMappings = {
   debugger: { code: "s", modifiers: shiftOrAlt },
   // test conditional panel shortcut
   toggleCondPanel: { code: "b", modifiers: cmdShift },
-  toggleLogPanel: { code: "y", modifiers: cmdShift },
   inspector: { code: "c", modifiers: shiftOrAlt },
   quickOpen: { code: "p", modifiers: cmdOrCtrl },
   quickOpenFunc: { code: "o", modifiers: cmdShift },
@@ -1800,7 +1799,6 @@ const selectors = {
   outlineItems: ".outline-list__element",
   conditionalPanel: ".conditional-breakpoint-panel",
   conditionalPanelInput: ".conditional-breakpoint-panel textarea",
-  logPanelInput: ".conditional-breakpoint-panel.log-point textarea",
   conditionalBreakpointInSecPane: ".breakpoint.is-conditional",
   logPointPanel: ".conditional-breakpoint-panel.log-point",
   logPointInSecPane: ".breakpoint.is-log",
@@ -2042,11 +2040,8 @@ async function assertContextMenuLabel(dbg, selector, expectedLabel) {
   );
 }
 
-async function typeInPanel(dbg, text, inLogPanel = false) {
-  await waitForElement(
-    dbg,
-    inLogPanel ? "logPanelInput" : "conditionalPanelInput"
-  );
+async function typeInPanel(dbg, text) {
+  await waitForElement(dbg, "conditionalPanelInput");
   // Position cursor reliably at the end of the text.
   pressKey(dbg, "End");
   type(dbg, text);
@@ -2206,13 +2201,8 @@ async function clickAtPos(dbg, pos) {
   info(
     `Clicking on token ${tokenEl.innerText} in line ${tokenEl.parentNode.innerText}`
   );
-  const ClickEventConstructor = Services.prefs.getBoolPref(
-    "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
-  )
-    ? PointerEvent
-    : MouseEvent;
   tokenEl.dispatchEvent(
-    new ClickEventConstructor("click", {
+    new MouseEvent("click", {
       bubbles: true,
       cancelable: true,
       view: dbg.win,

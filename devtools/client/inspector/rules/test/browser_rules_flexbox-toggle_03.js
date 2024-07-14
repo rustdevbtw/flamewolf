@@ -36,9 +36,8 @@ add_task(async function () {
       "the rule-view."
   );
   ok(flexboxToggle, "flexbox highlighter toggle is visible.");
-  is(
-    flexboxToggle.getAttribute("aria-pressed"),
-    "false",
+  ok(
+    !flexboxToggle.classList.contains("active"),
     "Flexbox highlighter toggle button is not active."
   );
   ok(
@@ -62,9 +61,8 @@ add_task(async function () {
     "Checking the flexbox highlighter is created and toggle button is active in " +
       "the rule-view."
   );
-  is(
-    flexboxToggle.getAttribute("aria-pressed"),
-    "true",
+  ok(
+    flexboxToggle.classList.contains("active"),
     "Flexbox highlighter toggle is active."
   );
   ok(
@@ -88,9 +86,8 @@ add_task(async function () {
       "in the rule-view."
   );
   ok(flexboxToggle, "Flexbox highlighter toggle is visible.");
-  is(
-    flexboxToggle.getAttribute("aria-pressed"),
-    "false",
+  ok(
+    !flexboxToggle.classList.contains("active"),
     "Flexbox highlighter toggle button is not active."
   );
   ok(
@@ -110,9 +107,8 @@ add_task(async function () {
     "Checking the flexbox highlighter is created for the second flexbox container " +
       "and toggle button is active in the rule-view."
   );
-  is(
-    flexboxToggle.getAttribute("aria-pressed"),
-    "true",
+  ok(
+    flexboxToggle.classList.contains("active"),
     "Flexbox highlighter toggle is active."
   );
   Assert.notEqual(
@@ -131,9 +127,8 @@ add_task(async function () {
       "the rule-view."
   );
   ok(flexboxToggle, "Flexbox highlighter toggle is visible.");
-  is(
-    flexboxToggle.getAttribute("aria-pressed"),
-    "false",
+  ok(
+    !flexboxToggle.classList.contains("active"),
     "Flexbox highlighter toggle button is not active."
   );
 });

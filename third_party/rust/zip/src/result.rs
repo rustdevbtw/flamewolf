@@ -1,37 +1,64 @@
-#![allow(unknown_lints)] // non_local_definitions isn't in Rust 1.70
-#![allow(non_local_definitions)]
 //! Error types that can be emitted from this library
-
-use displaydoc::Display;
-use thiserror::Error;
 
 use std::error::Error;
 use std::fmt;
 use std::io;
-use std::num::TryFromIntError;
-use std::string::FromUtf8Error;
 
 /// Generic result type with ZipError as its error variant
 pub type ZipResult<T> = Result<T, ZipError>;
 
-/// Error type for Zip
-#[derive(Debug, Display, Error)]
-#[non_exhaustive]
-pub enum ZipError {
-    /// i/o error: {0}
-    Io(#[from] io::Error),
+/// The given password is wrong
+#[derive(Debug)]
+pub struct InvalidPassword;
 
-    /// invalid Zip archive: {0}
+impl fmt::Display for InvalidPassword {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "invalid password for file in archive")
+    }
+}
+
+impl Error for InvalidPassword {}
+
+/// Error type for Zip
+#[derive(Debug)]
+pub enum ZipError {
+    /// An Error caused by I/O
+    Io(io::Error),
+
+    /// This file is probably not a zip archive
     InvalidArchive(&'static str),
 
-    /// unsupported Zip archive: {0}
+    /// This archive is not supported
     UnsupportedArchive(&'static str),
 
-    /// specified file not found in archive
+    /// The requested file could not be found in the archive
     FileNotFound,
+}
 
-    /// The password provided is incorrect
-    InvalidPassword,
+impl From<io::Error> for ZipError {
+    fn from(err: io::Error) -> ZipError {
+        ZipError::Io(err)
+    }
+}
+
+impl fmt::Display for ZipError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ZipError::Io(err) => write!(fmt, "{err}"),
+            ZipError::InvalidArchive(err) => write!(fmt, "invalid Zip archive: {err}"),
+            ZipError::UnsupportedArchive(err) => write!(fmt, "unsupported Zip archive: {err}"),
+            ZipError::FileNotFound => write!(fmt, "specified file not found in archive"),
+        }
+    }
+}
+
+impl Error for ZipError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            ZipError::Io(err) => Some(err),
+            _ => None,
+        }
+    }
 }
 
 impl ZipError {
@@ -51,40 +78,13 @@ impl ZipError {
 
 impl From<ZipError> for io::Error {
     fn from(err: ZipError) -> io::Error {
-        let kind = match &err {
-            ZipError::Io(err) => err.kind(),
-            ZipError::InvalidArchive(_) => io::ErrorKind::InvalidData,
-            ZipError::UnsupportedArchive(_) => io::ErrorKind::Unsupported,
-            ZipError::FileNotFound => io::ErrorKind::NotFound,
-            ZipError::InvalidPassword => io::ErrorKind::InvalidInput,
-        };
-
-        io::Error::new(kind, err)
-    }
-}
-
-impl From<DateTimeRangeError> for ZipError {
-    fn from(_: DateTimeRangeError) -> Self {
-        ZipError::InvalidArchive("Invalid date or time")
-    }
-}
-
-impl From<FromUtf8Error> for ZipError {
-    fn from(_: FromUtf8Error) -> Self {
-        ZipError::InvalidArchive("Invalid UTF-8")
+        io::Error::new(io::ErrorKind::Other, err)
     }
 }
 
 /// Error type for time parsing
 #[derive(Debug)]
 pub struct DateTimeRangeError;
-
-// TryFromIntError is also an out-of-range error.
-impl From<TryFromIntError> for DateTimeRangeError {
-    fn from(_value: TryFromIntError) -> Self {
-        DateTimeRangeError
-    }
-}
 
 impl fmt::Display for DateTimeRangeError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {

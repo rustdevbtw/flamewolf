@@ -15,19 +15,13 @@
 // Unavailable / Error State
 .weatherNotAvailable {
   font-size: var(--newtab-weather-content-font-size);
+  color: var(--text-color-error);
   display: flex;
   align-items: center;
-  border-radius: var(--border-radius-medium);
-  padding: var(--space-small);
 
-  // Contrast fix for users who have wallpapers set
-  .lightWallpaper &,
-  .darkWallpaper & {
-    background-color: var(--newtab-weather-background-color);
-
-    @media (prefers-contrast) {
-      background-color: var(--background-color-box);
-    }
+  .icon {
+    fill: var(--icon-color-critical);
+    -moz-context-properties: fill;
   }
 }
 
@@ -388,7 +382,7 @@
   background-color: light-dark(var(--color-white), var(--newtab-background-color-secondary));
   color: var(--newtab-text-primary-color);
   border-radius: var(--border-radius-medium);
-  padding: var(--space-small);
+  padding: 8px;
   position: relative;
 
   // Contrast fix for users who have wallpapers set

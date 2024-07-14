@@ -10,30 +10,31 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.withContext
-import mozilla.appservices.remotesettings.RemoteSettingsServer
 import mozilla.appservices.suggest.SuggestApiException
 import mozilla.appservices.suggest.SuggestIngestionConstraints
 import mozilla.appservices.suggest.SuggestStore
 import mozilla.appservices.suggest.SuggestStoreBuilder
 import mozilla.appservices.suggest.Suggestion
 import mozilla.appservices.suggest.SuggestionQuery
+import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.support.base.log.logger.Logger
+import java.io.File
 
 /**
  * A coroutine-aware wrapper around the synchronous [SuggestStore] interface.
  *
  * @param context The Android application context.
- * @param remoteSettingsServer The [RemoteSettingsServer] from which to ingest
- * suggestions.
+ * @param crashReporter An optional [CrashReporting] instance for reporting unexpected caught
+ * exceptions.
  */
-class FxSuggestStorage(context: Context, remoteSettingsServer: RemoteSettingsServer = RemoteSettingsServer.Prod) {
+class FxSuggestStorage(context: Context) {
     // Lazily initializes the store on first use. `cacheDir` and using the `File` constructor
     // does I/O, so `store.value` should only be accessed from the read or write scope.
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val store: Lazy<SuggestStore> = lazy {
         SuggestStoreBuilder()
+            .cachePath(File(context.cacheDir, CACHE_DATABASE_NAME).absolutePath)
             .dataPath(context.getDatabasePath(DATABASE_NAME).absolutePath)
-            .remoteSettingsServer(remoteSettingsServer)
             .build()
     }
 
@@ -117,6 +118,11 @@ class FxSuggestStorage(context: Context, remoteSettingsServer: RemoteSettingsSer
     }
 
     internal companion object {
+        /**
+         * The database file name for cached data.
+         */
+        const val CACHE_DATABASE_NAME = "suggest.sqlite"
+
         /**
          * The database file name for permanent data.
          */

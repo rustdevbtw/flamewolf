@@ -61,11 +61,11 @@ add_task(async function testSearchFindsExperiments() {
   ok(!experimentalCategory.hidden, "The category is not hidden");
 
   await TestUtils.waitForCondition(
-    () => doc.querySelector("#pane-experimental-featureGates > .featureGate"),
+    () => doc.getElementById("firefoxExperimentalCategory"),
     "Waiting for experimental features category to get initialized"
   );
   await evaluateSearchResults(
-    "in development and evolving",
+    "advanced configuration",
     ["pane-experimental-featureGates"],
     /* include experiments */ true
   );

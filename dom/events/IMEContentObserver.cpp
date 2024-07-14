@@ -568,7 +568,7 @@ bool IMEContentObserver::IsEditorHandlingEventForComposition() const {
   if (!composition) {
     return false;
   }
-  return composition->EditorIsHandlingLatestChange();
+  return composition->IsEditorHandlingEvent();
 }
 
 bool IMEContentObserver::IsEditorComposing() const {

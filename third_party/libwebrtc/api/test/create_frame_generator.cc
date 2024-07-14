@@ -13,9 +13,6 @@
 #include <cstdio>
 #include <utility>
 
-#include "absl/base/nullability.h"
-#include "absl/strings/string_view.h"
-#include "api/environment/environment_factory.h"
 #include "rtc_base/checks.h"
 #include "test/frame_generator.h"
 #include "test/testsupport/ivf_video_frame_generator.h"
@@ -69,13 +66,7 @@ std::unique_ptr<FrameGeneratorInterface> CreateFromNV12FileFrameGenerator(
 
 std::unique_ptr<FrameGeneratorInterface> CreateFromIvfFileFrameGenerator(
     std::string filename) {
-  return CreateFromIvfFileFrameGenerator(CreateEnvironment(), filename);
-}
-
-absl::Nonnull<std::unique_ptr<FrameGeneratorInterface>>
-CreateFromIvfFileFrameGenerator(const Environment& env,
-                                absl::string_view filename) {
-  return std::make_unique<IvfVideoFrameGenerator>(env, filename);
+  return std::make_unique<IvfVideoFrameGenerator>(std::move(filename));
 }
 
 std::unique_ptr<FrameGeneratorInterface>

@@ -84,16 +84,16 @@
   // First check if we are allowed to set the video orientation.
   if (previewLayer.connection.isVideoOrientationSupported) {
     // Set the video orientation based on device orientation.
-    if (deviceOrientation == UIDeviceOrientationPortraitUpsideDown) {
+    if (deviceOrientation == UIInterfaceOrientationPortraitUpsideDown) {
       previewLayer.connection.videoOrientation =
           AVCaptureVideoOrientationPortraitUpsideDown;
-    } else if (deviceOrientation == UIDeviceOrientationLandscapeRight) {
+    } else if (deviceOrientation == UIInterfaceOrientationLandscapeRight) {
       previewLayer.connection.videoOrientation =
           AVCaptureVideoOrientationLandscapeRight;
-    } else if (deviceOrientation == UIDeviceOrientationLandscapeLeft) {
+    } else if (deviceOrientation == UIInterfaceOrientationLandscapeLeft) {
       previewLayer.connection.videoOrientation =
           AVCaptureVideoOrientationLandscapeLeft;
-    } else if (deviceOrientation == UIDeviceOrientationPortrait) {
+    } else if (deviceOrientation == UIInterfaceOrientationPortrait) {
       previewLayer.connection.videoOrientation =
           AVCaptureVideoOrientationPortrait;
     }

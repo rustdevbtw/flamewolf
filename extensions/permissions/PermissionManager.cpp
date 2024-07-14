@@ -2150,24 +2150,6 @@ PermissionManager::RemoveAllSince(int64_t aSince) {
   return RemoveAllModifiedSince(aSince);
 }
 
-NS_IMETHODIMP
-PermissionManager::RemoveAllExceptTypes(
-    const nsTArray<nsCString>& aTypeExceptions) {
-  ENSURE_NOT_CHILD_PROCESS;
-
-  // Need to make sure read is done before we get the type index. Type indexes
-  // are populated from DB.
-  EnsureReadCompleted();
-
-  if (aTypeExceptions.IsEmpty()) {
-    return RemoveAllInternal(true);
-  }
-
-  return RemovePermissionEntries([&](const PermissionEntry& aPermEntry) {
-    return !aTypeExceptions.Contains(mTypeArray[aPermEntry.mType]);
-  });
-}
-
 template <class T>
 nsresult PermissionManager::RemovePermissionEntries(T aCondition) {
   EnsureReadCompleted();
@@ -2251,21 +2233,6 @@ PermissionManager::RemoveByTypeSince(const nsACString& aType,
         return uint32_t(typeIndex) == aPermEntry.mType &&
                aModificationTime <= aPermEntry.mModificationTime;
       });
-}
-
-NS_IMETHODIMP
-PermissionManager::RemoveAllSinceWithTypeExceptions(
-    int64_t aModificationTime, const nsTArray<nsCString>& aTypeExceptions) {
-  ENSURE_NOT_CHILD_PROCESS;
-
-  // Need to make sure read is done before we get the type index. Type indexes
-  // are populated from DB.
-  EnsureReadCompleted();
-
-  return RemovePermissionEntries([&](const PermissionEntry& aPermEntry) {
-    return !aTypeExceptions.Contains(mTypeArray[aPermEntry.mType]) &&
-           aModificationTime <= aPermEntry.mModificationTime;
-  });
 }
 
 void PermissionManager::CloseDB(CloseDBNextOp aNextOp) {
@@ -2377,6 +2344,14 @@ PermissionManager::TestExactPermanentPermission(nsIPrincipal* aPrincipal,
   return CommonTestPermission(aPrincipal, -1, aType, aPermission,
                               nsIPermissionManager::UNKNOWN_ACTION, false, true,
                               false);
+}
+
+nsresult PermissionManager::LegacyTestPermissionFromURI(
+    nsIURI* aURI, const OriginAttributes* aOriginAttributes,
+    const nsACString& aType, uint32_t* aPermission) {
+  return CommonTestPermission(aURI, aOriginAttributes, -1, aType, aPermission,
+                              nsIPermissionManager::UNKNOWN_ACTION, false,
+                              false, true);
 }
 
 NS_IMETHODIMP
@@ -2748,24 +2723,18 @@ nsresult PermissionManager::RemoveAllModifiedSince(int64_t aModificationTime) {
 }
 
 NS_IMETHODIMP
-PermissionManager::RemovePermissionsWithAttributes(
-    const nsAString& aPattern, const nsTArray<nsCString>& aTypeInclusions,
-    const nsTArray<nsCString>& aTypeExceptions) {
+PermissionManager::RemovePermissionsWithAttributes(const nsAString& aPattern) {
   ENSURE_NOT_CHILD_PROCESS;
-
   OriginAttributesPattern pattern;
   if (!pattern.Init(aPattern)) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  return RemovePermissionsWithAttributes(pattern, aTypeInclusions,
-                                         aTypeExceptions);
+  return RemovePermissionsWithAttributes(pattern);
 }
 
 nsresult PermissionManager::RemovePermissionsWithAttributes(
-    OriginAttributesPattern& aPattern,
-    const nsTArray<nsCString>& aTypeInclusions,
-    const nsTArray<nsCString>& aTypeExceptions) {
+    OriginAttributesPattern& aPattern) {
   EnsureReadCompleted();
 
   Vector<std::tuple<nsCOMPtr<nsIPrincipal>, nsCString, nsCString>, 10>
@@ -2783,13 +2752,6 @@ nsresult PermissionManager::RemovePermissionsWithAttributes(
     }
 
     for (const auto& permEntry : entry.GetPermissions()) {
-      if (aTypeExceptions.Contains(mTypeArray[permEntry.mType])) {
-        continue;
-      }
-      if (!aTypeInclusions.IsEmpty() &&
-          !aTypeInclusions.Contains(mTypeArray[permEntry.mType])) {
-        continue;
-      }
       if (!permissions.emplaceBack(principal, mTypeArray[permEntry.mType],
                                    entry.GetKey()->mOrigin)) {
         continue;

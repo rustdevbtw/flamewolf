@@ -77,7 +77,6 @@
 #include "mozilla/dom/quota/Client.h"
 #include "mozilla/dom/quota/ClientImpl.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
-#include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/FirstInitializationAttemptsImpl.h"
 #include "mozilla/dom/quota/OriginScope.h"
 #include "mozilla/dom/quota/PersistenceType.h"
@@ -4415,7 +4414,7 @@ void Datastore::Close() {
     // There's no connection, so it's safe to release the directory lock and
     // unregister itself from the hashtable.
 
-    DropDirectoryLock(mDirectoryLock);
+    mDirectoryLock = nullptr;
 
     CleanupMetadata();
   }
@@ -5198,7 +5197,7 @@ void Datastore::ConnectionClosedCallback() {
   // Now it's safe to release the directory lock and unregister itself from
   // the hashtable.
 
-  DropDirectoryLock(mDirectoryLock);
+  mDirectoryLock = nullptr;
 
   CleanupMetadata();
 
@@ -7539,7 +7538,7 @@ void PrepareDatastoreOp::Cleanup() {
     // There's no connection, so it's safe to release the directory lock and
     // unregister itself from the array.
 
-    SafeDropDirectoryLock(mDirectoryLock);
+    mDirectoryLock = nullptr;
 
     CleanupMetadata();
   }
@@ -7552,8 +7551,7 @@ void PrepareDatastoreOp::ConnectionClosedCallback() {
   MOZ_ASSERT(mConnection);
 
   mConnection = nullptr;
-
-  DropDirectoryLock(mDirectoryLock);
+  mDirectoryLock = nullptr;
 
   CleanupMetadata();
 }
@@ -7594,8 +7592,6 @@ void PrepareDatastoreOp::DirectoryLockAcquired(DirectoryLock* aLock) {
 
   mPendingDirectoryLock = nullptr;
 
-  mDirectoryLock = aLock;
-
   if (NS_WARN_IF(QuotaClient::IsShuttingDownOnBackgroundThread()) ||
       !MayProceed()) {
     MaybeSetFailureCode(NS_ERROR_ABORT);
@@ -7604,6 +7600,8 @@ void PrepareDatastoreOp::DirectoryLockAcquired(DirectoryLock* aLock) {
 
     return;
   }
+
+  mDirectoryLock = aLock;
 
   SendToIOThread();
 }

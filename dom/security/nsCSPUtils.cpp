@@ -339,8 +339,7 @@ CSPDirective CSP_ContentTypeToDirective(nsContentPolicyType aType) {
     case nsIContentPolicy::TYPE_BEACON:
     case nsIContentPolicy::TYPE_PING:
     case nsIContentPolicy::TYPE_FETCH:
-    case nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST_ASYNC:
-    case nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST_SYNC:
+    case nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST:
     case nsIContentPolicy::TYPE_INTERNAL_EVENTSOURCE:
     case nsIContentPolicy::TYPE_INTERNAL_FETCH_PRELOAD:
     case nsIContentPolicy::TYPE_WEB_IDENTITY:
@@ -1327,42 +1326,6 @@ bool nsCSPDirective::allowsAllInlineBehavior(CSPDirective aDir) const {
   return allowAll;
 }
 
-static constexpr auto kWildcard = u"*"_ns;
-
-bool nsCSPDirective::ShouldCreateViolationForNewTrustedTypesPolicy(
-    const nsAString& aPolicyName,
-    const nsTArray<nsString>& aCreatedPolicyNames) const {
-  MOZ_ASSERT(mDirective == nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE);
-
-  if (mDirective == nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE) {
-    if (allows(CSP_NONE, EmptyString())) {
-      // Step 2.4: if directive’s value only contains a tt-keyword which is a
-      // match for a value 'none', set createViolation to true.
-      // `nsCSPParser` ignores the 'none' keyword if other keywords or policy
-      // names are present. Hence no additional checks required here.
-      return true;
-    }
-
-    if (aCreatedPolicyNames.Contains(aPolicyName) &&
-        !allows(CSP_ALLOW_DUPLICATES, EmptyString())) {
-      // Step 2.5: if createdPolicyNames contains policyName and directive’s
-      // value does not contain a tt-keyword which is a match for a value
-      // 'allow-duplicates', set createViolation to true.
-      return true;
-    }
-
-    if (!ContainsTrustedTypesDirectivePolicyName(aPolicyName) &&
-        !ContainsTrustedTypesDirectivePolicyName(kWildcard)) {
-      // Step 2.6: if directive’s value does not contain a tt-policy-name, which
-      // value is policyName, and directive’s value does not contain a
-      // tt-wildcard, set createViolation to true.
-      return true;
-    }
-  }
-
-  return false;
-}
-
 void nsCSPDirective::toString(nsAString& outStr) const {
   // Append directive name
   outStr.AppendASCII(CSP_CSPDirectiveToString(mDirective));
@@ -1558,26 +1521,6 @@ bool nsCSPDirective::hasReportSampleKeyword() const {
   for (nsCSPBaseSrc* src : mSrcs) {
     if (src->isReportSample()) {
       return true;
-    }
-  }
-
-  return false;
-}
-
-bool nsCSPDirective::ContainsTrustedTypesDirectivePolicyName(
-    const nsAString& aPolicyName) const {
-  MOZ_ASSERT(mDirective == nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE);
-
-  if (mDirective == nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE) {
-    for (const auto* src : mSrcs) {
-      if (src->isTrustedTypesDirectivePolicyName()) {
-        const auto& name =
-            static_cast<const nsCSPTrustedTypesDirectivePolicyName*>(src)
-                ->GetName();
-        if (name.Equals(aPolicyName)) {
-          return true;
-        }
-      }
     }
   }
 
@@ -1813,19 +1756,6 @@ bool nsCSPPolicy::allowsAllInlineBehavior(CSPDirective aDir) const {
   }
 
   return directive->allowsAllInlineBehavior(aDir);
-}
-
-bool nsCSPPolicy::ShouldCreateViolationForNewTrustedTypesPolicy(
-    const nsAString& aPolicyName,
-    const nsTArray<nsString>& aCreatedPolicyNames) const {
-  for (const auto* directive : mDirectives) {
-    if (directive->equals(nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE)) {
-      return directive->ShouldCreateViolationForNewTrustedTypesPolicy(
-          aPolicyName, aCreatedPolicyNames);
-    }
-  }
-
-  return false;
 }
 
 /*

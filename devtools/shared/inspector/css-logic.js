@@ -75,7 +75,6 @@ exports.CSSAtRuleClassNameType = {
   CSSNamespaceRule: "namespace",
   CSSPageRule: "page",
   CSSScopeRule: "scope",
-  CSSStartingStyleRule: "starting-style",
   CSSSupportsRule: "supports",
 };
 

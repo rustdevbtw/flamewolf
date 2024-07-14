@@ -166,7 +166,6 @@ function getNodeInfo(node, elementStyle) {
       sheetHref: rule.domRule.href,
       textProperty: declaration,
       variable: node.dataset.variable,
-      startingStyleVariable: node.dataset.startingStyleVariable,
       registeredProperty: {
         initialValue: node.dataset.registeredPropertyInitialValue,
         syntax: node.dataset.registeredPropertySyntax,
@@ -208,7 +207,7 @@ function getNodeInfo(node, elementStyle) {
       ? node
       : node.querySelector(".ruleview-rule-source-label");
     value =
-      sourceLabelEl.getAttribute("href") || rule.sheet?.href || rule.title;
+      sourceLabelEl.getAttribute("data-url") || rule.sheet?.href || rule.title;
   } else {
     return null;
   }
@@ -265,7 +264,7 @@ function getShapeToggleActive(node) {
       node.classList.contains("ruleview-computed") ||
       node.classList.contains("ruleview-property")
     ) {
-      return node.querySelector(`.ruleview-shapeswatch[aria-pressed="true"]`);
+      return node.querySelector(".ruleview-shapeswatch.active");
     }
 
     node = node.parentNode;

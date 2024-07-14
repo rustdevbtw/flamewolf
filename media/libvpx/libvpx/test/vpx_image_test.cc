@@ -9,7 +9,6 @@
  */
 
 #include <climits>
-#include <cstdint>
 
 #include "vpx/vpx_image.h"
 #include "third_party/googletest/src/include/gtest/gtest.h"

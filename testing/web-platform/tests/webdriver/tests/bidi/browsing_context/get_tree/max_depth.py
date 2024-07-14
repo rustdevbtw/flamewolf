@@ -40,7 +40,7 @@ async def test_null(
         child1_info,
         context=None,
         children=1,
-        parent_expected=False,
+        is_root=False,
         parent=None,
         url=test_page_same_origin_frame,
     )
@@ -51,7 +51,7 @@ async def test_null(
         child2_info,
         context=None,
         children=0,
-        parent_expected=False,
+        is_root=False,
         parent=None,
         url=test_page,
     )
@@ -114,7 +114,7 @@ async def test_top_level_and_one_child(
         child1_info,
         context=None,
         children=None,
-        parent_expected=False,
+        is_root=False,
         parent=None,
         url=test_page_same_origin_frame,
     )

@@ -13,18 +13,12 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MessageClicked
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction.Completed
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
-import org.mozilla.fenix.settings.SupportUtils
-
-private val PRIVACY_POLICY_URL =
-    SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.PRIVATE_NOTICE) +
-        "?utm_medium=firefox-mobile&utm_source=modal&utm_campaign=microsurvey"
 
 @RunWith(FenixRobolectricTestRunner::class)
 class MicrosurveyMessageControllerTest {
@@ -59,29 +53,11 @@ class MicrosurveyMessageControllerTest {
     }
 
     @Test
-    fun `GIVEN has utmContent WHEN calling onPrivacyPolicyLinkClicked THEN open the privacy URL appended with the utmContent in a new tab`() {
-        microsurveyMessageController.onPrivacyPolicyLinkClicked("homepage")
+    fun `WHEN calling onPrivacyLinkClicked THEN open the privacy URL in a new tab`() {
+        val privacyURL = "www.mozilla.com"
+        microsurveyMessageController.onPrivacyLinkClicked(message, privacyURL)
 
-        verify {
-            homeActivity.openToBrowserAndLoad(
-                searchTermOrURL = "$PRIVACY_POLICY_URL&utm_content=homepage",
-                newTab = true,
-                from = BrowserDirection.FromGlobal,
-            )
-        }
-    }
-
-    @Test
-    fun `GIVEN no utmContent WHEN calling onPrivacyPolicyLinkClicked THEN open the privacy URL in a new tab`() {
-        microsurveyMessageController.onPrivacyPolicyLinkClicked()
-
-        verify {
-            homeActivity.openToBrowserAndLoad(
-                searchTermOrURL = PRIVACY_POLICY_URL,
-                newTab = true,
-                from = BrowserDirection.FromGlobal,
-            )
-        }
+        verify { homeActivity.openToBrowserAndLoad(any(), newTab = true, any(), any()) }
     }
 
     @Test

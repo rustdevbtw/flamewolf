@@ -57,3 +57,12 @@ add_task(async function test_bounce_stateful_cookies_server() {
     expectPurge: false,
   });
 });
+
+add_task(async function test_bounce_stateful_cookies_server_sameSiteFrame() {
+  info("Test client bounce with cookie set in same site frame.");
+  await runTestBounce({
+    bounceType: "server",
+    setState: "cookie-server",
+    setStateSameSiteFrame: true,
+  });
+});

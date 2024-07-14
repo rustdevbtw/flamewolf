@@ -26,15 +26,13 @@ class ClearDataCallback final : public nsIClearDataCallback,
   NS_DECL_NSIURLCLASSIFIERFEATURECALLBACK
 
   explicit ClearDataCallback(ClearDataMozPromise::Private* aPromise,
-                             const nsACString& aHost, PRTime aBounceTime);
+                             const nsACString& aHost);
 
  private:
   virtual ~ClearDataCallback();
 
   // Site host which was cleared.
   nsCString mHost;
-  // Timestamp of when the bounce occurred that led to the tracker being purged.
-  PRTime mBounceTime;
   // Promise which is resolved or rejected when the clear operation completes.
   RefPtr<ClearDataMozPromise::Private> mPromise;
 
@@ -48,8 +46,9 @@ class ClearDataCallback final : public nsIClearDataCallback,
   // URL Classifier telemetry
   void RecordURLClassifierTelemetry();
 
-  // Event telemetry for purges.
-  void RecordPurgeEventTelemetry(bool aSuccess);
+  // List of features for classifying bounce trackers that have been purged.
+  // See kUrlClassifierFeatures for the list of features.
+  static nsTArray<RefPtr<nsIUrlClassifierFeature>> sUrlClassifierFeatures;
 };
 
 }  // namespace mozilla

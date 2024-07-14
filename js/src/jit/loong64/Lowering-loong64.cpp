@@ -10,7 +10,6 @@
 
 #include "jit/loong64/Assembler-loong64.h"
 #include "jit/Lowering.h"
-#include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 #include "jit/shared/Lowering-shared-inl.h"
 
@@ -616,7 +615,9 @@ void LIRGenerator::visitSubstr(MSubstr* ins) {
 
 void LIRGenerator::visitCompareExchangeTypedArrayElement(
     MCompareExchangeTypedArrayElement* ins) {
-  MOZ_ASSERT(!Scalar::isFloatingType(ins->arrayType()));
+  MOZ_ASSERT(ins->arrayType() != Scalar::Float32);
+  MOZ_ASSERT(ins->arrayType() != Scalar::Float64);
+
   MOZ_ASSERT(ins->elements()->type() == MIRType::Elements);
   MOZ_ASSERT(ins->index()->type() == MIRType::IntPtr);
 
@@ -717,7 +718,9 @@ void LIRGenerator::visitAtomicExchangeTypedArrayElement(
 void LIRGenerator::visitAtomicTypedArrayElementBinop(
     MAtomicTypedArrayElementBinop* ins) {
   MOZ_ASSERT(ins->arrayType() != Scalar::Uint8Clamped);
-  MOZ_ASSERT(!Scalar::isFloatingType(ins->arrayType()));
+  MOZ_ASSERT(ins->arrayType() != Scalar::Float32);
+  MOZ_ASSERT(ins->arrayType() != Scalar::Float64);
+
   MOZ_ASSERT(ins->elements()->type() == MIRType::Elements);
   MOZ_ASSERT(ins->index()->type() == MIRType::IntPtr);
 

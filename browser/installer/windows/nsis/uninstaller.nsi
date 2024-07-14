@@ -55,9 +55,6 @@ Var RefreshRequested
 ; MigrateTaskBarShortcut and is not intended to be used here.
 ; See Bug 1329869 for more.
 Var AddTaskbarSC
-; Will be the registry hive that we are going to write things like class keys
-; into. This will generally be HKLM if running with elevation, otherwise HKCU.
-Var RegHive
 
 ; Other included files may depend upon these includes!
 ; The following includes are provided by NSIS.
@@ -478,11 +475,11 @@ Section "Uninstall"
   ClearErrors
   WriteRegStr HKLM "Software\Mozilla" "${BrandShortName}InstallerTest" "Write Test"
   ${If} ${Errors}
-    StrCpy $RegHive "HKCU"
+    StrCpy $TmpVal "HKCU" ; used primarily for logging
   ${Else}
     SetShellVarContext all  ; Set SHCTX to HKLM
     DeleteRegValue HKLM "Software\Mozilla" "${BrandShortName}InstallerTest"
-    StrCpy $RegHive "HKLM"
+    StrCpy $TmpVal "HKLM" ; used primarily for logging
     ${un.RegCleanMain} "Software\Mozilla"
     ${un.RegCleanUninstall}
     ${un.DeleteShortcuts}

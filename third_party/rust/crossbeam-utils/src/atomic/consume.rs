@@ -1,3 +1,5 @@
+#[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
+use crate::primitive::sync::atomic::compiler_fence;
 #[cfg(not(crossbeam_no_atomic))]
 use core::sync::atomic::Ordering;
 
@@ -25,21 +27,11 @@ pub trait AtomicConsume {
 }
 
 #[cfg(not(crossbeam_no_atomic))]
-// Miri and Loom don't support "consume" ordering and ThreadSanitizer doesn't treat
-// load(Relaxed) + compiler_fence(Acquire) as "consume" load.
-// LLVM generates machine code equivalent to fence(Acquire) in compiler_fence(Acquire)
-// on PowerPC, MIPS, etc. (https://godbolt.org/z/hffvjvW7h), so for now the fence
-// can be actually avoided here only on ARM and AArch64. See also
-// https://github.com/rust-lang/rust/issues/62256.
-#[cfg(all(
-    any(target_arch = "arm", target_arch = "aarch64"),
-    not(any(miri, crossbeam_loom, crossbeam_sanitize_thread)),
-))]
+#[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
 macro_rules! impl_consume {
     () => {
         #[inline]
         fn load_consume(&self) -> Self::Val {
-            use crate::primitive::sync::atomic::compiler_fence;
             let result = self.load(Ordering::Relaxed);
             compiler_fence(Ordering::Acquire);
             result
@@ -48,10 +40,7 @@ macro_rules! impl_consume {
 }
 
 #[cfg(not(crossbeam_no_atomic))]
-#[cfg(not(all(
-    any(target_arch = "arm", target_arch = "aarch64"),
-    not(any(miri, crossbeam_loom, crossbeam_sanitize_thread)),
-)))]
+#[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
 macro_rules! impl_consume {
     () => {
         #[inline]
@@ -83,19 +72,11 @@ impl_atomic!(AtomicU8, u8);
 impl_atomic!(AtomicI8, i8);
 impl_atomic!(AtomicU16, u16);
 impl_atomic!(AtomicI16, i16);
-#[cfg(any(target_has_atomic = "32", not(target_pointer_width = "16")))]
 impl_atomic!(AtomicU32, u32);
-#[cfg(any(target_has_atomic = "32", not(target_pointer_width = "16")))]
 impl_atomic!(AtomicI32, i32);
-#[cfg(any(
-    target_has_atomic = "64",
-    not(any(target_pointer_width = "16", target_pointer_width = "32")),
-))]
+#[cfg(not(crossbeam_no_atomic_64))]
 impl_atomic!(AtomicU64, u64);
-#[cfg(any(
-    target_has_atomic = "64",
-    not(any(target_pointer_width = "16", target_pointer_width = "32")),
-))]
+#[cfg(not(crossbeam_no_atomic_64))]
 impl_atomic!(AtomicI64, i64);
 
 #[cfg(not(crossbeam_no_atomic))]

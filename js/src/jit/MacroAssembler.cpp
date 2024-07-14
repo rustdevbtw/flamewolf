@@ -2757,16 +2757,17 @@ void MacroAssembler::emitExtractValueFromMegamorphicCacheEntry(
     ValueOperand output, Label* cacheHit, Label* cacheMiss) {
   Label isMissing, dynamicSlot, protoLoopHead, protoLoopTail;
 
-  // scratch2 = entry->hopsAndKind_
-  load8ZeroExtend(
-      Address(entry, MegamorphicCache::Entry::offsetOfHopsAndKind()), scratch2);
+  // scratch2 = entry->numHops_
+  load8ZeroExtend(Address(entry, MegamorphicCache::Entry::offsetOfNumHops()),
+                  scratch2);
+  // if (scratch2 == NumHopsForMissingOwnProperty) goto cacheMiss
+  branch32(Assembler::Equal, scratch2,
+           Imm32(MegamorphicCache::Entry::NumHopsForMissingOwnProperty),
+           cacheMiss);
   // if (scratch2 == NumHopsForMissingProperty) goto isMissing
   branch32(Assembler::Equal, scratch2,
            Imm32(MegamorphicCache::Entry::NumHopsForMissingProperty),
            &isMissing);
-  // if (scratch2 & NonDataPropertyFlag) goto cacheMiss
-  branchTest32(Assembler::NonZero, scratch2,
-               Imm32(MegamorphicCache::Entry::NonDataPropertyFlag), cacheMiss);
 
   // NOTE: Where this is called, `output` can actually alias `obj`, and before
   // the last cacheMiss branch above we can't write to `obj`, so we can't
@@ -2981,20 +2982,21 @@ void MacroAssembler::emitMegamorphicCacheLookupExists(
                                           outEntryPtr, &cacheMiss,
                                           &cacheMissWithEntry);
 
-  // scratch1 = outEntryPtr->hopsAndKind_
+  // scratch1 = outEntryPtr->numHops_
   load8ZeroExtend(
-      Address(outEntryPtr, MegamorphicCache::Entry::offsetOfHopsAndKind()),
+      Address(outEntryPtr, MegamorphicCache::Entry::offsetOfNumHops()),
       scratch1);
 
   branch32(Assembler::Equal, scratch1,
            Imm32(MegamorphicCache::Entry::NumHopsForMissingProperty),
            &cacheHitFalse);
-  branchTest32(Assembler::NonZero, scratch1,
-               Imm32(MegamorphicCache::Entry::NonDataPropertyFlag),
-               &cacheMissWithEntry);
 
   if (hasOwn) {
     branch32(Assembler::NotEqual, scratch1, Imm32(0), &cacheHitFalse);
+  } else {
+    branch32(Assembler::Equal, scratch1,
+             Imm32(MegamorphicCache::Entry::NumHopsForMissingOwnProperty),
+             &cacheMissWithEntry);
   }
 
   move32(Imm32(1), output);
@@ -4140,6 +4142,20 @@ IonHeapMacroAssembler::IonHeapMacroAssembler(TempAllocator& alloc,
 }
 
 WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc, bool limitedSize)
+    : MacroAssembler(alloc) {
+#if defined(JS_CODEGEN_ARM64)
+  // Stubs + builtins + the baseline compiler all require the native SP,
+  // not the PSP.
+  SetStackPointer64(sp);
+#endif
+  if (!limitedSize) {
+    setUnlimitedBuffer();
+  }
+}
+
+WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
+                                       const wasm::ModuleEnvironment& env,
+                                       bool limitedSize)
     : MacroAssembler(alloc) {
 #if defined(JS_CODEGEN_ARM64)
   // Stubs + builtins + the baseline compiler all require the native SP,
@@ -6670,15 +6686,9 @@ void MacroAssembler::truncate32ToWasmI31Ref(Register src, Register dest) {
   lshift32(Imm32(1), dest);
   // Add the i31 tag to the integer.
   orPtr(Imm32(int32_t(wasm::AnyRefTag::I31)), dest);
-#ifdef JS_64BIT
-  debugAssertCanonicalInt32(dest);
-#endif
 }
 
 void MacroAssembler::convertWasmI31RefTo32Signed(Register src, Register dest) {
-#ifdef JS_64BIT
-  debugAssertCanonicalInt32(src);
-#endif
   // This will either zero-extend or sign-extend the high 32-bits on 64-bit
   // platforms (see comments on invariants in MacroAssembler.h). Either case
   // is fine, as we won't use this bits.
@@ -6690,9 +6700,6 @@ void MacroAssembler::convertWasmI31RefTo32Signed(Register src, Register dest) {
 
 void MacroAssembler::convertWasmI31RefTo32Unsigned(Register src,
                                                    Register dest) {
-#ifdef JS_64BIT
-  debugAssertCanonicalInt32(src);
-#endif
   // This will either zero-extend or sign-extend the high 32-bits on 64-bit
   // platforms (see comments on invariants in MacroAssembler.h). Either case
   // is fine, as we won't use this bits.
@@ -6764,7 +6771,7 @@ void MacroAssembler::convertValueToWasmAnyRef(ValueOperand src, Register dest,
   branch32(Assembler::LessThan, dest, Imm32(wasm::AnyRef::MinI31Value),
            oolConvert);
   lshiftPtr(Imm32(1), dest);
-  or32(Imm32((int32_t)wasm::AnyRefTag::I31), dest);
+  orPtr(Imm32((int32_t)wasm::AnyRefTag::I31), dest);
   jump(&done);
 
   bind(&int32Value);
@@ -6773,7 +6780,8 @@ void MacroAssembler::convertValueToWasmAnyRef(ValueOperand src, Register dest,
            oolConvert);
   branch32(Assembler::LessThan, dest, Imm32(wasm::AnyRef::MinI31Value),
            oolConvert);
-  truncate32ToWasmI31Ref(dest, dest);
+  lshiftPtr(Imm32(1), dest);
+  orPtr(Imm32((int32_t)wasm::AnyRefTag::I31), dest);
   jump(&done);
 
   bind(&nullValue);
@@ -8021,7 +8029,8 @@ void MacroAssembler::resizableTypedArrayElementShiftBy(Register obj,
   static_assert(
       ValidateSizeRange(Scalar::Float16, Scalar::MaxTypedArrayViewType),
       "element shift is one in [Float16, MaxTypedArrayViewType)");
-  jump(&one);
+  branchPtr(Assembler::Below, scratch, ImmPtr(classForType(Scalar::Float16)),
+            &one);
 
   bind(&three);
   rshiftPtr(Imm32(3), output);

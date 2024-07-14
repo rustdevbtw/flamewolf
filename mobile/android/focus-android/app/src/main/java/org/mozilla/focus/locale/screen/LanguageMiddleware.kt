@@ -38,8 +38,8 @@ class LanguageMiddleware(val activity: Activity, private val localeUseCase: Loca
                  */
                 context.dispatch(
                     LanguageScreenAction.UpdateLanguages(
-                        storage.languages,
-                        storage.selectedLanguage,
+                        storage.getLanguages(),
+                        storage.getSelectedLanguageTag(),
                     ),
                 )
             }

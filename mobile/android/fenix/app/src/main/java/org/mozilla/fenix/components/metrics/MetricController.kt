@@ -19,7 +19,6 @@ import mozilla.components.feature.contextmenu.facts.ContextMenuFacts
 import mozilla.components.feature.fxsuggest.FxSuggestInteractionInfo
 import mozilla.components.feature.fxsuggest.facts.FxSuggestFacts
 import mozilla.components.feature.media.facts.MediaFacts
-import mozilla.components.feature.prompts.dialog.GeneratedPasswordFacts
 import mozilla.components.feature.prompts.dialog.LoginDialogFacts
 import mozilla.components.feature.prompts.facts.AddressAutofillDialogFacts
 import mozilla.components.feature.prompts.facts.CreditCardAutofillDialogFacts
@@ -50,7 +49,6 @@ import org.mozilla.fenix.GleanMetrics.ContextualMenu
 import org.mozilla.fenix.GleanMetrics.CreditCards
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.FxSuggest
-import org.mozilla.fenix.GleanMetrics.GeneratedPasswordDialog
 import org.mozilla.fenix.GleanMetrics.LoginDialog
 import org.mozilla.fenix.GleanMetrics.Logins
 import org.mozilla.fenix.GleanMetrics.MediaNotification
@@ -144,12 +142,6 @@ internal class ReleaseMetricController(
         }
         Component.FEATURE_PROMPTS to LoginDialogFacts.Items.SAVE -> {
             LoginDialog.saved.record(NoExtras())
-        }
-        Component.FEATURE_PROMPTS to GeneratedPasswordFacts.Items.SHOWN -> {
-            GeneratedPasswordDialog.shown.record(NoExtras())
-        }
-        Component.FEATURE_PROMPTS to GeneratedPasswordFacts.Items.FILLED -> {
-            GeneratedPasswordDialog.filled.record(NoExtras())
         }
         Component.FEATURE_MEDIA to MediaFacts.Items.STATE -> {
             when (action) {

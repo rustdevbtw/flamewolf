@@ -408,6 +408,9 @@ struct Resources {
 // for internal font instances we should change the hash key accordingly.
 pub type GlyphDimensionsCache = FastHashMap<(FontInstanceKey, GlyphIndex), Option<GlyphDimensions>>;
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BlobImageRasterizerEpoch(usize);
+
 /// Internal information about allocated render targets in the pool
 struct RenderTarget {
     size: DeviceIntSize,
@@ -532,7 +535,7 @@ impl ResourceCache {
             ImageFormat::RGBA8,
         );
         let workers = Arc::new(ThreadPoolBuilder::new().build().unwrap());
-        let glyph_rasterizer = GlyphRasterizer::new(workers, None, true);
+        let glyph_rasterizer = GlyphRasterizer::new(workers, true);
         let cached_glyphs = GlyphCache::new();
         let fonts = SharedFontResources::new(IdNamespace(0));
         let picture_textures = PictureTextures::new(

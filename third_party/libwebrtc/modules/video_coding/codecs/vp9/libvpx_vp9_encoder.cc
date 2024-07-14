@@ -10,47 +10,47 @@
  */
 
 #include <memory>
-
 #ifdef RTC_ENABLE_VP9
 
 #include <algorithm>
 #include <limits>
-#include <utility>
-#include <vector>
+#  include <tuple>
+#  include <utility>
+#  include <vector>
 
-#include "absl/algorithm/container.h"
-#include "absl/memory/memory.h"
-#include "absl/strings/match.h"
-#include "absl/types/optional.h"
-#include "api/video/color_space.h"
-#include "api/video/i010_buffer.h"
-#include "api/video_codecs/scalability_mode.h"
-#include "common_video/include/video_frame_buffer.h"
-#include "common_video/libyuv/include/webrtc_libyuv.h"
-#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
-#include "modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h"
-#include "modules/video_coding/svc/create_scalability_structure.h"
-#include "modules/video_coding/svc/scalability_mode_util.h"
-#include "modules/video_coding/svc/scalable_video_controller.h"
-#include "modules/video_coding/svc/scalable_video_controller_no_layering.h"
-#include "modules/video_coding/svc/svc_rate_allocator.h"
-#include "modules/video_coding/utility/vp9_uncompressed_header_parser.h"
-#include "rtc_base/checks.h"
-#include "rtc_base/experiments/field_trial_list.h"
-#include "rtc_base/experiments/field_trial_parser.h"
-#include "rtc_base/experiments/rate_control_settings.h"
-#include "rtc_base/logging.h"
-#include "rtc_base/strings/string_builder.h"
-#include "rtc_base/time_utils.h"
-#include "rtc_base/trace_event.h"
-#include "third_party/libyuv/include/libyuv/convert.h"
-#include "vpx/vp8cx.h"
-#include "vpx/vpx_encoder.h"
+#  include "absl/algorithm/container.h"
+#  include "absl/memory/memory.h"
+#  include "absl/strings/match.h"
+#  include "absl/types/optional.h"
+#  include "api/video/color_space.h"
+#  include "api/video/i010_buffer.h"
+#  include "api/video_codecs/scalability_mode.h"
+#  include "common_video/include/video_frame_buffer.h"
+#  include "common_video/libyuv/include/webrtc_libyuv.h"
+#  include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#  include "modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h"
+#  include "modules/video_coding/svc/create_scalability_structure.h"
+#  include "modules/video_coding/svc/scalability_mode_util.h"
+#  include "modules/video_coding/svc/scalable_video_controller.h"
+#  include "modules/video_coding/svc/scalable_video_controller_no_layering.h"
+#  include "modules/video_coding/svc/svc_rate_allocator.h"
+#  include "modules/video_coding/utility/vp9_uncompressed_header_parser.h"
+#  include "rtc_base/checks.h"
+#  include "rtc_base/experiments/field_trial_list.h"
+#  include "rtc_base/experiments/field_trial_parser.h"
+#  include "rtc_base/experiments/rate_control_settings.h"
+#  include "rtc_base/logging.h"
+#  include "rtc_base/strings/string_builder.h"
+#  include "rtc_base/time_utils.h"
+#  include "rtc_base/trace_event.h"
+#  include "third_party/libyuv/include/libyuv/convert.h"
+#  include "vpx/vp8cx.h"
+#  include "vpx/vpx_encoder.h"
 
-#if (defined(WEBRTC_ARCH_ARM) || defined(WEBRTC_ARCH_ARM64)) && \
-    (defined(WEBRTC_ANDROID) || defined(WEBRTC_IOS))
-#define MOBILE_ARM
-#endif
+#  if (defined(WEBRTC_ARCH_ARM) || defined(WEBRTC_ARCH_ARM64)) && \
+      (defined(WEBRTC_ANDROID) || defined(WEBRTC_IOS))
+#    define MOBILE_ARM
+#  endif
 
 namespace webrtc {
 
@@ -87,13 +87,17 @@ std::pair<size_t, size_t> GetActiveLayers(
   return {0, 0};
 }
 
-std::unique_ptr<ScalableVideoController> CreateVp9ScalabilityStructure(
+using Vp9ScalabilityStructure =
+    std::tuple<std::unique_ptr<ScalableVideoController>, ScalabilityMode>;
+absl::optional<Vp9ScalabilityStructure> CreateVp9ScalabilityStructure(
     const VideoCodec& codec) {
   int num_spatial_layers = codec.VP9().numberOfSpatialLayers;
   int num_temporal_layers =
       std::max(1, int{codec.VP9().numberOfTemporalLayers});
   if (num_spatial_layers == 1 && num_temporal_layers == 1) {
-    return std::make_unique<ScalableVideoControllerNoLayering>();
+    return absl::make_optional<Vp9ScalabilityStructure>(
+        std::make_unique<ScalableVideoControllerNoLayering>(),
+        ScalabilityMode::kL1T1);
   }
 
   char name[20];
@@ -101,7 +105,7 @@ std::unique_ptr<ScalableVideoController> CreateVp9ScalabilityStructure(
   if (codec.mode == VideoCodecMode::kScreensharing) {
     // TODO(bugs.webrtc.org/11999): Compose names of the structures when they
     // are implemented.
-    return nullptr;
+    return absl::nullopt;
   } else if (codec.VP9().interLayerPred == InterLayerPredMode::kOn ||
              num_spatial_layers == 1) {
     ss << "L" << num_spatial_layers << "T" << num_temporal_layers;
@@ -118,7 +122,7 @@ std::unique_ptr<ScalableVideoController> CreateVp9ScalabilityStructure(
         codec.height != codec.spatialLayers[num_spatial_layers - 1].height) {
       RTC_LOG(LS_WARNING)
           << "Top layer resolution expected to match overall resolution";
-      return nullptr;
+      return absl::nullopt;
     }
     // Check if the ratio is one of the supported.
     int numerator;
@@ -136,7 +140,7 @@ std::unique_ptr<ScalableVideoController> CreateVp9ScalabilityStructure(
       RTC_LOG(LS_WARNING) << "Unsupported scalability ratio "
                           << codec.spatialLayers[0].width << ":"
                           << codec.spatialLayers[1].width;
-      return nullptr;
+      return absl::nullopt;
     }
     // Validate ratio is consistent for all spatial layer transitions.
     for (int sid = 1; sid < num_spatial_layers; ++sid) {
@@ -146,7 +150,7 @@ std::unique_ptr<ScalableVideoController> CreateVp9ScalabilityStructure(
               codec.spatialLayers[sid - 1].height * denominator) {
         RTC_LOG(LS_WARNING) << "Inconsistent scalability ratio " << numerator
                             << ":" << denominator;
-        return nullptr;
+        return absl::nullopt;
       }
     }
   }
@@ -155,7 +159,7 @@ std::unique_ptr<ScalableVideoController> CreateVp9ScalabilityStructure(
       ScalabilityModeFromString(name);
   if (!scalability_mode.has_value()) {
     RTC_LOG(LS_WARNING) << "Invalid scalability mode " << name;
-    return nullptr;
+    return absl::nullopt;
   }
   auto scalability_structure_controller =
       CreateScalabilityStructure(*scalability_mode);
@@ -164,7 +168,8 @@ std::unique_ptr<ScalableVideoController> CreateVp9ScalabilityStructure(
   } else {
     RTC_LOG(LS_INFO) << "Created scalability structure " << name;
   }
-  return scalability_structure_controller;
+  return absl::make_optional<Vp9ScalabilityStructure>(
+      std::move(scalability_structure_controller), *scalability_mode);
 }
 
 vpx_svc_ref_frame_config_t Vp9References(
@@ -221,10 +226,24 @@ void LibvpxVp9Encoder::EncoderOutputCodedPacketCallback(vpx_codec_cx_pkt* pkt,
 LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
                                    Vp9EncoderSettings settings,
                                    std::unique_ptr<LibvpxInterface> interface)
+    : LibvpxVp9Encoder(std::move(interface), settings.profile,
+                       env.field_trials()) {}
+
+LibvpxVp9Encoder::LibvpxVp9Encoder(const cricket::VideoCodec& codec,
+                                   std::unique_ptr<LibvpxInterface> interface,
+                                   const FieldTrialsView& trials)
+    : LibvpxVp9Encoder(
+          std::move(interface),
+          ParseSdpForVP9Profile(codec.params).value_or(VP9Profile::kProfile0),
+          trials) {}
+
+LibvpxVp9Encoder::LibvpxVp9Encoder(std::unique_ptr<LibvpxInterface> interface,
+                                   VP9Profile profile,
+                                   const FieldTrialsView& trials)
     : libvpx_(std::move(interface)),
       encoded_image_(),
       encoded_complete_callback_(nullptr),
-      profile_(settings.profile),
+      profile_(profile),
       inited_(false),
       timestamp_(0),
       rc_max_intra_target_(0),
@@ -238,30 +257,30 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
       num_spatial_layers_(0),
       num_active_spatial_layers_(0),
       first_active_layer_(0),
-      layer_deactivation_requires_key_frame_(env.field_trials().IsEnabled(
-          "WebRTC-Vp9IssueKeyFrameOnLayerDeactivation")),
+      layer_deactivation_requires_key_frame_(absl::StartsWith(
+          trials.Lookup("WebRTC-Vp9IssueKeyFrameOnLayerDeactivation"),
+          "Enabled")),
       is_svc_(false),
       inter_layer_pred_(InterLayerPredMode::kOn),
       external_ref_control_(false),  // Set in InitEncode because of tests.
       trusted_rate_controller_(
-          RateControlSettings::ParseFromKeyValueConfig(&env.field_trials())
+          RateControlSettings::ParseFromKeyValueConfig(&trials)
               .LibvpxVp9TrustedRateController()),
       first_frame_in_picture_(true),
       ss_info_needed_(false),
       force_all_active_layers_(false),
       num_cores_(0),
       is_flexible_mode_(false),
-      variable_framerate_experiment_(
-          ParseVariableFramerateConfig(env.field_trials())),
+      variable_framerate_experiment_(ParseVariableFramerateConfig(trials)),
       variable_framerate_controller_(
           variable_framerate_experiment_.framerate_limit),
-      quality_scaler_experiment_(ParseQualityScalerConfig(env.field_trials())),
-      external_ref_ctrl_(
-          !env.field_trials().IsDisabled("WebRTC-Vp9ExternalRefCtrl")),
-      performance_flags_(ParsePerformanceFlagsFromTrials(env.field_trials())),
+      quality_scaler_experiment_(ParseQualityScalerConfig(trials)),
+      external_ref_ctrl_(!absl::StartsWith(
+          trials.Lookup("WebRTC-Vp9ExternalRefCtrl"), "Disabled")),
+      performance_flags_(ParsePerformanceFlagsFromTrials(trials)),
       num_steady_state_frames_(0),
       config_changed_(true),
-      svc_frame_drop_config_(ParseSvcFrameDropConfig(env.field_trials())) {
+      svc_frame_drop_config_(ParseSvcFrameDropConfig(trials)) {
   codec_ = {};
   memset(&svc_params_, 0, sizeof(vpx_svc_extra_cfg_t));
 }
@@ -599,7 +618,14 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
       num_temporal_layers_ = 1;
     }
     inter_layer_pred_ = inst->VP9().interLayerPred;
-    svc_controller_ = CreateVp9ScalabilityStructure(*inst);
+    auto vp9_scalability = CreateVp9ScalabilityStructure(*inst);
+    if (vp9_scalability.has_value()) {
+      std::tie(svc_controller_, scalability_mode_) =
+          std::move(vp9_scalability.value());
+    } else {
+      svc_controller_ = nullptr;
+      scalability_mode_ = absl::nullopt;
+    }
   }
 
   framerate_controller_ = std::vector<FramerateControllerDeprecated>(
@@ -1501,19 +1527,7 @@ bool LibvpxVp9Encoder::PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
       }
     }
   }
-  // If returned the configured scalability mode in standard mode, otherwise
-  // create one if it is based on layer activation.
-  if (scalability_mode_) {
-    codec_specific->scalability_mode = scalability_mode_;
-  } else {
-    codec_specific_.scalability_mode = MakeScalabilityMode(
-        num_active_spatial_layers_, num_temporal_layers_, inter_layer_pred_,
-        num_active_spatial_layers_ > 1
-            ? absl::make_optional(ScalabilityModeResolutionRatio::kTwoToOne)
-            : absl::nullopt,
-        /*shift=*/false);
-  }
-
+  codec_specific->scalability_mode = scalability_mode_;
   return true;
 }
 

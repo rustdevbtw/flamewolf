@@ -284,9 +284,9 @@ class TabsUseCases(
         operator fun invoke(tabs: List<RecoverableTab>, selectTabId: String? = null) {
             store.dispatch(
                 TabListAction.RestoreAction(
-                    tabs = tabs,
-                    selectedTabId = selectTabId,
-                    restoreLocation = TabListAction.RestoreAction.RestoreLocation.END,
+                    tabs,
+                    selectTabId,
+                    TabListAction.RestoreAction.RestoreLocation.BEGINNING,
                 ),
             )
         }

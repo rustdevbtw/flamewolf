@@ -467,9 +467,7 @@ TEST_F(RtpRtcpEndToEndTest, DISABLED_TestFlexfecRtpStatePreservation) {
   static constexpr int kFrameRate = 15;
 
   test::FunctionVideoEncoderFactory encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return CreateVp8Encoder(env);
-      });
+      []() { return VP8Encoder::Create(); });
 
   SendTask(task_queue(), [&]() {
     CreateCalls();

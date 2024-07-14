@@ -1284,25 +1284,26 @@ var Impl = {
       AppConstants.platform == "win" &&
       AppConstants.MOZ_APP_NAME !== "thunderbird"
     ) {
-      Glean.installationFirstSeen.failureReason.set("UnknownError");
       try {
         await lazy.BrowserUsageTelemetry.reportInstallationTelemetry();
-        Glean.installationFirstSeen.failureReason.set("NoError");
       } catch (ex) {
         this._log.warn(
           "sendNewProfilePing - reportInstallationTelemetry failed",
           ex
         );
-        // Overwrite with a more specific error if possible.
-        Glean.installationFirstSeen.failureReason.set(ex.name);
+        if (!lazy.TelemetrySession.newProfilePingSent) {
+          Glean.installationFirstSeen.failureReason.set(ex.name);
+        }
       } finally {
         // No dataPathOverride here so we can check the default location
         // for installation_telemetry.json
-        let dataPath = Services.dirsvc.get("GreD", Ci.nsIFile);
-        dataPath.append("installation_telemetry.json");
-        let fileExists = await IOUtils.exists(dataPath.path);
-        if (!fileExists) {
-          Glean.installationFirstSeen.failureReason.set("NotFoundError");
+        if (!lazy.TelemetrySession.newProfilePingSent) {
+          let dataPath = Services.dirsvc.get("GreD", Ci.nsIFile);
+          dataPath.append("installation_telemetry.json");
+          let fileExists = await IOUtils.exists(dataPath.path);
+          if (!fileExists) {
+            Glean.installationFirstSeen.failureReason.set("NotFoundError");
+          }
         }
       }
     }

@@ -11,8 +11,7 @@ Services.scriptloader.loadSubScript(
 
 const SW_TAB_URL =
   URL_ROOT_SSL + "resources/service-workers/controlled-sw.html";
-const SW_URL =
-  URL_ROOT_SSL + "resources/service-workers/controlled-sw.worker.js";
+const SW_URL = URL_ROOT_SSL + "resources/service-workers/controlled-sw.js";
 
 /**
  * Test that the service worker has the status "registering" when the service worker is

@@ -306,7 +306,7 @@ groupbox {
 
 /******** draggable elements *********/
 
-toolbar:not([nowindowdrag], [customizing]) {
+toolbar:not([nowindowdrag="true"], [customizing="true"]) {
   -moz-window-dragging: drag;
 }
 

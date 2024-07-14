@@ -4,7 +4,7 @@
  * This file was part of the Independent JPEG Group's software:
  * Copyright (C) 1991-1996, Thomas G. Lane.
  * libjpeg-turbo Modifications:
- * Copyright (C) 2015, 2020, 2022, D. R. Commander.
+ * Copyright (C) 2015, 2020, D. R. Commander.
  * For conditions of distribution and use, see the accompanying README.ijg
  * file.
  *
@@ -39,8 +39,8 @@
  */
 
 #if DCTSIZE != 8
-  Sorry, this code only copes with 8x8 DCTs. /* deliberate syntax err */
-#endif
+Sorry, this code only copes with 8x8 DCTs./* deliberate syntax err */
+#  endif
 
 
 /*
@@ -134,14 +134,11 @@
 #define MULTIPLY(var, const)  ((var) * (const))
 #endif
 
+       /*
+        * Perform the forward DCT on one block of samples.
+        */
 
-/*
- * Perform the forward DCT on one block of samples.
- */
-
-GLOBAL(void)
-_jpeg_fdct_islow(DCTELEM *data)
-{
+       GLOBAL(void) jpeg_fdct_islow(DCTELEM* data) {
   JLONG tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
   JLONG tmp10, tmp11, tmp12, tmp13;
   JLONG z1, z2, z3, z4, z5;

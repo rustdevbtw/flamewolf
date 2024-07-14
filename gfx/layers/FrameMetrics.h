@@ -717,15 +717,6 @@ struct OverscrollBehaviorInfo final {
   OverscrollBehavior mBehaviorY;
 };
 
-struct OverflowInfo final {
-  StyleOverflow mOverflowX = StyleOverflow::Visible;
-  StyleOverflow mOverflowY = StyleOverflow::Visible;
-
-  bool operator==(const OverflowInfo& aOther) const;
-
-  auto MutTiedFields() { return std::tie(mOverflowX, mOverflowY); }
-};
-
 /**
  * Metadata about a scroll frame that's sent to the compositor during a layers
  * or WebRender transaction, and also stored by APZ between transactions.
@@ -779,7 +770,6 @@ struct ScrollMetadata {
            mIsPaginatedPresentation == aOther.mIsPaginatedPresentation &&
            mDisregardedDirection == aOther.mDisregardedDirection &&
            mOverscrollBehavior == aOther.mOverscrollBehavior &&
-           mOverflow == aOther.mOverflow &&
            mScrollUpdates == aOther.mScrollUpdates;
   }
 
@@ -886,9 +876,6 @@ struct ScrollMetadata {
     return mOverscrollBehavior;
   }
 
-  void SetOverflow(const OverflowInfo& aOverflow) { mOverflow = aOverflow; }
-  const OverflowInfo& GetOverflow() const { return mOverflow; }
-
   void SetScrollUpdates(const nsTArray<ScrollPositionUpdate>& aUpdates) {
     mScrollUpdates = aUpdates;
   }
@@ -994,12 +981,6 @@ struct ScrollMetadata {
 
   // The overscroll behavior for this scroll frame.
   OverscrollBehaviorInfo mOverscrollBehavior;
-
-  // The CSS overflow styles for this scroll frame.
-  // For a root scroll frame, this stores the viewport styles
-  // as defined in https://drafts.csswg.org/css-overflow/#overflow-propagation
-  // (i.e. they will always be 'auto', 'hidden', or 'scrol').
-  OverflowInfo mOverflow;
 
   // The ordered list of scroll position updates for this scroll frame since
   // the last transaction.

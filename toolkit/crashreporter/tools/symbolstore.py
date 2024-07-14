@@ -23,6 +23,7 @@
 
 import ctypes
 import errno
+import io
 import os
 import platform
 import re
@@ -44,7 +45,6 @@ from mozbuild.util import memoize
 from mozpack import executables
 from mozpack.copier import FileRegistry
 from mozpack.manifests import InstallManifest, UnreadableInstallManifest
-from variables import get_buildid
 
 # Utility classes
 
@@ -591,8 +591,9 @@ class Dumper:
             )
 
         # Add the build ID if it's present
+        path = os.path.join(buildconfig.topobjdir, "buildid.h")
         try:
-            buildid = get_buildid()
+            buildid = io.open(path, "r", encoding="utf-8").read().split()[2]
             cmdline.extend(
                 [
                     "--extra-info",

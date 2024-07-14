@@ -303,7 +303,6 @@ class GeckoEngineSessionTest {
         var observedCanGoForward = false
         var cookieBanner = CookieBannerHandlingStatus.HANDLED
         var displaysProduct = false
-        var translationsProcessing = true
         engineSession.register(
             object : EngineSession.Observer {
                 override fun onLocationChange(url: String, hasUserGesture: Boolean) {
@@ -320,10 +319,6 @@ class GeckoEngineSessionTest {
                 override fun onProductUrlChange(isProductUrl: Boolean) {
                     displaysProduct = isProductUrl
                 }
-
-                override fun onTranslatePageChange() {
-                    translationsProcessing = false
-                }
             },
         )
 
@@ -335,7 +330,6 @@ class GeckoEngineSessionTest {
         assertEquals(CookieBannerHandlingStatus.NO_DETECTED, cookieBanner)
         // TO DO: add a positive test case after a test endpoint is implemented in desktop (Bug 1846341)
         assertEquals(false, displaysProduct)
-        assertEquals(false, translationsProcessing)
 
         navigationDelegate.value.onCanGoBack(mock(), true)
         assertEquals(true, observedCanGoBack)

@@ -52,7 +52,6 @@ pub mod ffi {
         /// This provider cannot be modified or combined with other providers, so `enable_fallback`,
         /// `enabled_fallback_with`, `fork_by_locale`, and `fork_by_key` will return `Err`s.
         #[cfg(feature = "compiled_data")]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "compiled")]
         pub fn create_compiled() -> Box<ICU4XDataProvider> {
             Box::new(Self(ICU4XDataProviderInner::Compiled))
         }
@@ -66,14 +65,14 @@ pub mod ffi {
             not(any(target_arch = "wasm32", target_os = "none"))
         ))]
         #[diplomat::attr(dart, disable)]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "fs")]
-        pub fn create_fs(path: &DiplomatStr) -> Result<Box<ICU4XDataProvider>, ICU4XError> {
+        pub fn create_fs(path: &str) -> Result<Box<ICU4XDataProvider>, ICU4XError> {
+            // #2520
+            // In the future we can start using OsString APIs to support non-utf8 paths
+            core::str::from_utf8(path.as_bytes())
+                .map_err(|e| ICU4XError::DataIoError.log_original(&e))?;
+
             Ok(Box::new(convert_buffer_provider(
-                icu_provider_fs::FsDataProvider::try_new(
-                    // In the future we can start using OsString APIs to support non-utf8 paths
-                    core::str::from_utf8(path)
-                        .map_err(|e| ICU4XError::DataIoError.log_original(&e))?,
-                )?,
+                icu_provider_fs::FsDataProvider::try_new(path)?,
             )))
         }
 
@@ -84,7 +83,7 @@ pub mod ffi {
             feature = "provider_test",
             any(feature = "any_provider", feature = "buffer_provider")
         ))]
-        #[diplomat::attr(supports = constructors, disable)]
+        #[diplomat::attr(dart, disable)]
         pub fn create_test() -> Box<ICU4XDataProvider> {
             Self::create_compiled()
         }
@@ -92,9 +91,8 @@ pub mod ffi {
         /// Constructs a `BlobDataProvider` and returns it as an [`ICU4XDataProvider`].
         #[diplomat::rust_link(icu_provider_blob::BlobDataProvider, Struct)]
         #[cfg(feature = "buffer_provider")]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "from_byte_slice")]
         pub fn create_from_byte_slice(
-            blob: &'static [DiplomatByte],
+            blob: &'static [u8],
         ) -> Result<Box<ICU4XDataProvider>, ICU4XError> {
             Ok(Box::new(convert_buffer_provider(
                 icu_provider_blob::BlobDataProvider::try_new_from_static_blob(blob)?,
@@ -108,7 +106,6 @@ pub mod ffi {
             FnInStruct,
             hidden
         )]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "empty")]
         pub fn create_empty() -> Box<ICU4XDataProvider> {
             Box::new(ICU4XDataProvider(ICU4XDataProviderInner::Empty))
         }

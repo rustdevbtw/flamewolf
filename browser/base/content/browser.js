@@ -69,7 +69,6 @@ ChromeUtils.defineESModuleGetters(this, {
   Sanitizer: "resource:///modules/Sanitizer.sys.mjs",
   SaveToPocket: "chrome://pocket/content/SaveToPocket.sys.mjs",
   ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.sys.mjs",
-  SearchModeSwitcher: "resource:///modules/SearchModeSwitcher.sys.mjs",
   SearchUIUtils: "resource:///modules/SearchUIUtils.sys.mjs",
   SessionStartup: "resource:///modules/sessionstore/SessionStartup.sys.mjs",
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
@@ -881,24 +880,14 @@ function SetClickAndHoldHandlers() {
   // Prevent the back/forward buttons' context attributes from being inherited.
   popup.setAttribute("context", "");
 
-  function backForwardMenuCommand(event) {
-    BrowserCommands.gotoHistoryIndex(event);
-    // event.stopPropagation is here for the cloned version
-    // to prevent already-handled clicks on menu items from
-    // propagating to the back or forward button.
-    event.stopPropagation();
-  }
-
   let backButton = document.getElementById("back-button");
   backButton.setAttribute("type", "menu");
-  popup.addEventListener("command", backForwardMenuCommand);
   backButton.prepend(popup);
   gClickAndHoldListenersOnElement.add(backButton);
 
   let forwardButton = document.getElementById("forward-button");
   popup = popup.cloneNode(true);
   forwardButton.setAttribute("type", "menu");
-  popup.addEventListener("command", backForwardMenuCommand);
   forwardButton.prepend(popup);
   gClickAndHoldListenersOnElement.add(forwardButton);
 }
@@ -1703,7 +1692,7 @@ function UpdateUrlbarSearchSplitterState() {
   var urlbar = document.getElementById("urlbar-container");
   var searchbar = document.getElementById("search-container");
 
-  if (document.documentElement.hasAttribute("customizing")) {
+  if (document.documentElement.getAttribute("customizing") == "true") {
     if (splitter) {
       splitter.remove();
     }
@@ -4361,6 +4350,8 @@ var TabsProgressListener = {
       return;
     }
 
+    Services.obs.notifyObservers(aBrowser, "mailto::onLocationChange", aFlags);
+
     // Only need to call locationChange if the PopupNotifications object
     // for this window has already been initialized (i.e. its getter no
     // longer exists)
@@ -4374,10 +4365,6 @@ var TabsProgressListener = {
     }
 
     gBrowser.readNotificationBox(aBrowser)?.removeTransientNotifications();
-
-    // Notify the mailto notification creation code _after_ clearing transient
-    // notifications, so its notification does not immediately get removed.
-    Services.obs.notifyObservers(aBrowser, "mailto::onLocationChange", aFlags);
 
     FullZoom.onLocationChange(aLocationURI, false, aBrowser);
     CaptivePortalWatcher.onLocationChange(aBrowser);
@@ -4800,6 +4787,9 @@ function showFullScreenViewContextMenuItems(popup) {
 
 function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
   var popup = aEvent.target;
+  if (popup != aEvent.currentTarget) {
+    return;
+  }
 
   // triggerNode can be a nested child element of a toolbaritem.
   let toolbarItem = popup.triggerNode;

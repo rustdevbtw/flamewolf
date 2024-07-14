@@ -22,8 +22,6 @@
   --letter-spacing: 0;
   --font-weight: normal;
   --font-family: Helvetica, Arial, sans-serif;
-  --block-img-margin-left: unset;
-  --block-img-margin-right: unset;
 }
 
 body {
@@ -45,7 +43,6 @@ body {
   --tooltip-foreground: var(--icon-fill);
   --tooltip-border: transparent;
   --popup-background: #fff;
-  --popup-foreground: var(--main-foreground);
   --popup-border: rgba(0, 0, 0, 0.12);
   --popup-line: var(--grey-30);
   --popup-shadow: rgba(49, 49, 49, 0.3);
@@ -135,7 +132,6 @@ body.custom {
   --main-foreground: var(--custom-theme-foreground);
   --link-foreground: var(--custom-theme-unvisited-links);
   --visited-link-foreground: var(--custom-theme-visited-links);
-  --popup-foreground: var(--light-theme-foreground);
   --popup-button-foreground: var(--light-theme-foreground);
   --popup-button-foreground-hover: var(--light-theme-foreground);
   --tooltip-foreground: var(--light-theme-foreground);
@@ -165,14 +161,13 @@ body.hcm {
   --tooltip-foreground: CanvasText;
   --tooltip-border: CanvasText;
   --popup-background: Canvas;
-  --popup-foreground: CanvasText;
   --popup-border: CanvasText;
   --popup-line: CanvasText;
   --popup-button-background: ButtonFace;
   --popup-button-foreground: ButtonText;
-  --popup-button-background-hover: ButtonFace;
-  --popup-button-foreground-hover: SelectedItem;
-  --popup-button-background-active: ButtonFace;
+  --popup-button-background-hover: ButtonText;
+  --popup-button-foreground-hover: ButtonFace;
+  --popup-button-background-active: ButtonText;
   --popup-button-border: ButtonText;
   --selected-background: Canvas;
   --outline-focus-color: CanvasText;
@@ -369,7 +364,7 @@ blockquote {
    */
   margin-inline-start: max(calc(50% - 17px - var(--inline-padding)), calc(100% - 96px - 34px - 2 * var(--inline-padding)));
 
-  font-family: system-ui;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, "Helvetica Neue", sans-serif;
   list-style: none;
   user-select: none;
 
@@ -522,7 +517,7 @@ button:disabled {
   h2 {
     font-size: var(--font-size-large);
     font-weight: var(--font-weight-bold);
-    color: var(--popup-foreground);
+    color: var(--popup-button-foreground);
     margin-block: var(--space-large);
   }
 
@@ -742,14 +737,6 @@ body.hcm .color-scheme-buttons {
 
   body.hcm & {
     border-color: var(--popup-button-border);
-
-    &:hover {
-      border-color: SelectedItem;
-
-      &:active {
-        border-color: ButtonText;
-      }
-    }
   }
 }
 
@@ -763,8 +750,7 @@ body.hcm .color-scheme-buttons {
 .dropdown-selector {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  max-width: 50%;
+  width: 100%;
   gap: var(--space-xsmall);
 
   > select {
@@ -795,14 +781,6 @@ body.hcm .color-scheme-buttons {
 
     body.hcm & {
       border-color: var(--popup-button-border);
-
-      &:hover {
-        border-color: SelectedItem;
-      }
-
-      &:hover:active {
-        border-color: ButtonText;
-      }
     }
 
     /* Selector chevron should appear on the left for RTL. */
@@ -886,14 +864,6 @@ body.hcm .color-scheme-buttons {
 
     body.hcm & {
       border: 1px solid var(--popup-button-border);
-
-      &:hover:not([checked]) {
-        border-color: SelectedItem;
-      }
-
-      &:hover:active:not([checked]) {
-        border-color: ButtonText;
-      }
     }
   }
 }
@@ -1192,13 +1162,6 @@ pre {
 
 .moz-reader-content img[moz-reader-center] {
   margin-inline: auto;
-}
-
-/* Align non-centered images with the text. Margins are unset unless the user makes a text alignment selection. */
-/* Does not use logical properties because the margins are tied to text alignment and not text direction. */
-.moz-reader-content img:not([moz-reader-center]) {
-  margin-left: var(--block-img-margin-left);
-  margin-right: var(--block-img-margin-right);
 }
 
 .moz-reader-content .caption,

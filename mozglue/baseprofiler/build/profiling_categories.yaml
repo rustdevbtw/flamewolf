@@ -305,10 +305,3 @@
   subcategories:
     - name: REMOTE_PROTOCOL
       label: Other
-
-- name: SANDBOX
-  label: Sandbox
-  color: grey
-  subcategories:
-    - name: SANDBOX
-      label: Other

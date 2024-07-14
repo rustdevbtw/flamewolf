@@ -255,26 +255,13 @@ navigate.waitForNavigationCompleted = async function waitForNavigationCompleted(
     }
   };
 
-  const onPromptClosed = (_, data) => {
-    if (data.detail.promptType === "beforeunload" && !data.detail.accepted) {
-      // If a beforeunload prompt is dismissed there will be no navigation.
-      lazy.logger.trace(
-        `Canceled page load listener because a beforeunload prompt was dismissed`
-      );
-      checkDone({ finished: true });
-    }
-  };
-
   const onPromptOpened = (_, data) => {
     if (data.prompt.promptType === "beforeunload") {
-      // WebDriver HTTP basically doesn't know anything about beforeunload
-      // prompts. As such we always ignore the prompt opened event.
+      // Ignore beforeunload prompts which are handled by the driver class.
       return;
     }
 
-    lazy.logger.trace(
-      `Canceled page load listener because a ${data.prompt.promptType} prompt opened`
-    );
+    lazy.logger.trace("Canceled page load listener because a dialog opened");
     checkDone({ finished: true });
   };
 
@@ -334,7 +321,7 @@ navigate.waitForNavigationCompleted = async function waitForNavigationCompleted(
         break;
 
       case "DOMContentLoaded":
-      case "pageshow": {
+      case "pageshow":
         // Don't require an unload event when a top-level browsing context
         // change occurred.
         if (!seenUnload && !browsingContextChanged) {
@@ -343,7 +330,6 @@ navigate.waitForNavigationCompleted = async function waitForNavigationCompleted(
         const result = checkReadyState(pageLoadStrategy, data);
         checkDone(result);
         break;
-      }
     }
   };
 
@@ -384,7 +370,6 @@ navigate.waitForNavigationCompleted = async function waitForNavigationCompleted(
     "XULFrameLoaderCreated",
     onBrowsingContextChanged
   );
-  driver.promptListener.on("closed", onPromptClosed);
   driver.promptListener.on("opened", onPromptOpened);
   Services.obs.addObserver(
     onBrowsingContextDiscarded,
@@ -436,7 +421,6 @@ navigate.waitForNavigationCompleted = async function waitForNavigationCompleted(
       "XULFrameLoaderCreated",
       onBrowsingContextChanged
     );
-    driver.promptListener?.off("closed", onPromptClosed);
     driver.promptListener?.off("opened", onPromptOpened);
     unloadTimer?.cancel();
 

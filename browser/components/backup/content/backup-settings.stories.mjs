@@ -22,12 +22,8 @@ const Template = ({ backupServiceState }) => html`
 export const BackingUpNotInProgress = Template.bind({});
 BackingUpNotInProgress.args = {
   backupServiceState: {
-    backupDirPath: "/Some/User/Documents",
+    backupFilePath: "Documents",
     backupInProgress: false,
-    defaultParent: {
-      path: "/Some/User/Documents",
-      fileName: "Documents",
-    },
     scheduledBackupsEnabled: false,
   },
 };
@@ -35,39 +31,8 @@ BackingUpNotInProgress.args = {
 export const BackingUpInProgress = Template.bind({});
 BackingUpInProgress.args = {
   backupServiceState: {
-    backupDirPath: "/Some/User/Documents",
+    backupFilePath: "Documents",
     backupInProgress: true,
-    defaultParent: {
-      path: "/Some/User/Documents",
-      fileName: "Documents",
-    },
     scheduledBackupsEnabled: false,
-  },
-};
-
-export const ScheduledBackupsEnabled = Template.bind({});
-ScheduledBackupsEnabled.args = {
-  backupServiceState: {
-    backupDirPath: "/Some/User/Documents",
-    backupInProgress: false,
-    defaultParent: {
-      path: "/Some/User/Documents",
-      fileName: "Documents",
-    },
-    scheduledBackupsEnabled: true,
-  },
-};
-
-export const EncryptionEnabled = Template.bind({});
-EncryptionEnabled.args = {
-  backupServiceState: {
-    backupDirPath: "/Some/User/Documents",
-    backupInProgress: false,
-    defaultParent: {
-      path: "/Some/User/Documents",
-      fileName: "Documents",
-    },
-    scheduledBackupsEnabled: true,
-    encryptionEnabled: true,
   },
 };

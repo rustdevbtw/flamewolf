@@ -34,9 +34,8 @@ add_task(async function () {
       "in the rule-view."
   );
   ok(shapeToggle, "shape highlighter toggle is visible.");
-  is(
-    shapeToggle.getAttribute("aria-pressed"),
-    "false",
+  ok(
+    !shapeToggle.classList.contains("active"),
     "shape highlighter toggle button is not active."
   );
   ok(
@@ -60,9 +59,8 @@ add_task(async function () {
     "Checking the CSS shapes highlighter is created and toggle button is active in " +
       "the rule-view."
   );
-  is(
-    shapeToggle.getAttribute("aria-pressed"),
-    "true",
+  ok(
+    shapeToggle.classList.contains("active"),
     "shapes highlighter toggle is active."
   );
   ok(
@@ -82,9 +80,8 @@ add_task(async function () {
       "in the rule-view."
   );
   ok(shapeToggle, "shapes highlighter toggle is visible.");
-  is(
-    shapeToggle.getAttribute("aria-pressed"),
-    "false",
+  ok(
+    !shapeToggle.classList.contains("active"),
     "shapes highlighter toggle button is not active."
   );
   ok(
@@ -105,9 +102,8 @@ add_task(async function () {
     "Checking the CSS shapes highlighter is created for the second shapes container " +
       "and toggle button is active in the rule-view."
   );
-  is(
-    shapeToggle.getAttribute("aria-pressed"),
-    "true",
+  ok(
+    shapeToggle.classList.contains("active"),
     "shapes highlighter toggle is active."
   );
   Assert.notEqual(
@@ -126,9 +122,8 @@ add_task(async function () {
       "in the rule-view."
   );
   ok(shapeToggle, "shapes highlighter toggle is visible.");
-  is(
-    shapeToggle.getAttribute("aria-pressed"),
-    "false",
+  ok(
+    !shapeToggle.classList.contains("active"),
     "shapes highlighter toggle button is not active."
   );
 });

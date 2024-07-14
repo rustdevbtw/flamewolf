@@ -381,7 +381,10 @@ TEST(TestCookie, TestCookieMain)
   GetACookie(cookieService, "http://path.net/foo/", cookie);
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_BE_NULL));
 
-  // attributes with size > 1024 are ignored.
+  // bug 373228: make sure cookies with paths longer than 1024 bytes,
+  // and cookies with paths or names containing tabs, are rejected.
+  // the following cookie has a path > 1024 bytes explicitly specified in the
+  // cookie
   SetACookie(
       cookieService, "http://path.net/",
       "test=path; "
@@ -420,14 +423,12 @@ TEST(TestCookie, TestCookieMain)
       "789012345678901234567890123456789012345678901234567890123456789012345678"
       "9012345678901234567890",
       cookie);
-  EXPECT_TRUE(CheckResult(cookie.get(), MUST_EQUAL, "test=path"));
-  GetACookie(cookieService, "http://path.net/", cookie);
-  EXPECT_TRUE(CheckResult(cookie.get(), MUST_EQUAL, "test=path"));
+  EXPECT_TRUE(CheckResult(cookie.get(), MUST_BE_NULL));
   // the following cookie has a path > 1024 bytes implicitly specified by the
   // uri path
   SetACookie(
       cookieService,
-      "http://longpath.net/"
+      "http://path.net/"
       "123456789012345678901234567890123456789012345678901234567890123456789012"
       "345678901234567890123456789012345678901234567890123456789012345678901234"
       "567890123456789012345678901234567890123456789012345678901234567890123456"
@@ -446,7 +447,7 @@ TEST(TestCookie, TestCookieMain)
       "test=path");
   GetACookie(
       cookieService,
-      "http://longpath.net/"
+      "http://path.net/"
       "123456789012345678901234567890123456789012345678901234567890123456789012"
       "345678901234567890123456789012345678901234567890123456789012345678901234"
       "567890123456789012345678901234567890123456789012345678901234567890123456"
@@ -465,21 +466,19 @@ TEST(TestCookie, TestCookieMain)
       cookie);
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_BE_NULL));
   // the following cookie includes a tab in the path
-  SetACookie(cookieService, "http://pathwithtab.net/",
-             "test=path; path=/foo\tbar/");
-  GetACookie(cookieService, "http://pathwithtab.net/foo\tbar/", cookie);
+  SetACookie(cookieService, "http://path.net/", "test=path; path=/foo\tbar/");
+  GetACookie(cookieService, "http://path.net/foo\tbar/", cookie);
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_BE_NULL));
   // the following cookie includes a tab in the name
-  SetACookie(cookieService, "http://pathwithtab.net/", "test\ttabs=tab");
-  GetACookie(cookieService, "http://pathwithtab.net/", cookie);
+  SetACookie(cookieService, "http://path.net/", "test\ttabs=tab");
+  GetACookie(cookieService, "http://path.net/", cookie);
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_BE_NULL));
   // the following cookie includes a tab in the value - allowed
-  SetACookie(cookieService, "http://pathwithtab.net/", "test=tab\ttest");
-  GetACookie(cookieService, "http://pathwithtab.net/", cookie);
+  SetACookie(cookieService, "http://path.net/", "test=tab\ttest");
+  GetACookie(cookieService, "http://path.net/", cookie);
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_EQUAL, "test=tab\ttest"));
-  SetACookie(cookieService, "http://pathwithtab.net/",
-             "test=tab\ttest; max-age=-1");
-  GetACookie(cookieService, "http://pathwithtab.net/", cookie);
+  SetACookie(cookieService, "http://path.net/", "test=tab\ttest; max-age=-1");
+  GetACookie(cookieService, "http://path.net/", cookie);
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_BE_NULL));
 
   // *** expiry & deletion tests

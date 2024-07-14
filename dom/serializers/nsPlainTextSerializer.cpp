@@ -31,7 +31,6 @@
 #include "mozilla/dom/Text.h"
 #include "mozilla/intl/Segmenter.h"
 #include "mozilla/intl/UnicodeProperties.h"
-#include "mozilla/dom/AbstractRange.h"
 #include "nsUnicodeProperties.h"
 #include "mozilla/Span.h"
 #include "mozilla/Preferences.h"

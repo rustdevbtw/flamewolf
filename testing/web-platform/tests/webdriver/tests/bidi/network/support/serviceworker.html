@@ -23,7 +23,7 @@
         }
       }
 
-      addEventListener("pagehide", (event) => {
+      addEventListener("beforeunload", (event) => {
         swRegistration?.unregister();
       });
     </script>

@@ -2504,7 +2504,33 @@ void MacroAssemblerMIPS64Compat::wasmLoadI64Impl(
   }
 
   unsigned byteSize = access.byteSize();
-  bool isSigned = Scalar::isSignedIntType(access.type());
+  bool isSigned;
+
+  switch (access.type()) {
+    case Scalar::Int8:
+      isSigned = true;
+      break;
+    case Scalar::Uint8:
+      isSigned = false;
+      break;
+    case Scalar::Int16:
+      isSigned = true;
+      break;
+    case Scalar::Uint16:
+      isSigned = false;
+      break;
+    case Scalar::Int32:
+      isSigned = true;
+      break;
+    case Scalar::Uint32:
+      isSigned = false;
+      break;
+    case Scalar::Int64:
+      isSigned = true;
+      break;
+    default:
+      MOZ_CRASH("unexpected array type");
+  }
 
   BaseIndex address(memoryBase, ptr, TimesOne);
   if (IsUnaligned(access)) {
@@ -2537,7 +2563,32 @@ void MacroAssemblerMIPS64Compat::wasmStoreI64Impl(
   }
 
   unsigned byteSize = access.byteSize();
-  bool isSigned = Scalar::isSignedIntType(access.type());
+  bool isSigned;
+  switch (access.type()) {
+    case Scalar::Int8:
+      isSigned = true;
+      break;
+    case Scalar::Uint8:
+      isSigned = false;
+      break;
+    case Scalar::Int16:
+      isSigned = true;
+      break;
+    case Scalar::Uint16:
+      isSigned = false;
+      break;
+    case Scalar::Int32:
+      isSigned = true;
+      break;
+    case Scalar::Uint32:
+      isSigned = false;
+      break;
+    case Scalar::Int64:
+      isSigned = true;
+      break;
+    default:
+      MOZ_CRASH("unexpected array type");
+  }
 
   BaseIndex address(memoryBase, ptr, TimesOne);
 

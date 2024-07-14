@@ -741,8 +741,8 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
         if (reportErrors) {
           ReportError("CheckLoadURI", sourceURI, aTargetURI,
                       allowList.LastElement()
-                          ->OriginAttributesRef()
-                          .IsPrivateBrowsing(),
+                              ->OriginAttributesRef()
+                              .mPrivateBrowsingId > 0,
                       aInnerWindowID);
         }
         return NS_ERROR_DOM_BAD_URI;
@@ -794,7 +794,8 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
     // access:
     rv = CheckLoadURIFlags(
         sourceURI, aTargetURI, sourceBaseURI, targetBaseURI, aFlags,
-        aPrincipal->OriginAttributesRef().IsPrivateBrowsing(), aInnerWindowID);
+        aPrincipal->OriginAttributesRef().mPrivateBrowsingId > 0,
+        aInnerWindowID);
     NS_ENSURE_SUCCESS(rv, rv);
     // Check the principal is allowed to load the target.
     if (aFlags & nsIScriptSecurityManager::DONT_REPORT_ERRORS) {
@@ -925,7 +926,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
         isExtensionMismatch) {
       return CheckLoadURIFlags(
           currentURI, currentOtherURI, sourceBaseURI, targetBaseURI, aFlags,
-          aPrincipal->OriginAttributesRef().IsPrivateBrowsing(),
+          aPrincipal->OriginAttributesRef().mPrivateBrowsingId > 0,
           aInnerWindowID);
     }
     // Otherwise... check if we can nest another level:
@@ -1240,7 +1241,7 @@ nsScriptSecurityManager::CheckLoadURIStrWithPrincipal(
                       nsIURIFixup::FIXUP_FLAG_FIX_SCHEME_TYPOS};
   for (uint32_t i = 0; i < ArrayLength(flags); ++i) {
     uint32_t fixupFlags = flags[i];
-    if (aPrincipal->OriginAttributesRef().IsPrivateBrowsing()) {
+    if (aPrincipal->OriginAttributesRef().mPrivateBrowsingId > 0) {
       fixupFlags |= nsIURIFixup::FIXUP_FLAG_PRIVATE_CONTEXT;
     }
     nsCOMPtr<nsIURIFixupInfo> fixupInfo;

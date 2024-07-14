@@ -198,7 +198,6 @@ power.wakeups_per_thread:
       Broken down by thread name for a given process type.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1763474
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901535
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1763474
     data_sensitivity:
@@ -207,7 +206,6 @@ power.wakeups_per_thread:
       - florian@mozilla.com
     expires: never
     labels: &per_thread_labels
-      - androidui
       - asynclogger
       - audioipc
       - audioipc_callback_rpc
@@ -222,18 +220,15 @@ power.wakeups_per_thread:
       - bhmgr_monitor
       - bhmgr_processor
       - cameras_ipc
-      - canvasrenderer
       - capturethread
       - classifier_update
       - com_mta
       - compositor
-      - convolverworker
       - cookie
       - cubeboperation
       - datachannel_io
       - dns_resolver
       - dom_worker
-      - dom_worklet
       - domcachethread
       - extensionprotocolhandler
       - font_loader
@@ -242,14 +237,12 @@ power.wakeups_per_thread:
       - geckomain
       - gmpthread
       - graphrunner
-      - hrtfdatabaseldr
       - html5_parser
       - imagebridgechld
       - imageio
       - indexeddb
       - initfontlist
       - inotifyeventthread
-      - indexeddb_io
       - ipc_i_o_child
       - ipc_i_o_parent
       - ipc_launch
@@ -259,7 +252,6 @@ power.wakeups_per_thread:
       - libwebrtcmodulethread
       - link_monitor
       - ls_thread
-      - mdns_service
       - mediacache
       - mediadecoderstatemachine
       - mediapdecoder
@@ -286,9 +278,6 @@ power.wakeups_per_thread:
       - savescripts
       - socket_thread
       - softwarevsyncthread
-      - sqldb_content-prefs_sqlite
-      - sqldb_cookies_sqlite
-      - sqldb_formhistory_sqlite
       - ssl_cert
       - startupcache
       - streamtrans
@@ -307,7 +296,6 @@ power.wakeups_per_thread:
       - wincompositor
       - windowsvsyncthread
       - winwindowocclusioncalc
-      - wifi_tickler
       - worker_launcher
       - wrrenderbackend
       - wrscenebuilder
@@ -328,7 +316,6 @@ power.cpu_ms_per_thread:
       Broken down by thread name for a given process type.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1763474
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1901535
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1763474
     data_sensitivity:

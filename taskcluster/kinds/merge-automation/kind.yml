@@ -56,7 +56,6 @@ tasks:
                                   "linux",
                                   "linux-devedition",
                                   "linux64",
-                                  "linux64-aarch64",
                                   "linux64-devedition",
                                   "macosx64",
                                   "macosx64-devedition",

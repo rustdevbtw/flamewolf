@@ -48,6 +48,5 @@ export const PdfJsDefaultPreferences = Object.freeze({
   disableFontFace: false,
   disableRange: false,
   disableStream: false,
-  enableHWA: false,
   enableXfa: true
 });

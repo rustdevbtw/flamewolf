@@ -158,22 +158,9 @@ export class PromptParent extends JSWindowActorParent {
       throw new Error("Cannot open a prompt in a hidden window");
     }
 
-    let swappedBrowser;
-    let cancelEventController = new AbortController();
-    let cancelEventSignal = cancelEventController.signal;
     try {
       if (browser) {
         browser.enterModalState();
-        // If this tab gets moved to a new window, we will need
-        // to leave the modal state on the new browser, so
-        // keep track of the new browser.
-        browser.addEventListener(
-          "EndSwapDocShells",
-          event => {
-            swappedBrowser = event.detail;
-          },
-          { signal: cancelEventSignal }
-        );
         lazy.PromptUtils.fireDialogEvent(
           win,
           "DOMWillOpenModalDialog",
@@ -274,16 +261,12 @@ export class PromptParent extends JSWindowActorParent {
 
       lazy.PromptUtils.propBagToObject(bag, args);
     } finally {
-      cancelEventController.abort();
-      // If this tab has been moved to a new window, make sure
-      // to leave the modal state on the new browser.
-      let currentBrowser = swappedBrowser ?? browser;
-      if (currentBrowser) {
-        currentBrowser.maybeLeaveModalState();
+      if (browser) {
+        browser.maybeLeaveModalState();
         lazy.PromptUtils.fireDialogEvent(
           win,
           "DOMModalDialogClosed",
-          currentBrowser,
+          browser,
           this.getClosingEventDetail(args)
         );
       }
@@ -295,8 +278,8 @@ export class PromptParent extends JSWindowActorParent {
     let details =
       args.modalType === Services.prompt.MODAL_TYPE_CONTENT
         ? {
+            wasPermitUnload: args.inPermitUnload,
             areLeaving: args.ok,
-            promptType: args.inPermitUnload ? "beforeunload" : args.promptType,
             // If a prompt was not accepted, do not return the prompt value.
             value: args.ok ? args.value : null,
           }

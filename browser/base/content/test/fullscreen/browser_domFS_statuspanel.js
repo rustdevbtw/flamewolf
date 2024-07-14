@@ -28,7 +28,7 @@ async function withDomFsTab(beforeEnter, afterEnter) {
 
   await beforeEnter();
   info("Entering DOM fullscreen");
-  await DOMFullscreenTestUtils.changeFullscreen(browser, true);
+  await changeFullscreen(browser, true);
   is(document.fullscreenElement, browser, "Entered DOM fullscreen");
   await afterEnter();
 

@@ -85,7 +85,7 @@ const durations = [
 const df = new Intl.DurationFormat("en", {style: "digital"});
 
 for (let duration of durations) {
-  let expected = formatDurationFormatPattern(df, duration);
+  let expected = formatDurationFormatPattern(duration, "digital");
   assert.sameValue(
     df.format(duration),
     expected,

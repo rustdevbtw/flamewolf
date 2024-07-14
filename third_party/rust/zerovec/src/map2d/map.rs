@@ -519,6 +519,7 @@ where
     /// Binary search the map for `key0`, returning a cursor.
     ///
     /// ```rust
+    /// use zerovec::maps::ZeroMap2dBorrowed;
     /// use zerovec::ZeroMap2d;
     ///
     /// let mut map = ZeroMap2d::new();

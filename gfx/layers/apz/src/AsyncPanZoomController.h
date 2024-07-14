@@ -7,7 +7,6 @@
 #ifndef mozilla_layers_AsyncPanZoomController_h
 #define mozilla_layers_AsyncPanZoomController_h
 
-#include "Units.h"
 #include "mozilla/layers/GeckoContentController.h"
 #include "mozilla/layers/RepaintRequest.h"
 #include "mozilla/layers/SampleTime.h"
@@ -546,8 +545,7 @@ class AsyncPanZoomController {
 
   // Return the directions in which this APZC allows handoff (as governed by
   // overscroll-behavior).
-  ScrollDirections GetAllowedHandoffDirections(
-      HandoffConsumer aConsumer = HandoffConsumer::Scrolling) const;
+  ScrollDirections GetAllowedHandoffDirections() const;
 
   // Return the directions in which this APZC allows overscrolling.
   ScrollDirections GetOverscrollableDirections() const;
@@ -1375,8 +1373,6 @@ class AsyncPanZoomController {
   std::tuple<ParentLayerPoint, ScreenPoint> GetDisplacementsForPanGesture(
       const PanGestureInput& aEvent);
 
-  CSSCoord ToCSSPixels(ParentLayerCoord value) const;
-
  private:
   friend class AutoApplyAsyncTestAttributes;
 
@@ -1540,7 +1536,7 @@ class AsyncPanZoomController {
    * govern dynamic toolbar and pull-to-refresh behaviour).
    */
   PointerEventsConsumableFlags ArePointerEventsConsumable(
-      const TouchBlockState* aBlock, const MultiTouchInput& aInput) const;
+      TouchBlockState* aBlock, const MultiTouchInput& aInput) const;
 
   /**
    * Clear internal state relating to touch input handling.

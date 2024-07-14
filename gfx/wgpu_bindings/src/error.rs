@@ -214,8 +214,8 @@ mod foreign {
                 BufferAccessError::Device(e) => e.error_type(),
 
                 BufferAccessError::Failed
-                | BufferAccessError::InvalidBufferId(_)
-                | BufferAccessError::DestroyedResource(_)
+                | BufferAccessError::Invalid
+                | BufferAccessError::Destroyed
                 | BufferAccessError::AlreadyMapped
                 | BufferAccessError::MapAlreadyPending
                 | BufferAccessError::MissingBufferUsage(_)
@@ -320,8 +320,9 @@ mod foreign {
                 CreateBindGroupError::Device(e) => e.error_type(),
 
                 CreateBindGroupError::InvalidLayout
-                | CreateBindGroupError::InvalidBufferId(_)
-                | CreateBindGroupError::InvalidTextureViewId(_)
+                | CreateBindGroupError::InvalidBuffer(_)
+                | CreateBindGroupError::InvalidTextureView(_)
+                | CreateBindGroupError::InvalidTexture(_)
                 | CreateBindGroupError::InvalidSampler(_)
                 | CreateBindGroupError::BindingArrayPartialLengthMismatch { .. }
                 | CreateBindGroupError::BindingArrayLengthMismatch { .. }
@@ -347,8 +348,7 @@ mod foreign {
                 | CreateBindGroupError::WrongSamplerFiltering { .. }
                 | CreateBindGroupError::DepthStencilAspect
                 | CreateBindGroupError::StorageReadNotSupported(_)
-                | CreateBindGroupError::ResourceUsageCompatibility(_)
-                | CreateBindGroupError::DestroyedResource(_) => ErrorBufferType::Validation,
+                | CreateBindGroupError::ResourceUsageConflict(_) => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
@@ -437,10 +437,8 @@ mod foreign {
     impl HasErrorBufferType for DeviceError {
         fn error_type(&self) -> ErrorBufferType {
             match self {
-                DeviceError::Invalid(_) | DeviceError::DeviceMismatch(_) => {
-                    ErrorBufferType::Validation
-                }
-                DeviceError::InvalidDeviceId => ErrorBufferType::Validation,
+                DeviceError::Invalid | DeviceError::WrongDevice => ErrorBufferType::Validation,
+                DeviceError::InvalidQueueId => ErrorBufferType::Validation,
                 DeviceError::Lost => ErrorBufferType::DeviceLost,
                 DeviceError::OutOfMemory => ErrorBufferType::OutOfMemory,
                 DeviceError::ResourceCreationFailed => ErrorBufferType::Internal,
@@ -454,7 +452,7 @@ mod foreign {
             match self {
                 CreateTextureViewError::OutOfMemory => ErrorBufferType::OutOfMemory,
 
-                CreateTextureViewError::InvalidTextureId(_)
+                CreateTextureViewError::InvalidTexture
                 | CreateTextureViewError::InvalidTextureViewDimension { .. }
                 | CreateTextureViewError::InvalidMultisampledTextureViewDimension(_)
                 | CreateTextureViewError::InvalidCubemapTextureDepth { .. }
@@ -466,8 +464,9 @@ mod foreign {
                 | CreateTextureViewError::TooManyArrayLayers { .. }
                 | CreateTextureViewError::InvalidArrayLayerCount { .. }
                 | CreateTextureViewError::InvalidAspect { .. }
-                | CreateTextureViewError::FormatReinterpretation { .. }
-                | CreateTextureViewError::DestroyedResource(_) => ErrorBufferType::Validation,
+                | CreateTextureViewError::FormatReinterpretation { .. } => {
+                    ErrorBufferType::Validation
+                }
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
@@ -492,8 +491,8 @@ mod foreign {
             match self {
                 TransferError::MemoryInitFailure(e) => e.error_type(),
 
-                TransferError::InvalidBufferId(_)
-                | TransferError::InvalidTextureId(_)
+                TransferError::InvalidBuffer(_)
+                | TransferError::InvalidTexture(_)
                 | TransferError::SameSourceDestinationBuffer
                 | TransferError::MissingCopySrcUsageFlag
                 | TransferError::MissingCopyDstUsageFlag(_, _)
@@ -548,7 +547,7 @@ mod foreign {
                 QueryError::Use(e) => e.error_type(),
                 QueryError::Resolve(e) => e.error_type(),
 
-                QueryError::InvalidBufferId(_) | QueryError::InvalidQuerySet(_) => {
+                QueryError::InvalidBuffer(_) | QueryError::InvalidQuerySet(_) => {
                     ErrorBufferType::Validation
                 }
 
@@ -611,11 +610,11 @@ mod foreign {
                 QueueSubmitError::Unmap(e) => e.error_type(),
 
                 QueueSubmitError::StuckGpu => ErrorBufferType::Internal, // TODO: validate
-                QueueSubmitError::DestroyedResource(_)
+                QueueSubmitError::DestroyedBuffer(_)
+                | QueueSubmitError::DestroyedTexture(_)
                 | QueueSubmitError::BufferStillMapped(_)
                 | QueueSubmitError::SurfaceOutputDropped
-                | QueueSubmitError::SurfaceUnconfigured
-                | QueueSubmitError::InvalidQueueId => ErrorBufferType::Validation,
+                | QueueSubmitError::SurfaceUnconfigured => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,

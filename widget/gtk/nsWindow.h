@@ -169,6 +169,7 @@ class nsWindow final : public nsBaseWidget {
               bool aRepaint) override;
   bool IsEnabled() const override;
 
+  void SetZIndex(int32_t aZIndex) override;
   nsSizeMode SizeMode() override { return mSizeMode; }
   void SetSizeMode(nsSizeMode aMode) override;
   void GetWorkspaceID(nsAString& workspaceID) override;

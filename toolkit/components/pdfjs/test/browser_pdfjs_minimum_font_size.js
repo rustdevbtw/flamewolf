@@ -60,7 +60,11 @@ add_task(async function test() {
           "The pdf viewer musn't use the minimum font size."
         );
       });
-      await waitForPdfJSClose(browser);
+
+      await SpecialPowers.spawn(browser, [], async function () {
+        var viewer = content.wrappedJSObject.PDFViewerApplication;
+        await viewer.close();
+      });
     }
   );
 });

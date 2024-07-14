@@ -17,29 +17,9 @@ WebTaskWorkerRunnable::WebTaskWorkerRunnable(
   MOZ_ASSERT(mSchedulerWorker);
 }
 
-RefPtr<WebTaskSchedulerWorker> WebTaskSchedulerWorker::Create(
-    WorkerPrivate* aWorkerPrivate) {
-  MOZ_ASSERT(aWorkerPrivate);
-  aWorkerPrivate->AssertIsOnWorkerThread();
-
-  RefPtr<WebTaskSchedulerWorker> scheduler =
-      MakeRefPtr<WebTaskSchedulerWorker>(aWorkerPrivate);
-
-  scheduler->mWorkerRef = StrongWorkerRef::Create(
-      aWorkerPrivate, "WebTaskSchedulerWorker", [scheduler]() {
-        // Set mWorkerIsShuttingDown as true here to avoid dispatching tasks
-        // to worker thread.
-        scheduler->mWorkerIsShuttingDown = true;
-      });
-  if (!scheduler->mWorkerRef) {
-    NS_WARNING("Create WebTaskScheduler when Worker is shutting down");
-    scheduler->mWorkerIsShuttingDown = true;
-  }
-  return scheduler;
-}
-
 WebTaskSchedulerWorker::WebTaskSchedulerWorker(WorkerPrivate* aWorkerPrivate)
-    : WebTaskScheduler(aWorkerPrivate->GlobalScope()) {}
+    : WebTaskScheduler(aWorkerPrivate->GlobalScope()),
+      mWorkerPrivate(aWorkerPrivate) {}
 
 bool WebTaskWorkerRunnable::WorkerRun(JSContext* aCx,
                                       WorkerPrivate* aWorkerPrivate) {
@@ -56,18 +36,9 @@ bool WebTaskWorkerRunnable::WorkerRun(JSContext* aCx,
 
 nsresult WebTaskSchedulerWorker::SetTimeoutForDelayedTask(WebTask* aTask,
                                                           uint64_t aDelay) {
-  if (mWorkerIsShuttingDown) {
-    return NS_ERROR_ABORT;
-  }
-
-  if (!mWorkerRef) {
+  if (!mWorkerPrivate) {
     return NS_ERROR_UNEXPECTED;
   }
-
-  WorkerPrivate* workerPrivate = mWorkerRef->Private();
-  MOZ_ASSERT(workerPrivate);
-  workerPrivate->AssertIsOnWorkerThread();
-
   JSContext* cx = nsContentUtils::GetCurrentJSContext();
   if (!cx) {
     return NS_ERROR_UNEXPECTED;
@@ -77,31 +48,24 @@ nsresult WebTaskSchedulerWorker::SetTimeoutForDelayedTask(WebTask* aTask,
   ErrorResult rv;
 
   int32_t delay = aDelay > INT32_MAX ? INT32_MAX : (int32_t)aDelay;
-  workerPrivate->SetTimeout(cx, handler, delay,
-                            /* aIsInterval */ false,
-                            Timeout::Reason::eDelayedWebTaskTimeout, rv);
+  mWorkerPrivate->SetTimeout(cx, handler, delay,
+                             /* aIsInterval */ false,
+                             Timeout::Reason::eDelayedWebTaskTimeout, rv);
   return rv.StealNSResult();
 }
 
 bool WebTaskSchedulerWorker::DispatchEventLoopRunnable() {
-  if (mWorkerIsShuttingDown) {
+  if (!mWorkerPrivate) {
     return false;
   }
-
-  if (!mWorkerRef) {
-    return false;
-  }
-  MOZ_ASSERT(mWorkerRef->Private());
-  mWorkerRef->Private()->AssertIsOnWorkerThread();
-
   RefPtr<WebTaskWorkerRunnable> runnable =
-      new WebTaskWorkerRunnable(mWorkerRef->Private(), this);
-  return runnable->Dispatch(mWorkerRef->Private());
+      new WebTaskWorkerRunnable(mWorkerPrivate, this);
+  return runnable->Dispatch(mWorkerPrivate);
 }
 
 void WebTaskSchedulerWorker::Disconnect() {
-  if (mWorkerRef) {
-    mWorkerRef = nullptr;
+  if (mWorkerPrivate) {
+    mWorkerPrivate = nullptr;
   }
   WebTaskScheduler::Disconnect();
 }

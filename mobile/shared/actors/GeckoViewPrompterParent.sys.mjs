@@ -78,7 +78,6 @@ export class GeckoViewPrompterParent extends GeckoViewActorParent {
             self.window.dispatchEvent(
               createDialogClosedEvent({
                 areLeaving: true,
-                promptType: prompt.type,
                 value: prompt.inputText,
               })
             );
@@ -86,10 +85,7 @@ export class GeckoViewPrompterParent extends GeckoViewActorParent {
           dismissPrompt() {
             prompt.dismissPrompt();
             self.window.dispatchEvent(
-              createDialogClosedEvent({
-                areLeaving: false,
-                promptType: prompt.type,
-              })
+              createDialogClosedEvent({ areLeaving: false })
             );
           },
         });

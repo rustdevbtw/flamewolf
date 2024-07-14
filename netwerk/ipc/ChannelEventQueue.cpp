@@ -185,7 +185,7 @@ bool ChannelEventQueue::MaybeSuspendIfEventsAreSuppressed() {
 
   // Only suppress events for queues associated with XHRs, as these can cause
   // content scripts to run.
-  if (mHasCheckedForAsyncXMLHttpRequest && !mForAsyncXMLHttpRequest) {
+  if (mHasCheckedForXMLHttpRequest && !mForXMLHttpRequest) {
     return false;
   }
 
@@ -196,24 +196,25 @@ bool ChannelEventQueue::MaybeSuspendIfEventsAreSuppressed() {
   }
 
   nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
-  // Figure out if this is for an Async XHR, if we haven't done so already.
-  // We don't want to suspend Sync XHRs, as they'll always suspend event
-  // handling on the document, but we still need to process events for them.
-  if (!mHasCheckedForAsyncXMLHttpRequest) {
+  // Figure out if this is for an XHR, if we haven't done so already.
+  if (!mHasCheckedForXMLHttpRequest) {
     nsContentPolicyType contentType = loadInfo->InternalContentPolicyType();
-    mForAsyncXMLHttpRequest =
-        contentType == nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST_ASYNC;
-    mHasCheckedForAsyncXMLHttpRequest = true;
+    mForXMLHttpRequest =
+        (contentType == nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST);
+    mHasCheckedForXMLHttpRequest = true;
 
-    if (!mForAsyncXMLHttpRequest) {
+    if (!mForXMLHttpRequest) {
       return false;
     }
   }
 
-  // Suspend the queue if the associated document has suppressed event handling.
+  // Suspend the queue if the associated document has suppressed event handling,
+  // *and* it is not in the middle of a synchronous operation that might require
+  // XHR events to be processed (such as a synchronous XHR).
   RefPtr<dom::Document> document;
   loadInfo->GetLoadingDocument(getter_AddRefs(document));
-  if (document && document->EventHandlingSuppressed()) {
+  if (document && document->EventHandlingSuppressed() &&
+      !document->IsInSyncOperation()) {
     document->AddSuspendedChannelEventQueue(this);
     SuspendInternal();
     return true;

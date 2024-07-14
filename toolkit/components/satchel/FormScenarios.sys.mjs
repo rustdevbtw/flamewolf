@@ -25,6 +25,10 @@ export class FormScenarios {
   static detect({ input, form }) {
     const scenarios = {};
 
+    if (!FormScenarios.signupDetectionEnabled) {
+      return scenarios;
+    }
+
     // Running simple heuristics first, because running the SignUpFormRuleset is expensive
     if (
       input &&
@@ -74,4 +78,10 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "signupDetectionConfidenceThreshold",
   "signon.signupDetection.confidenceThreshold",
   "0.75"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormScenarios,
+  "signupDetectionEnabled",
+  "signon.signupDetection.enabled",
+  true
 );

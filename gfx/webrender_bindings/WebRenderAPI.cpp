@@ -138,8 +138,7 @@ class NewRenderer : public RendererEvent {
             gfx::gfxVars::UseWebRenderScissoredCacheClears(), swgl, gl,
             compositor->SurfaceOriginIsTopLeft(), progCache, shaders,
             aRenderThread.ThreadPool().Raw(),
-            aRenderThread.ThreadPoolLP().Raw(),
-            aRenderThread.GlyphRasterThread().Raw(), &WebRenderMallocSizeOf,
+            aRenderThread.ThreadPoolLP().Raw(), &WebRenderMallocSizeOf,
             &WebRenderMallocEnclosingSizeOf, 0, compositor.get(),
             compositor->ShouldUseNativeCompositor(),
             compositor->UsePartialPresent(),
@@ -743,10 +742,6 @@ void WebRenderAPI::SetBool(wr::BoolParameter aKey, bool aValue) {
 
 void WebRenderAPI::SetInt(wr::IntParameter aKey, int32_t aValue) {
   wr_api_set_int(mDocHandle, aKey, aValue);
-}
-
-void WebRenderAPI::SetFloat(wr::FloatParameter aKey, float aValue) {
-  wr_api_set_float(mDocHandle, aKey, aValue);
 }
 
 void WebRenderAPI::SetClearColor(const gfx::DeviceColor& aColor) {

@@ -6,22 +6,6 @@ const { PromptListener } = ChromeUtils.importESModule(
   "chrome://remote/content/shared/listeners/PromptListener.sys.mjs"
 );
 
-const BUILDER_URL = "https://example.com/document-builder.sjs?html=";
-
-const BEFOREUNLOAD_MARKUP = `
-<html>
-<head>
-  <script>
-    window.onbeforeunload = function() {
-      return true;
-    };
-  </script>
-</head>
-<body>TEST PAGE</body>
-</html>
-`;
-const BEFOREUNLOAD_URL = BUILDER_URL + encodeURI(BEFOREUNLOAD_MARKUP);
-
 add_task(async function test_without_curBrowser() {
   const listener = new PromptListener();
   const opened = listener.once("opened");
@@ -74,100 +58,82 @@ add_task(async function test_with_curBrowser() {
 });
 
 add_task(async function test_close_event_details() {
-  let closed;
   const listener = new PromptListener();
+  let closed = listener.once("closed");
 
   listener.startListening();
 
-  for (const promptType of ["alert", "confirm", "prompt"]) {
-    for (const accept of [false, true]) {
-      info(`Test prompt type "${promptType}" with accept=${accept}`);
+  let dialogPromise = BrowserTestUtils.promiseAlertDialogOpen();
+  await createScriptNode(`setTimeout(() => window.prompt('Enter your name:'))`);
+  let dialogWin = await dialogPromise;
 
-      closed = listener.once("closed");
+  dialogWin.document.getElementById("loginTextbox").value = "Test";
+  dialogWin.document.querySelector("dialog").acceptDialog();
 
-      let dialogPromise = BrowserTestUtils.promiseAlertDialogOpen();
-      await createScriptNode(`setTimeout(() => window.${promptType}('foo'))`);
-      const dialogWin = await dialogPromise;
+  let closedEvent = await closed;
 
-      if (promptType === "prompt") {
-        dialogWin.document.getElementById("loginTextbox").value = "bar";
-      }
+  is(
+    closedEvent.detail.accepted,
+    true,
+    "Received correct `accepted` value in event details"
+  );
+  is(
+    closedEvent.detail.userText,
+    "Test",
+    "Received correct `userText` value in event details"
+  );
 
-      if (accept) {
-        dialogWin.document.querySelector("dialog").acceptDialog();
-      } else {
-        dialogWin.document.querySelector("dialog").cancelDialog();
-      }
+  closed = listener.once("closed");
 
-      const closedEvent = await closed;
+  dialogPromise = BrowserTestUtils.promiseAlertDialogOpen();
+  await createScriptNode(`setTimeout(() => window.prompt('Enter your name:'))`);
+  dialogWin = await dialogPromise;
 
-      // Special-case prompts of type alert, which can only be accepted.
-      const expectedState = promptType === "alert" && !accept ? true : accept;
-      is(closedEvent.detail.accepted, expectedState, "Received expected state");
+  dialogWin.document.getElementById("loginTextbox").value = "Test";
+  dialogWin.document.querySelector("dialog").cancelDialog();
 
-      is(
-        closedEvent.detail.promptType,
-        promptType,
-        "Received expected prompt type"
-      );
+  closedEvent = await closed;
 
-      const expectedText =
-        promptType === "prompt" && accept ? "bar" : undefined;
-      is(
-        closedEvent.detail.userText,
-        expectedText,
-        "Received expected user text"
-      );
-    }
-  }
+  is(
+    closedEvent.detail.accepted,
+    false,
+    "Received correct `accepted` value in event details"
+  );
+  is(
+    closedEvent.detail.userText,
+    undefined,
+    "Received correct `userText` value in event details"
+  );
 
   listener.destroy();
 });
 
-add_task(async function test_close_event_details_beforeunload() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["dom.require_user_interaction_for_beforeunload", false]],
-  });
-
+add_task(async function test_dialogClosed() {
   const listener = new PromptListener();
+
   listener.startListening();
 
-  for (const leavePage of [false, true]) {
-    info(`Test with leavePage=${leavePage}`);
+  let dialogPromise = BrowserTestUtils.promiseAlertDialogOpen();
+  await createScriptNode(`setTimeout(() => window.alert('test'))`);
+  let dialogWin = await dialogPromise;
+  let closed = listener.dialogClosed();
 
-    const tab = addTab(gBrowser, BEFOREUNLOAD_URL);
-    try {
-      const browser = tab.linkedBrowser;
-      await BrowserTestUtils.browserLoaded(browser, false, BEFOREUNLOAD_URL);
+  dialogWin.document.querySelector("dialog").acceptDialog();
 
-      const closed = listener.once("closed");
+  await closed;
 
-      let dialogPromise = BrowserTestUtils.promiseAlertDialogOpen();
-      BrowserTestUtils.startLoadingURIString(browser, "about:blank");
-      const dialogWin = await dialogPromise;
+  is(true, true, "Close promise got resolved");
 
-      if (leavePage) {
-        dialogWin.document.querySelector("dialog").acceptDialog();
-      } else {
-        dialogWin.document.querySelector("dialog").cancelDialog();
-      }
+  dialogPromise = BrowserTestUtils.promiseAlertDialogOpen();
+  await createScriptNode(`setTimeout(() => window.alert('test'))`);
+  dialogWin = await dialogPromise;
+  closed = listener.dialogClosed();
 
-      const closedEvent = await closed;
-      is(closedEvent.detail.accepted, leavePage, "Received expected state");
-      is(
-        closedEvent.detail.promptType,
-        "beforeunload",
-        "Received expected prompt type"
-      );
-      is(closedEvent.detail.userText, undefined, "Received expected user text");
+  dialogWin.document.querySelector("dialog").cancelDialog();
 
-      if (leavePage) {
-        await BrowserTestUtils.browserLoaded(browser, false, "about:blank");
-      }
-    } finally {
-      gBrowser.removeTab(tab);
-    }
-  }
+  await closed;
+
+  is(true, true, "Close promise got resolved");
 
   listener.destroy();
 });

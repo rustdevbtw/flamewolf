@@ -6,13 +6,11 @@ use core::borrow::Borrow;
 use core::cmp::Ordering;
 use core::iter::FromIterator;
 use litemap::LiteMap;
-use writeable::Writeable;
 
 use super::Key;
 use super::Value;
-#[allow(deprecated)]
+use crate::helpers::ShortSlice;
 use crate::ordering::SubtagOrderingResult;
-use crate::shortvec::ShortBoxSlice;
 
 /// A list of [`Key`]-[`Value`] pairs representing functional information
 /// about locale's internationalization preferences.
@@ -31,7 +29,10 @@ use crate::shortvec::ShortBoxSlice;
 /// Manually build up a [`Keywords`] object:
 ///
 /// ```
-/// use icu::locid::extensions::unicode::{key, value, Keywords};
+/// use icu::locid::{
+///     extensions::unicode::{key, value, Keywords},
+///     locale,
+/// };
 ///
 /// let keywords = [(key!("hc"), value!("h23"))]
 ///     .into_iter()
@@ -65,7 +66,7 @@ use crate::shortvec::ShortBoxSlice;
 ///
 /// [`Locale`]: crate::Locale
 #[derive(Clone, PartialEq, Eq, Debug, Default, Hash, PartialOrd, Ord)]
-pub struct Keywords(LiteMap<Key, Value, ShortBoxSlice<(Key, Value)>>);
+pub struct Keywords(LiteMap<Key, Value, ShortSlice<(Key, Value)>>);
 
 impl Keywords {
     /// Returns a new empty list of key-value pairs. Same as [`default()`](Default::default()), but is `const`.
@@ -86,7 +87,7 @@ impl Keywords {
     #[inline]
     pub const fn new_single(key: Key, value: Value) -> Self {
         Self(LiteMap::from_sorted_store_unchecked(
-            ShortBoxSlice::new_single((key, value)),
+            ShortSlice::new_single((key, value)),
         ))
     }
 
@@ -95,6 +96,7 @@ impl Keywords {
     /// # Examples
     ///
     /// ```
+    /// use icu::locid::extensions::unicode::Keywords;
     /// use icu::locid::locale;
     /// use icu::locid::Locale;
     ///
@@ -183,6 +185,8 @@ impl Keywords {
     /// # Examples
     ///
     /// ```
+    /// use icu::locid::extensions::unicode::Key;
+    /// use icu::locid::extensions::unicode::Value;
     /// use icu::locid::extensions::unicode::{key, value};
     /// use icu::locid::Locale;
     ///
@@ -207,7 +211,7 @@ impl Keywords {
     /// # Examples
     ///
     /// ```
-    /// use icu::locid::extensions::unicode::key;
+    /// use icu::locid::extensions::unicode::{key, Key};
     /// use icu::locid::Locale;
     ///
     /// let mut loc: Locale = "und-u-hello-ca-buddhist-hc-h12"
@@ -277,6 +281,7 @@ impl Keywords {
     /// # Examples
     ///
     /// ```
+    /// use icu::locid::extensions::unicode::Keywords;
     /// use icu::locid::Locale;
     /// use std::cmp::Ordering;
     ///
@@ -298,7 +303,7 @@ impl Keywords {
     /// }
     /// ```
     pub fn strict_cmp(&self, other: &[u8]) -> Ordering {
-        self.writeable_cmp_bytes(other)
+        self.strict_cmp_iter(other.split(|b| *b == b'-')).end()
     }
 
     /// Compare this [`Keywords`] with an iterator of BCP-47 subtags.
@@ -311,6 +316,7 @@ impl Keywords {
     /// # Examples
     ///
     /// ```
+    /// use icu::locid::extensions::unicode::Keywords;
     /// use icu::locid::locale;
     /// use std::cmp::Ordering;
     ///
@@ -334,8 +340,6 @@ impl Keywords {
     ///     kwds.strict_cmp_iter(subtags.iter().copied()).end()
     /// );
     /// ```
-    #[deprecated(since = "1.5.0", note = "if you need this, please file an issue")]
-    #[allow(deprecated)]
     pub fn strict_cmp_iter<'l, I>(&self, mut subtags: I) -> SubtagOrderingResult<I>
     where
         I: Iterator<Item = &'l [u8]>,
@@ -374,8 +378,8 @@ impl Keywords {
     }
 }
 
-impl From<LiteMap<Key, Value, ShortBoxSlice<(Key, Value)>>> for Keywords {
-    fn from(map: LiteMap<Key, Value, ShortBoxSlice<(Key, Value)>>) -> Self {
+impl From<LiteMap<Key, Value, ShortSlice<(Key, Value)>>> for Keywords {
+    fn from(map: LiteMap<Key, Value, ShortSlice<(Key, Value)>>) -> Self {
         Self(map)
     }
 }

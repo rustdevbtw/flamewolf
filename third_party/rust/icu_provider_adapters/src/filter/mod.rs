@@ -36,6 +36,8 @@
 
 mod impls;
 
+pub use impls::*;
+
 #[cfg(feature = "datagen")]
 use icu_provider::datagen;
 use icu_provider::prelude::*;

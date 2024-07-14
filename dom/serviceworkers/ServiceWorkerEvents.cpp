@@ -847,6 +847,7 @@ void FetchEvent::ReportCanceled() {
 namespace {
 
 class WaitUntilHandler final : public PromiseNativeHandler {
+  WorkerPrivate* mWorkerPrivate;
   const nsCString mScope;
   nsString mSourceSpec;
   uint32_t mLine;
@@ -859,10 +860,11 @@ class WaitUntilHandler final : public PromiseNativeHandler {
   NS_DECL_THREADSAFE_ISUPPORTS
 
   WaitUntilHandler(WorkerPrivate* aWorkerPrivate, JSContext* aCx)
-      : mScope(GetCurrentThreadWorkerPrivate()->ServiceWorkerScope()),
+      : mWorkerPrivate(aWorkerPrivate),
+        mScope(mWorkerPrivate->ServiceWorkerScope()),
         mLine(0),
         mColumn(1) {
-    MOZ_ASSERT(GetCurrentThreadWorkerPrivate());
+    mWorkerPrivate->AssertIsOnWorkerThread();
 
     // Save the location of the waitUntil() call itself as a fallback
     // in case the rejection value does not contain any location info.
@@ -876,8 +878,7 @@ class WaitUntilHandler final : public PromiseNativeHandler {
 
   void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
-    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
-    MOZ_ASSERT(workerPrivate);
+    mWorkerPrivate->AssertIsOnWorkerThread();
 
     nsString spec;
     uint32_t line = 0;
@@ -892,7 +893,7 @@ class WaitUntilHandler final : public PromiseNativeHandler {
       mColumn = column;
     }
 
-    MOZ_ALWAYS_SUCCEEDS(workerPrivate->DispatchToMainThread(
+    MOZ_ALWAYS_SUCCEEDS(mWorkerPrivate->DispatchToMainThread(
         NewRunnableMethod("WaitUntilHandler::ReportOnMainThread", this,
                           &WaitUntilHandler::ReportOnMainThread)));
   }

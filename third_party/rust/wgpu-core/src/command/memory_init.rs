@@ -6,13 +6,15 @@ use crate::{
     device::Device,
     hal_api::HalApi,
     init_tracker::*,
-    resource::{DestroyedResourceError, Resource, Texture},
+    resource::{Resource, Texture},
     snatch::SnatchGuard,
     track::{TextureTracker, Tracker},
     FastHashMap,
 };
 
-use super::{clear::clear_texture, BakedCommands, ClearError};
+use super::{
+    clear::clear_texture, BakedCommands, ClearError, DestroyedBufferError, DestroyedTextureError,
+};
 
 /// Surface that was discarded by `StoreOp::Discard` of a preceding renderpass.
 /// Any read access to this surface needs to be preceded by a texture initialization.
@@ -83,7 +85,7 @@ impl<A: HalApi> CommandBufferTextureMemoryActions<A> {
         // self.discards is empty!)
         let init_actions = &mut self.init_actions;
         self.discards.retain(|discarded_surface| {
-            if discarded_surface.texture.is_equal(&action.texture)
+            if discarded_surface.texture.as_info().id() == action.texture.as_info().id()
                 && action.range.layer_range.contains(&discarded_surface.layer)
                 && action
                     .range
@@ -169,7 +171,7 @@ impl<A: HalApi> BakedCommands<A> {
         &mut self,
         device_tracker: &mut Tracker<A>,
         snatch_guard: &SnatchGuard<'_>,
-    ) -> Result<(), DestroyedResourceError> {
+    ) -> Result<(), DestroyedBufferError> {
         profiling::scope!("initialize_buffer_memory");
 
         // Gather init ranges for each buffer so we can collapse them.
@@ -191,9 +193,7 @@ impl<A: HalApi> BakedCommands<A> {
             match buffer_use.kind {
                 MemoryInitKind::ImplicitlyInitialized => {}
                 MemoryInitKind::NeedsInitializedMemory => {
-                    match uninitialized_ranges_per_buffer
-                        .entry(buffer_use.buffer.as_info().tracker_index())
-                    {
+                    match uninitialized_ranges_per_buffer.entry(buffer_use.buffer.as_info().id()) {
                         Entry::Vacant(e) => {
                             e.insert((
                                 buffer_use.buffer.clone(),
@@ -208,7 +208,7 @@ impl<A: HalApi> BakedCommands<A> {
             }
         }
 
-        for (buffer, mut ranges) in uninitialized_ranges_per_buffer.into_values() {
+        for (buffer_id, (buffer, mut ranges)) in uninitialized_ranges_per_buffer {
             // Collapse touching ranges.
             ranges.sort_by_key(|r| r.start);
             for i in (1..ranges.len()).rev() {
@@ -227,9 +227,14 @@ impl<A: HalApi> BakedCommands<A> {
             // must already know about it.
             let transition = device_tracker
                 .buffers
-                .set_single(&buffer, hal::BufferUses::COPY_DST);
+                .set_single(&buffer, hal::BufferUses::COPY_DST)
+                .unwrap()
+                .1;
 
-            let raw_buf = buffer.try_raw(snatch_guard)?;
+            let raw_buf = buffer
+                .raw
+                .get(snatch_guard)
+                .ok_or(DestroyedBufferError(buffer_id))?;
 
             unsafe {
                 self.encoder.transition_buffers(
@@ -272,7 +277,7 @@ impl<A: HalApi> BakedCommands<A> {
         device_tracker: &mut Tracker<A>,
         device: &Device<A>,
         snatch_guard: &SnatchGuard<'_>,
-    ) -> Result<(), DestroyedResourceError> {
+    ) -> Result<(), DestroyedTextureError> {
         profiling::scope!("initialize_texture_memory");
 
         let mut ranges: Vec<TextureInitRange> = Vec::new();
@@ -319,8 +324,8 @@ impl<A: HalApi> BakedCommands<A> {
                 // A Texture can be destroyed between the command recording
                 // and now, this is out of our control so we have to handle
                 // it gracefully.
-                if let Err(ClearError::DestroyedResource(e)) = clear_result {
-                    return Err(e);
+                if let Err(ClearError::InvalidTexture(id)) = clear_result {
+                    return Err(DestroyedTextureError(id));
                 }
 
                 // Other errors are unexpected.

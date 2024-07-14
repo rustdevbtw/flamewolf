@@ -5,7 +5,7 @@
  * Copyright (C) 1991-1996, Thomas G. Lane.
  * libjpeg-turbo Modifications:
  * Copyright 2009 Pierre Ossman <ossman@cendio.se> for Cendio AB
- * Copyright (C) 2010, 2015-2016, 2022, D. R. Commander.
+ * Copyright (C) 2010, 2015-2016, D. R. Commander.
  * Copyright (C) 2014, MIPS Technologies, Inc., California.
  * Copyright (C) 2015, Google, Inc.
  * Copyright (C) 2019-2020, Arm Limited.
@@ -28,11 +28,7 @@
 #include "jinclude.h"
 #include "jdsample.h"
 #include "jsimd.h"
-#include "jpegapicomp.h"
-
-
-
-#if BITS_IN_JSAMPLE != 16 || defined(D_LOSSLESS_SUPPORTED)
+#include "jpegcomp.h"
 
 /*
  * Initialize for an upsampling pass.
@@ -59,11 +55,10 @@ start_pass_upsample(j_decompress_ptr cinfo)
  */
 
 METHODDEF(void)
-sep_upsample(j_decompress_ptr cinfo, _JSAMPIMAGE input_buf,
-             JDIMENSION *in_row_group_ctr, JDIMENSION in_row_groups_avail,
-             _JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
-             JDIMENSION out_rows_avail)
-{
+sep_upsample(j_decompress_ptr cinfo, JSAMPIMAGE input_buf,
+             JDIMENSION* in_row_group_ctr, JDIMENSION in_row_groups_avail,
+             JSAMPARRAY output_buf, JDIMENSION* out_row_ctr,
+             JDIMENSION out_rows_avail) {
   my_upsample_ptr upsample = (my_upsample_ptr)cinfo->upsample;
   int ci;
   jpeg_component_info *compptr;
@@ -97,10 +92,9 @@ sep_upsample(j_decompress_ptr cinfo, _JSAMPIMAGE input_buf,
   if (num_rows > out_rows_avail)
     num_rows = out_rows_avail;
 
-  (*cinfo->cconvert->_color_convert) (cinfo, upsample->color_buf,
-                                      (JDIMENSION)upsample->next_row_out,
-                                      output_buf + *out_row_ctr,
-                                      (int)num_rows);
+  (*cinfo->cconvert->color_convert)(cinfo, upsample->color_buf,
+                                    (JDIMENSION)upsample->next_row_out,
+                                    output_buf + *out_row_ctr, (int)num_rows);
 
   /* Adjust counts */
   *out_row_ctr += num_rows;
@@ -110,7 +104,6 @@ sep_upsample(j_decompress_ptr cinfo, _JSAMPIMAGE input_buf,
   if (upsample->next_row_out >= cinfo->max_v_samp_factor)
     (*in_row_group_ctr)++;
 }
-
 
 /*
  * These are the routines invoked by sep_upsample to upsample pixel values
@@ -126,12 +119,10 @@ sep_upsample(j_decompress_ptr cinfo, _JSAMPIMAGE input_buf,
  */
 
 METHODDEF(void)
-fullsize_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
-                  _JSAMPARRAY input_data, _JSAMPARRAY *output_data_ptr)
-{
+fullsize_upsample(j_decompress_ptr cinfo, jpeg_component_info* compptr,
+                  JSAMPARRAY input_data, JSAMPARRAY* output_data_ptr) {
   *output_data_ptr = input_data;
 }
-
 
 /*
  * This is a no-op version used for "uninteresting" components.
@@ -139,12 +130,10 @@ fullsize_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
  */
 
 METHODDEF(void)
-noop_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
-              _JSAMPARRAY input_data, _JSAMPARRAY *output_data_ptr)
-{
+noop_upsample(j_decompress_ptr cinfo, jpeg_component_info* compptr,
+              JSAMPARRAY input_data, JSAMPARRAY* output_data_ptr) {
   *output_data_ptr = NULL;      /* safety check */
 }
-
 
 /*
  * This version handles any integral sampling ratios.
@@ -158,15 +147,14 @@ noop_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
  */
 
 METHODDEF(void)
-int_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
-             _JSAMPARRAY input_data, _JSAMPARRAY *output_data_ptr)
-{
+int_upsample(j_decompress_ptr cinfo, jpeg_component_info* compptr,
+             JSAMPARRAY input_data, JSAMPARRAY* output_data_ptr) {
   my_upsample_ptr upsample = (my_upsample_ptr)cinfo->upsample;
-  _JSAMPARRAY output_data = *output_data_ptr;
-  register _JSAMPROW inptr, outptr;
-  register _JSAMPLE invalue;
+  JSAMPARRAY output_data = *output_data_ptr;
+  register JSAMPROW inptr, outptr;
+  register JSAMPLE invalue;
   register int h;
-  _JSAMPROW outend;
+  JSAMPROW outend;
   int h_expand, v_expand;
   int inrow, outrow;
 
@@ -187,14 +175,13 @@ int_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
     }
     /* Generate any additional output rows by duplicating the first one */
     if (v_expand > 1) {
-      _jcopy_sample_rows(output_data, outrow, output_data, outrow + 1,
-                         v_expand - 1, cinfo->output_width);
+      jcopy_sample_rows(output_data, outrow, output_data, outrow + 1,
+                        v_expand - 1, cinfo->output_width);
     }
     inrow++;
     outrow += v_expand;
   }
 }
-
 
 /*
  * Fast processing for the common case of 2:1 horizontal and 1:1 vertical.
@@ -202,13 +189,12 @@ int_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
  */
 
 METHODDEF(void)
-h2v1_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
-              _JSAMPARRAY input_data, _JSAMPARRAY *output_data_ptr)
-{
-  _JSAMPARRAY output_data = *output_data_ptr;
-  register _JSAMPROW inptr, outptr;
-  register _JSAMPLE invalue;
-  _JSAMPROW outend;
+h2v1_upsample(j_decompress_ptr cinfo, jpeg_component_info* compptr,
+              JSAMPARRAY input_data, JSAMPARRAY* output_data_ptr) {
+  JSAMPARRAY output_data = *output_data_ptr;
+  register JSAMPROW inptr, outptr;
+  register JSAMPLE invalue;
+  JSAMPROW outend;
   int inrow;
 
   for (inrow = 0; inrow < cinfo->max_v_samp_factor; inrow++) {
@@ -223,20 +209,18 @@ h2v1_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
   }
 }
 
-
 /*
  * Fast processing for the common case of 2:1 horizontal and 2:1 vertical.
  * It's still a box filter.
  */
 
 METHODDEF(void)
-h2v2_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
-              _JSAMPARRAY input_data, _JSAMPARRAY *output_data_ptr)
-{
-  _JSAMPARRAY output_data = *output_data_ptr;
-  register _JSAMPROW inptr, outptr;
-  register _JSAMPLE invalue;
-  _JSAMPROW outend;
+h2v2_upsample(j_decompress_ptr cinfo, jpeg_component_info* compptr,
+              JSAMPARRAY input_data, JSAMPARRAY* output_data_ptr) {
+  JSAMPARRAY output_data = *output_data_ptr;
+  register JSAMPROW inptr, outptr;
+  register JSAMPLE invalue;
+  JSAMPROW outend;
   int inrow, outrow;
 
   inrow = outrow = 0;
@@ -249,13 +233,12 @@ h2v2_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
       *outptr++ = invalue;
       *outptr++ = invalue;
     }
-    _jcopy_sample_rows(output_data, outrow, output_data, outrow + 1, 1,
-                       cinfo->output_width);
+    jcopy_sample_rows(output_data, outrow, output_data, outrow + 1, 1,
+                      cinfo->output_width);
     inrow++;
     outrow += 2;
   }
 }
-
 
 /*
  * Fancy processing for the common case of 2:1 horizontal and 1:1 vertical.
@@ -273,11 +256,10 @@ h2v2_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
  */
 
 METHODDEF(void)
-h2v1_fancy_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
-                    _JSAMPARRAY input_data, _JSAMPARRAY *output_data_ptr)
-{
-  _JSAMPARRAY output_data = *output_data_ptr;
-  register _JSAMPROW inptr, outptr;
+h2v1_fancy_upsample(j_decompress_ptr cinfo, jpeg_component_info* compptr,
+                    JSAMPARRAY input_data, JSAMPARRAY* output_data_ptr) {
+  JSAMPARRAY output_data = *output_data_ptr;
+  register JSAMPROW inptr, outptr;
   register int invalue;
   register JDIMENSION colctr;
   int inrow;
@@ -287,23 +269,22 @@ h2v1_fancy_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
     outptr = output_data[inrow];
     /* Special case for first column */
     invalue = *inptr++;
-    *outptr++ = (_JSAMPLE)invalue;
-    *outptr++ = (_JSAMPLE)((invalue * 3 + inptr[0] + 2) >> 2);
+    *outptr++ = (JSAMPLE)invalue;
+    *outptr++ = (JSAMPLE)((invalue * 3 + inptr[0] + 2) >> 2);
 
     for (colctr = compptr->downsampled_width - 2; colctr > 0; colctr--) {
       /* General case: 3/4 * nearer pixel + 1/4 * further pixel */
       invalue = (*inptr++) * 3;
-      *outptr++ = (_JSAMPLE)((invalue + inptr[-2] + 1) >> 2);
-      *outptr++ = (_JSAMPLE)((invalue + inptr[0] + 2) >> 2);
+      *outptr++ = (JSAMPLE)((invalue + inptr[-2] + 1) >> 2);
+      *outptr++ = (JSAMPLE)((invalue + inptr[0] + 2) >> 2);
     }
 
     /* Special case for last column */
     invalue = *inptr;
-    *outptr++ = (_JSAMPLE)((invalue * 3 + inptr[-1] + 1) >> 2);
-    *outptr++ = (_JSAMPLE)invalue;
+    *outptr++ = (JSAMPLE)((invalue * 3 + inptr[-1] + 1) >> 2);
+    *outptr++ = (JSAMPLE)invalue;
   }
 }
-
 
 /*
  * Fancy processing for 1:1 horizontal and 2:1 vertical (4:4:0 subsampling).
@@ -313,11 +294,10 @@ h2v1_fancy_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
  */
 
 METHODDEF(void)
-h1v2_fancy_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
-                    _JSAMPARRAY input_data, _JSAMPARRAY *output_data_ptr)
-{
-  _JSAMPARRAY output_data = *output_data_ptr;
-  _JSAMPROW inptr0, inptr1, outptr;
+h1v2_fancy_upsample(j_decompress_ptr cinfo, jpeg_component_info* compptr,
+                    JSAMPARRAY input_data, JSAMPARRAY* output_data_ptr) {
+  JSAMPARRAY output_data = *output_data_ptr;
+  JSAMPROW inptr0, inptr1, outptr;
 #if BITS_IN_JSAMPLE == 8
   int thiscolsum, bias;
 #else
@@ -342,13 +322,12 @@ h1v2_fancy_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
 
       for (colctr = 0; colctr < compptr->downsampled_width; colctr++) {
         thiscolsum = (*inptr0++) * 3 + (*inptr1++);
-        *outptr++ = (_JSAMPLE)((thiscolsum + bias) >> 2);
+        *outptr++ = (JSAMPLE)((thiscolsum + bias) >> 2);
       }
     }
     inrow++;
   }
 }
-
 
 /*
  * Fancy processing for the common case of 2:1 horizontal and 2:1 vertical.
@@ -359,11 +338,10 @@ h1v2_fancy_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
  */
 
 METHODDEF(void)
-h2v2_fancy_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
-                    _JSAMPARRAY input_data, _JSAMPARRAY *output_data_ptr)
-{
-  _JSAMPARRAY output_data = *output_data_ptr;
-  register _JSAMPROW inptr0, inptr1, outptr;
+h2v2_fancy_upsample(j_decompress_ptr cinfo, jpeg_component_info* compptr,
+                    JSAMPARRAY input_data, JSAMPARRAY* output_data_ptr) {
+  JSAMPARRAY output_data = *output_data_ptr;
+  register JSAMPROW inptr0, inptr1, outptr;
 #if BITS_IN_JSAMPLE == 8
   register int thiscolsum, lastcolsum, nextcolsum;
 #else
@@ -386,43 +364,38 @@ h2v2_fancy_upsample(j_decompress_ptr cinfo, jpeg_component_info *compptr,
       /* Special case for first column */
       thiscolsum = (*inptr0++) * 3 + (*inptr1++);
       nextcolsum = (*inptr0++) * 3 + (*inptr1++);
-      *outptr++ = (_JSAMPLE)((thiscolsum * 4 + 8) >> 4);
-      *outptr++ = (_JSAMPLE)((thiscolsum * 3 + nextcolsum + 7) >> 4);
+      *outptr++ = (JSAMPLE)((thiscolsum * 4 + 8) >> 4);
+      *outptr++ = (JSAMPLE)((thiscolsum * 3 + nextcolsum + 7) >> 4);
       lastcolsum = thiscolsum;  thiscolsum = nextcolsum;
 
       for (colctr = compptr->downsampled_width - 2; colctr > 0; colctr--) {
         /* General case: 3/4 * nearer pixel + 1/4 * further pixel in each */
         /* dimension, thus 9/16, 3/16, 3/16, 1/16 overall */
         nextcolsum = (*inptr0++) * 3 + (*inptr1++);
-        *outptr++ = (_JSAMPLE)((thiscolsum * 3 + lastcolsum + 8) >> 4);
-        *outptr++ = (_JSAMPLE)((thiscolsum * 3 + nextcolsum + 7) >> 4);
+        *outptr++ = (JSAMPLE)((thiscolsum * 3 + lastcolsum + 8) >> 4);
+        *outptr++ = (JSAMPLE)((thiscolsum * 3 + nextcolsum + 7) >> 4);
         lastcolsum = thiscolsum;  thiscolsum = nextcolsum;
       }
 
       /* Special case for last column */
-      *outptr++ = (_JSAMPLE)((thiscolsum * 3 + lastcolsum + 8) >> 4);
-      *outptr++ = (_JSAMPLE)((thiscolsum * 4 + 7) >> 4);
+      *outptr++ = (JSAMPLE)((thiscolsum * 3 + lastcolsum + 8) >> 4);
+      *outptr++ = (JSAMPLE)((thiscolsum * 4 + 7) >> 4);
     }
     inrow++;
   }
 }
-
 
 /*
  * Module initialization routine for upsampling.
  */
 
 GLOBAL(void)
-_jinit_upsampler(j_decompress_ptr cinfo)
-{
+jinit_upsampler(j_decompress_ptr cinfo) {
   my_upsample_ptr upsample;
   int ci;
   jpeg_component_info *compptr;
   boolean need_buffer, do_fancy;
   int h_in_group, v_in_group, h_out_group, v_out_group;
-
-  if (cinfo->data_precision != BITS_IN_JSAMPLE)
-    ERREXIT1(cinfo, JERR_BAD_PRECISION, cinfo->data_precision);
 
   if (!cinfo->master->jinit_upsampler_no_alloc) {
     upsample = (my_upsample_ptr)
@@ -430,7 +403,7 @@ _jinit_upsampler(j_decompress_ptr cinfo)
                                   sizeof(my_upsampler));
     cinfo->upsample = (struct jpeg_upsampler *)upsample;
     upsample->pub.start_pass = start_pass_upsample;
-    upsample->pub._upsample = sep_upsample;
+    upsample->pub.upsample = sep_upsample;
     upsample->pub.need_context_rows = FALSE; /* until we find out differently */
   } else
     upsample = (my_upsample_ptr)cinfo->upsample;
@@ -470,25 +443,21 @@ _jinit_upsampler(j_decompress_ptr cinfo)
     } else if (h_in_group * 2 == h_out_group && v_in_group == v_out_group) {
       /* Special cases for 2h1v upsampling */
       if (do_fancy && compptr->downsampled_width > 2) {
-#ifdef WITH_SIMD
         if (jsimd_can_h2v1_fancy_upsample())
           upsample->methods[ci] = jsimd_h2v1_fancy_upsample;
         else
-#endif
           upsample->methods[ci] = h2v1_fancy_upsample;
       } else {
-#ifdef WITH_SIMD
         if (jsimd_can_h2v1_upsample())
           upsample->methods[ci] = jsimd_h2v1_upsample;
         else
-#endif
           upsample->methods[ci] = h2v1_upsample;
       }
     } else if (h_in_group == h_out_group &&
                v_in_group * 2 == v_out_group && do_fancy) {
       /* Non-fancy upsampling is handled by the generic method */
-#if defined(WITH_SIMD) && (defined(__arm__) || defined(__aarch64__) || \
-                           defined(_M_ARM) || defined(_M_ARM64))
+#if defined(__arm__) || defined(__aarch64__) || defined(_M_ARM) || \
+    defined(_M_ARM64)
       if (jsimd_can_h1v2_fancy_upsample())
         upsample->methods[ci] = jsimd_h1v2_fancy_upsample;
       else
@@ -499,25 +468,21 @@ _jinit_upsampler(j_decompress_ptr cinfo)
                v_in_group * 2 == v_out_group) {
       /* Special cases for 2h2v upsampling */
       if (do_fancy && compptr->downsampled_width > 2) {
-#ifdef WITH_SIMD
         if (jsimd_can_h2v2_fancy_upsample())
           upsample->methods[ci] = jsimd_h2v2_fancy_upsample;
         else
-#endif
           upsample->methods[ci] = h2v2_fancy_upsample;
         upsample->pub.need_context_rows = TRUE;
       } else {
-#ifdef WITH_SIMD
         if (jsimd_can_h2v2_upsample())
           upsample->methods[ci] = jsimd_h2v2_upsample;
         else
-#endif
           upsample->methods[ci] = h2v2_upsample;
       }
     } else if ((h_out_group % h_in_group) == 0 &&
                (v_out_group % v_in_group) == 0) {
       /* Generic integral-factors upsampling method */
-#if defined(WITH_SIMD) && defined(__mips__)
+#if defined(__mips__)
       if (jsimd_can_int_upsample())
         upsample->methods[ci] = jsimd_int_upsample;
       else
@@ -528,13 +493,11 @@ _jinit_upsampler(j_decompress_ptr cinfo)
     } else
       ERREXIT(cinfo, JERR_FRACT_SAMPLE_NOTIMPL);
     if (need_buffer && !cinfo->master->jinit_upsampler_no_alloc) {
-      upsample->color_buf[ci] = (_JSAMPARRAY)(*cinfo->mem->alloc_sarray)
-        ((j_common_ptr)cinfo, JPOOL_IMAGE,
-         (JDIMENSION)jround_up((long)cinfo->output_width,
-                               (long)cinfo->max_h_samp_factor),
-         (JDIMENSION)cinfo->max_v_samp_factor);
+      upsample->color_buf[ci] = (*cinfo->mem->alloc_sarray)(
+          (j_common_ptr)cinfo, JPOOL_IMAGE,
+          (JDIMENSION)jround_up((long)cinfo->output_width,
+                                (long)cinfo->max_h_samp_factor),
+          (JDIMENSION)cinfo->max_v_samp_factor);
     }
   }
 }
-
-#endif /* BITS_IN_JSAMPLE != 16 || defined(D_LOSSLESS_SUPPORTED) */

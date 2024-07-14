@@ -21,6 +21,9 @@ const {
   WebConsoleUtils,
 } = require("resource://devtools/server/actors/webconsole/utils.js");
 
+const {
+  TYPES: { ERROR_MESSAGE },
+} = require("resource://devtools/server/actors/resources/index.js");
 const Targets = require("resource://devtools/server/actors/targets/index.js");
 
 const { MESSAGE_CATEGORY } = require("resource://devtools/shared/constants.js");
@@ -182,6 +185,7 @@ class ErrorMessageWatcher extends nsIConsoleListenerWatcher {
 
     return {
       pageError,
+      resourceType: ERROR_MESSAGE,
     };
   }
 }

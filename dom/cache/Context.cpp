@@ -15,7 +15,6 @@
 #include "mozilla/dom/cache/ManagerId.h"
 #include "mozilla/dom/quota/Assertions.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
-#include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
@@ -953,8 +952,6 @@ Context::~Context() {
   if (mThreadsafeHandle) {
     mThreadsafeHandle->ContextDestroyed(*this);
   }
-
-  SafeDropDirectoryLock(mDirectoryLock);
 
   // Note, this may set the mOrphanedData flag.
   mManager->RemoveContext(*this);

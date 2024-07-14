@@ -12,7 +12,7 @@
 namespace js {
 
 /* Derived class for all scripted proxy handlers. */
-class ScriptedProxyHandler : public NurseryAllocableProxyHandler {
+class ScriptedProxyHandler : public BaseProxyHandler {
  public:
   enum class GetTrapValidationResult {
     OK,
@@ -21,7 +21,7 @@ class ScriptedProxyHandler : public NurseryAllocableProxyHandler {
     Exception,
   };
 
-  constexpr ScriptedProxyHandler() : NurseryAllocableProxyHandler(&family) {}
+  constexpr ScriptedProxyHandler() : BaseProxyHandler(&family) {}
 
   /* Standard internal methods. */
   virtual bool getOwnPropertyDescriptor(

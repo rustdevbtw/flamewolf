@@ -126,7 +126,10 @@ describe("ConsoleAPICall component:", () => {
       const packet = stubPackets.get("console.log('foobar', 'test')");
       const stub = {
         ...packet,
-        prefix: "MyNicePrefix",
+        message: {
+          ...packet.message,
+          prefix: "MyNicePrefix",
+        },
       };
 
       const wrapper = render(

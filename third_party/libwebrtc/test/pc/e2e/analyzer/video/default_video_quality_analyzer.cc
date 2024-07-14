@@ -285,12 +285,8 @@ void DefaultVideoQualityAnalyzer::OnFramePreEncode(
       << "DefaultVideoQualityAnalyzer has to be started before use";
 
   auto it = captured_frames_in_flight_.find(frame.id());
-  if (it == captured_frames_in_flight_.end()) {
-    // If the frame is not found, it is possible that it has been encoded twice
-    // and that it was received by all the participants the first time.
-    RTC_LOG(LS_WARNING) << "Frame id=" << frame.id() << " not found.";
-    return;
-  }
+  RTC_CHECK(it != captured_frames_in_flight_.end())
+      << "Frame id=" << frame.id() << " not found";
   FrameInFlight& frame_in_flight = it->second;
   frame_counters_.pre_encoded++;
   size_t peer_index = peers_->index(peer_name);

@@ -15,6 +15,7 @@
 #include "modules/audio_processing/logging/apm_data_dumper.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/numerics/safe_minmax.h"
+#include "system_wrappers/include/field_trial.h"
 
 namespace webrtc {
 namespace {
@@ -120,12 +121,12 @@ void MatchedFilterLagAggregator::HighestPeakAggregator::Aggregate(int lag) {
 }
 
 MatchedFilterLagAggregator::PreEchoLagAggregator::PreEchoLagAggregator(
-    size_t max_filter_lag,
-    size_t down_sampling_factor)
+    size_t max_filter_lag, size_t down_sampling_factor)
     : block_size_log2_(GetDownSamplingBlockSizeLog2(down_sampling_factor)),
+      penalize_high_delays_initial_phase_(!field_trial::IsDisabled(
+          "WebRTC-Aec3PenalyzeHighDelaysInitialPhase")),
       histogram_(
-          ((max_filter_lag + 1) * down_sampling_factor) >> kBlockSizeLog2,
-          0) {
+          ((max_filter_lag + 1) * down_sampling_factor) >> kBlockSizeLog2, 0) {
   Reset();
 }
 
@@ -153,7 +154,8 @@ void MatchedFilterLagAggregator::PreEchoLagAggregator::Aggregate(
   ++histogram_[histogram_data_[histogram_data_index_]];
   histogram_data_index_ = (histogram_data_index_ + 1) % histogram_data_.size();
   int pre_echo_candidate_block_size = 0;
-  if (number_updates_ < kNumBlocksPerSecond * 2) {
+  if (penalize_high_delays_initial_phase_ &&
+      number_updates_ < kNumBlocksPerSecond * 2) {
     number_updates_++;
     float penalization_per_delay = 1.0f;
     float max_histogram_value = -1.0f;

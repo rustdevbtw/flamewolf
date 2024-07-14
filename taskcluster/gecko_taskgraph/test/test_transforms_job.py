@@ -86,7 +86,7 @@ def transform(monkeypatch, config):
     "task",
     [
         {"worker-type": "b-linux"},
-        {"worker-type": "win11-64-2009-hw"},
+        {"worker-type": "t-win10-64-hw"},
     ],
     ids=lambda t: t["worker-type"],
 )

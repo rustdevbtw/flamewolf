@@ -1488,21 +1488,12 @@ function waitAppMenuNotificationShown(
         if (!addon) {
           ok(false, `Addon with id "${addonId}" not found`);
         }
-
+        let hidden = !(
+          addon.permissions &
+          AddonManager.PERM_CAN_CHANGE_PRIVATEBROWSING_ACCESS
+        );
         let checkbox = document.getElementById("addon-incognito-checkbox");
-        if (ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX) {
-          let hidden = !(
-            addon.permissions &
-            AddonManager.PERM_CAN_CHANGE_PRIVATEBROWSING_ACCESS
-          );
-          is(checkbox.hidden, hidden, "checkbox visibility is correct");
-        } else {
-          is(
-            checkbox.hidden,
-            true,
-            "incognito checkbox expected to be hidden in the post install dialog"
-          );
-        }
+        is(checkbox.hidden, hidden, "checkbox visibility is correct");
       }
       if (accept) {
         let popupnotificationID = PanelUI._getPopupId(notification);

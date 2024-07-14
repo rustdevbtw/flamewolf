@@ -8,8 +8,8 @@ use crate::ZeroSlice;
 use core::cmp::Ordering;
 use core::fmt;
 
-use super::kv::ZeroMapKV;
-use super::vecs::ZeroVecLike;
+pub use super::kv::ZeroMapKV;
+pub use super::vecs::{MutableZeroVecLike, ZeroVecLike};
 
 /// A borrowed-only version of [`ZeroMap`](super::ZeroMap)
 ///
@@ -151,6 +151,7 @@ where
     /// primary advantage of using [`ZeroMapBorrowed`](super::ZeroMapBorrowed) over [`ZeroMap`](super::ZeroMap).
     ///
     /// ```rust
+    /// use zerovec::maps::ZeroMapBorrowed;
     /// use zerovec::ZeroMap;
     ///
     /// let mut map = ZeroMap::new();
@@ -172,6 +173,7 @@ where
     /// primary advantage of using [`ZeroMapBorrowed`](super::ZeroMapBorrowed) over [`ZeroMap`](super::ZeroMap).
     ///
     /// ```rust
+    /// use zerovec::maps::ZeroMapBorrowed;
     /// use zerovec::ZeroMap;
     ///
     /// let mut map = ZeroMap::new();
@@ -189,6 +191,7 @@ where
     /// Returns whether `key` is contained in this map
     ///
     /// ```rust
+    /// use zerovec::maps::ZeroMapBorrowed;
     /// use zerovec::ZeroMap;
     ///
     /// let mut map = ZeroMap::new();

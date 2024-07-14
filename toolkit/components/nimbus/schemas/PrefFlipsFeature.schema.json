@@ -12,37 +12,17 @@
             "branch": {
               "description": "The branch the pref should be set on.",
               "type": "string",
-              "enum": ["user", "default"]
+              "enum": ["user", "branch"]
             },
             "value": {
               "description": "The value of the pref. Set to null to clear prefs.",
               "type": ["string", "integer", "boolean", "null"]
             }
           },
-          "required": ["branch", "value"],
-          "allOf": [
-            {
-              "description": "Prevent clearing the default branch",
-              "if": {
-                "properties": {
-                  "branch": {
-                    "const": "default"
-                  }
-                }
-              },
-              "then": {
-                "properties": {
-                  "value": {
-                    "type": ["string", "integer", "boolean"]
-                  }
-                }
-              }
-            }
-          ]
+          "required": ["branch", "value"]
         }
       }
     }
   },
-  "required": ["prefs"],
   "additionalProperties": false
 }

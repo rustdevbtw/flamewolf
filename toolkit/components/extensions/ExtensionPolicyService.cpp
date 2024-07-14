@@ -112,15 +112,6 @@ ExtensionPolicyService::GetCoreByHost(const nsACString& aHost) {
   return sCoreByHost ? sCoreByHost->Get(aHost) : nullptr;
 }
 
-/* static */
-RefPtr<extensions::WebExtensionPolicyCore> ExtensionPolicyService::GetCoreByURL(
-    const URLInfo& aURL) {
-  if (aURL.Scheme() == nsGkAtoms::moz_extension) {
-    return GetCoreByHost(aURL.Host());
-  }
-  return nullptr;
-}
-
 ExtensionPolicyService::ExtensionPolicyService() {
   mObs = services::GetObserverService();
   MOZ_RELEASE_ASSERT(mObs);
@@ -738,7 +729,7 @@ nsresult ExtensionPolicyService::SourceMayLoadExtensionURI(
     nsIURI* aSourceURI, nsIURI* aExtensionURI, bool* aResult) {
   URLInfo source(aSourceURI);
   URLInfo url(aExtensionURI);
-  if (RefPtr<WebExtensionPolicyCore> policy = GetCoreByURL(url)) {
+  if (WebExtensionPolicy* policy = GetByURL(url)) {
     *aResult = policy->SourceMayAccessPath(source, url.FilePath());
     return NS_OK;
   }

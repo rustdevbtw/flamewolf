@@ -15,7 +15,6 @@
 #include <vector>
 
 #include "absl/container/inlined_vector.h"
-#include "api/environment/environment.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "modules/video_coding/codecs/vp8/include/vp8.h"
 #include "modules/video_coding/codecs/vp8/vp8_scalability.h"
@@ -33,9 +32,8 @@ struct LibvpxVp8EncoderTemplateAdapter {
   }
 
   static std::unique_ptr<VideoEncoder> CreateEncoder(
-      const Environment& env,
       const SdpVideoFormat& format) {
-    return CreateVp8Encoder(env);
+    return VP8Encoder::Create();
   }
 
   static bool IsScalabilityModeSupported(ScalabilityMode scalability_mode) {

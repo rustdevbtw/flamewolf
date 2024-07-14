@@ -17,7 +17,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   EventPromise: "chrome://remote/content/shared/Sync.sys.mjs",
   getTimeoutMultiplier: "chrome://remote/content/shared/AppInfo.sys.mjs",
-  Log: "chrome://remote/content/shared/Log.sys.mjs",
   modal: "chrome://remote/content/shared/Prompt.sys.mjs",
   registerNavigationId:
     "chrome://remote/content/shared/NavigationManager.sys.mjs",
@@ -40,10 +39,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/shared/messagehandler/WindowGlobalMessageHandler.sys.mjs",
   windowManager: "chrome://remote/content/shared/WindowManager.sys.mjs",
 });
-
-ChromeUtils.defineLazyGetter(lazy, "logger", () =>
-  lazy.Log.get(lazy.Log.TYPES.WEBDRIVER_BIDI)
-);
 
 // Maximal window dimension allowed when emulating a viewport.
 const MAX_WINDOW_SIZE = 10000000;
@@ -405,9 +400,6 @@ class BrowsingContextModule extends Module {
    * @param {object=} options
    * @param {string} options.context
    *     Id of the browsing context to close.
-   * @param {boolean=} options.promptUnload
-   *     Flag to indicate if a potential beforeunload prompt should be shown
-   *     when closing the browsing context. Defaults to false.
    *
    * @throws {NoSuchFrameError}
    *     If the browsing context cannot be found.
@@ -415,16 +407,11 @@ class BrowsingContextModule extends Module {
    *     If the browsing context is not a top-level one.
    */
   async close(options = {}) {
-    const { context: contextId, promptUnload = false } = options;
+    const { context: contextId } = options;
 
     lazy.assert.string(
       contextId,
       `Expected "context" to be a string, got ${contextId}`
-    );
-
-    lazy.assert.boolean(
-      promptUnload,
-      `Expected "promptUnload" to be a boolean, got ${promptUnload}`
     );
 
     const context = lazy.TabManager.getBrowsingContextById(contextId);
@@ -448,7 +435,7 @@ class BrowsingContextModule extends Module {
     }
 
     const tab = lazy.TabManager.getTabForBrowsingContext(context);
-    await lazy.TabManager.removeTab(tab, { skipPermitUnload: !promptUnload });
+    await lazy.TabManager.removeTab(tab);
   }
 
   /**
@@ -776,12 +763,11 @@ class BrowsingContextModule extends Module {
 
     if (dialog && dialog.isOpen) {
       switch (dialog.promptType) {
-        case UserPromptType.alert:
+        case UserPromptType.alert: {
           await closePrompt(() => dialog.accept());
           return;
-
-        case UserPromptType.beforeunload:
-        case UserPromptType.confirm:
+        }
+        case UserPromptType.confirm: {
           await closePrompt(() => {
             if (accept) {
               dialog.accept();
@@ -791,8 +777,8 @@ class BrowsingContextModule extends Module {
           });
 
           return;
-
-        case UserPromptType.prompt:
+        }
+        case UserPromptType.prompt: {
           await closePrompt(() => {
             if (accept) {
               dialog.text = userText;
@@ -803,11 +789,13 @@ class BrowsingContextModule extends Module {
           });
 
           return;
-
-        default:
+        }
+        case UserPromptType.beforeunload: {
+          // TODO: Bug 1824220. Implement support for "beforeunload" prompts.
           throw new lazy.error.UnsupportedOperationError(
-            `Prompts of type "${dialog.promptType}" are not supported`
+            '"beforeunload" prompts are not supported yet.'
           );
+        }
       }
     }
 
@@ -1715,18 +1703,9 @@ class BrowsingContextModule extends Module {
     }
 
     const userContext = lazy.UserContextManager.getIdByBrowsingContext(context);
-    const originalOpener =
-      context.crossGroupOpener !== null
-        ? lazy.TabManager.getIdForBrowsingContext(context.crossGroupOpener)
-        : null;
     const contextInfo = {
       children,
       context: lazy.TabManager.getIdForBrowsingContext(context),
-      // TODO: Bug 1904641. If a browsing context was not tracked in TabManager,
-      // because it was created and discarded before the WebDriver BiDi session was
-      // started, we get undefined as id for this browsing context.
-      // We should remove this condition, when we can provide a correct id here.
-      originalOpener: originalOpener === undefined ? null : originalOpener,
       url: context.currentURI.spec,
       userContext,
     };
@@ -1872,9 +1851,7 @@ class BrowsingContextModule extends Module {
 
       const params = {
         context: contextId,
-        accepted: detail.accepted,
-        type: detail.promptType,
-        userText: detail.userText,
+        ...detail,
       };
 
       this.emitEvent("browsingContext.userPromptClosed", params, contextInfo);
@@ -1887,7 +1864,6 @@ class BrowsingContextModule extends Module {
 
       // Do not send opened event for unsupported prompt types.
       if (!(prompt.promptType in UserPromptType)) {
-        lazy.logger.trace(`Prompt type "${prompt.promptType}" not supported`);
         return;
       }
 
@@ -1900,15 +1876,20 @@ class BrowsingContextModule extends Module {
         type: lazy.WindowGlobalMessageHandler.type,
       };
 
-      const type = prompt.promptType;
       const eventPayload = {
         context: contextId,
-        type,
+        type: prompt.promptType,
         message: await prompt.getText(),
       };
 
-      if (type === "prompt") {
-        eventPayload.defaultValue = await prompt.getInputText();
+      // Bug 1859814: Since the platform doesn't provide the access to the `defaultValue` of the prompt,
+      // we use prompt the `value` instead. The `value` is set to `defaultValue` when `defaultValue` is provided.
+      // This approach doesn't allow us to distinguish between the `defaultValue` being set to an empty string and
+      // `defaultValue` not set, because `value` is always defaulted to an empty string.
+      // We should switch to using the actual `defaultValue` when it's available and check for the `null` here.
+      const defaultValue = await prompt.getInputText();
+      if (defaultValue) {
+        eventPayload.defaultValue = defaultValue;
       }
 
       this.emitEvent(

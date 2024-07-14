@@ -418,13 +418,9 @@ async function createPerformanceObserverPromise(observeTypes, callback, readyToR
 
 // The testdriver.js, testdriver-vendor.js need to be included to use this
 // function.
-async function interactAndObserve(interactionType, target, observerPromise, key = '') {
+async function interactAndObserve(interactionType, target, observerPromise) {
   let interactionPromise;
   switch (interactionType) {
-    case 'key': {
-      addListeners(target, ['keydown', 'keyup']);
-      interactionPromise = pressKey(target, key);
-    }
     case 'tap': {
       addListeners(target, ['pointerdown', 'pointerup']);
       interactionPromise = tap(target);

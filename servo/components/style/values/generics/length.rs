@@ -28,7 +28,6 @@ use style_traits::ParseError;
     ToResolvedValue,
     ToShmem,
 )]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C, u8)]
 pub enum GenericLengthPercentageOrAuto<LengthPercent> {
     LengthPercentage(LengthPercent),

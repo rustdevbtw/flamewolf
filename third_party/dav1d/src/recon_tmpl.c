@@ -369,9 +369,10 @@ static int decode_coefs(Dav1dTaskContext *const t,
             const enum IntraPredMode y_mode_nofilt = b->y_mode == FILTER_PRED ?
                 dav1d_filter_mode_to_y_mode[b->y_angle] : b->y_mode;
             if (f->frame_hdr->reduced_txtp_set || t_dim->min == TX_16X16) {
-                idx = dav1d_msac_decode_symbol_adapt8(&ts->msac,
-                          ts->cdf.m.txtp_intra2[t_dim->min][y_mode_nofilt], 4);
-                *txtp = dav1d_tx_types_per_set[idx + 0];
+              idx = dav1d_msac_decode_symbol_adapt4(
+                  &ts->msac, ts->cdf.m.txtp_intra2[t_dim->min][y_mode_nofilt],
+                  4);
+              *txtp = dav1d_tx_types_per_set[idx + 0];
             } else {
                 idx = dav1d_msac_decode_symbol_adapt8(&ts->msac,
                           ts->cdf.m.txtp_intra1[t_dim->min][y_mode_nofilt], 6);
@@ -412,13 +413,13 @@ static int decode_coefs(Dav1dTaskContext *const t,
         eob_bin = dav1d_msac_decode_symbol_adapt##ns(&ts->msac, eob_bin_cdf, 4 + sz); \
         break; \
     }
-    case_sz(0,   16,  8, [is_1d]);
-    case_sz(1,   32,  8, [is_1d]);
-    case_sz(2,   64,  8, [is_1d]);
-    case_sz(3,  128,  8, [is_1d]);
-    case_sz(4,  256, 16, [is_1d]);
-    case_sz(5,  512, 16,        );
-    case_sz(6, 1024, 16,        );
+      case_sz(0, 16, 4, [is_1d]);
+      case_sz(1, 32, 8, [is_1d]);
+      case_sz(2, 64, 8, [is_1d]);
+      case_sz(3, 128, 8, [is_1d]);
+      case_sz(4, 256, 16, [is_1d]);
+      case_sz(5, 512, 16, );
+      case_sz(6, 1024, 16, );
 #undef case_sz
     }
     if (dbg)

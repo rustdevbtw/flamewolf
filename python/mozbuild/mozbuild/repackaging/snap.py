@@ -15,7 +15,7 @@ from mozbuild.repackaging.snapcraft_transform import (
     SnapcraftTransform,
 )
 
-UPSTREAM = "https://github.com/{}/raw/{}/"
+UPSTREAM = "https://github.com/canonical/firefox-snap/raw/{}/"
 DEPS = [
     "snap/hooks/disconnect-plug-host-hunspell",
     "snap/hooks/post-refresh",
@@ -30,7 +30,6 @@ def repackage_snap(
     snapdir,
     snapcraft,
     appname,
-    reponame="canonical/firefox-snap",
     branchname="nightly",
     arch="amd64",
     dry_run=False,
@@ -38,7 +37,7 @@ def repackage_snap(
     pkgsrc = os.path.join(snapdir, "source", "usr", "lib", "firefox")
     os.path.join(pkgsrc, "distribution")
 
-    upstream_repo = UPSTREAM.format(reponame, branchname)
+    upstream_repo = UPSTREAM.format(branchname)
 
     # Obtain the build's version info
     version, buildno = get_application_ini_values(

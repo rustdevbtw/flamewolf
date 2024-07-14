@@ -22,7 +22,7 @@ namespace js {
  *
  * This returns true even if str is a keyword like "if".
  */
-bool IsIdentifier(const JSLinearString* str);
+bool IsIdentifier(JSLinearString* str);
 
 /*
  * As above, but taking chars + length.
@@ -44,7 +44,7 @@ bool IsIdentifierASCII(char c1, char c2);
  *
  * This returns true even if str is a keyword like "if".
  */
-bool IsIdentifierNameOrPrivateName(const JSLinearString* str);
+bool IsIdentifierNameOrPrivateName(JSLinearString* str);
 
 /*
  * As above, but taking chars + length.

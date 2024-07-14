@@ -498,6 +498,14 @@ MOZ_CAN_RUN_SCRIPT void reportCompilationMessagesToConsole(
   }
 
   const auto& cx = api.cx();
+
+  ErrorResult rv;
+  RefPtr<dom::Console> console =
+      nsGlobalWindowInner::Cast(global->GetAsInnerWindow())->GetConsole(cx, rv);
+  if (rv.Failed()) {
+    return;
+  }
+
   dom::GlobalObject globalObj(cx, global->GetGlobalJSObject());
 
   dom::Sequence<JS::Value> args;
@@ -564,7 +572,7 @@ MOZ_CAN_RUN_SCRIPT void reportCompilationMessagesToConsole(
           u"Encountered one or more warnings while creating shader module");
       appendNiceLabelIfPresent(&msg);
       SetSingleStrAsArgs(msg, &args);
-      dom::Console::Warn(globalObj, args);
+      console->Warn(globalObj, args);
       break;
     }
     case WebGPUCompilationMessageType::Error: {
@@ -572,7 +580,7 @@ MOZ_CAN_RUN_SCRIPT void reportCompilationMessagesToConsole(
           u"Encountered one or more errors while creating shader module");
       appendNiceLabelIfPresent(&msg);
       SetSingleStrAsArgs(msg, &args);
-      dom::Console::Error(globalObj, args);
+      console->Error(globalObj, args);
       break;
     }
   }
@@ -588,23 +596,23 @@ MOZ_CAN_RUN_SCRIPT void reportCompilationMessagesToConsole(
   header.AppendInt(infoCount);
   header.AppendLiteral(u" info)");
   SetSingleStrAsArgs(header, &args);
-  dom::Console::GroupCollapsed(globalObj, args);
+  console->GroupCollapsed(globalObj, args);
 
   for (const auto& message : aMessages) {
     SetSingleStrAsArgs(message.message, &args);
     switch (message.messageType) {
       case WebGPUCompilationMessageType::Error:
-        dom::Console::Error(globalObj, args);
+        console->Error(globalObj, args);
         break;
       case WebGPUCompilationMessageType::Warning:
-        dom::Console::Warn(globalObj, args);
+        console->Warn(globalObj, args);
         break;
       case WebGPUCompilationMessageType::Info:
-        dom::Console::Info(globalObj, args);
+        console->Info(globalObj, args);
         break;
     }
   }
-  dom::Console::GroupEnd(globalObj);
+  console->GroupEnd(globalObj);
 }
 
 already_AddRefed<ShaderModule> Device::CreateShaderModule(

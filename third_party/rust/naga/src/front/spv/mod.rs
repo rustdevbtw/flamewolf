@@ -36,7 +36,6 @@ mod null;
 use convert::*;
 pub use error::Error;
 use function::*;
-use indexmap::IndexSet;
 
 use crate::{
     arena::{Arena, Handle, UniqueArena},
@@ -64,7 +63,6 @@ pub const SUPPORTED_CAPABILITIES: &[spirv::Capability] = &[
     spirv::Capability::Int8,
     spirv::Capability::Int16,
     spirv::Capability::Int64,
-    spirv::Capability::Int64Atomics,
     spirv::Capability::Float16,
     spirv::Capability::Float64,
     spirv::Capability::Geometry,
@@ -561,42 +559,23 @@ struct BlockContext<'function> {
     parameter_sampling: &'function mut [image::SamplingFlags],
 }
 
-impl<'a> BlockContext<'a> {
-    /// Descend into the expression with the given handle, locating a contained
-    /// global variable.
-    ///
-    /// This is used to track atomic upgrades.
-    fn get_contained_global_variable(
-        &self,
-        mut handle: Handle<crate::Expression>,
-    ) -> Option<Handle<crate::GlobalVariable>> {
-        log::debug!("\t\tlocating global variable in {handle:?}");
-        loop {
-            match self.expressions[handle] {
-                crate::Expression::Access { base, index: _ } => {
-                    handle = base;
-                    log::debug!("\t\t  access {handle:?}");
-                }
-                crate::Expression::AccessIndex { base, index: _ } => {
-                    handle = base;
-                    log::debug!("\t\t  access index {handle:?}");
-                }
-                crate::Expression::GlobalVariable(h) => {
-                    log::debug!("\t\t  found {h:?}");
-                    return Some(h);
-                }
-                _ => {
-                    break;
-                }
-            }
-        }
-        None
-    }
-}
-
 enum SignAnchor {
     Result,
     Operand,
+}
+
+enum AtomicOpInst {
+    AtomicIIncrement,
+}
+
+#[allow(dead_code)]
+struct AtomicOp {
+    instruction: AtomicOpInst,
+    result_type_id: spirv::Word,
+    result_id: spirv::Word,
+    pointer_id: spirv::Word,
+    scope_id: spirv::Word,
+    memory_semantics_id: spirv::Word,
 }
 
 pub struct Frontend<I> {
@@ -610,12 +589,8 @@ pub struct Frontend<I> {
     future_member_decor: FastHashMap<(spirv::Word, MemberIndex), Decoration>,
     lookup_member: FastHashMap<(Handle<crate::Type>, MemberIndex), LookupMember>,
     handle_sampling: FastHashMap<Handle<crate::GlobalVariable>, image::SamplingFlags>,
-    /// The set of all global variables accessed by [`Atomic`] statements we've
-    /// generated, so we can upgrade the types of their operands.
-    ///
-    /// [`Atomic`]: crate::Statement::Atomic
-    upgrade_atomics: IndexSet<Handle<crate::GlobalVariable>>,
-
+    // Used to upgrade types used in atomic ops to atomic types, keyed by pointer id
+    lookup_atomic: FastHashMap<spirv::Word, AtomicOp>,
     lookup_type: FastHashMap<spirv::Word, LookupType>,
     lookup_void_type: Option<spirv::Word>,
     lookup_storage_buffer_types: FastHashMap<Handle<crate::Type>, crate::StorageAccess>,
@@ -671,7 +646,7 @@ impl<I: Iterator<Item = u32>> Frontend<I> {
             future_member_decor: FastHashMap::default(),
             handle_sampling: FastHashMap::default(),
             lookup_member: FastHashMap::default(),
-            upgrade_atomics: Default::default(),
+            lookup_atomic: FastHashMap::default(),
             lookup_type: FastHashMap::default(),
             lookup_void_type: None,
             lookup_storage_buffer_types: FastHashMap::default(),
@@ -3992,21 +3967,30 @@ impl<I: Iterator<Item = u32>> Frontend<I> {
                     let result_type_id = self.next()?;
                     let result_id = self.next()?;
                     let pointer_id = self.next()?;
-                    let _scope_id = self.next()?;
-                    let _memory_semantics_id = self.next()?;
+                    let scope_id = self.next()?;
+                    let memory_semantics_id = self.next()?;
+                    // Store the op for a later pass where we "upgrade" the pointer type
+                    let atomic = AtomicOp {
+                        instruction: AtomicOpInst::AtomicIIncrement,
+                        result_type_id,
+                        result_id,
+                        pointer_id,
+                        scope_id,
+                        memory_semantics_id,
+                    };
+                    self.lookup_atomic.insert(pointer_id, atomic);
 
                     log::trace!("\t\t\tlooking up expr {:?}", pointer_id);
+
                     let (p_lexp_handle, p_lexp_ty_id) = {
                         let lexp = self.lookup_expression.lookup(pointer_id)?;
                         let handle = get_expr_handle!(pointer_id, &lexp);
                         (handle, lexp.type_id)
                     };
-
                     log::trace!("\t\t\tlooking up type {pointer_id:?}");
                     let p_ty = self.lookup_type.lookup(p_lexp_ty_id)?;
                     let p_ty_base_id =
                         p_ty.base_id.ok_or(Error::InvalidAccessType(p_lexp_ty_id))?;
-
                     log::trace!("\t\t\tlooking up base type {p_ty_base_id:?} of {p_ty:?}");
                     let p_base_ty = self.lookup_type.lookup(p_ty_base_id)?;
 
@@ -4044,13 +4028,9 @@ impl<I: Iterator<Item = u32>> Frontend<I> {
                         pointer: p_lexp_handle,
                         fun: crate::AtomicFunction::Add,
                         value: one_lexp_handle,
-                        result: Some(r_lexp_handle),
+                        result: r_lexp_handle,
                     };
                     block.push(stmt, span);
-
-                    // Store any associated global variables so we can upgrade their types later
-                    self.upgrade_atomics
-                        .extend(ctx.get_contained_global_variable(p_lexp_handle));
                 }
                 _ => {
                     return Err(Error::UnsupportedInstruction(self.state, inst.op));
@@ -4331,11 +4311,6 @@ impl<I: Iterator<Item = u32>> Frontend<I> {
                 }
                 _ => Err(Error::UnsupportedInstruction(self.state, inst.op)), //TODO
             }?;
-        }
-
-        if !self.upgrade_atomics.is_empty() {
-            log::info!("Upgrading atomic pointers...");
-            module.upgrade_atomics(std::mem::take(&mut self.upgrade_atomics))?;
         }
 
         // Do entry point specific processing after all functions are parsed so that we can
@@ -5710,23 +5685,19 @@ mod test {
         let _ = super::parse_u8_slice(&bin, &Default::default()).unwrap();
     }
 
-    #[cfg(all(feature = "wgsl-in", feature = "wgsl-out"))]
     #[test]
     fn atomic_i_inc() {
-        let _ = env_logger::builder().is_test(true).try_init();
+        let _ = env_logger::builder()
+            .is_test(true)
+            .filter_level(log::LevelFilter::Trace)
+            .try_init();
         let bytes = include_bytes!("../../../tests/in/spv/atomic_i_increment.spv");
         let m = super::parse_u8_slice(bytes, &Default::default()).unwrap();
         let mut validator = crate::valid::Validator::new(
             crate::valid::ValidationFlags::empty(),
             Default::default(),
         );
-        let info = match validator.validate(&m) {
-            Err(e) => {
-                log::error!("{}", e.emit_to_string(""));
-                return;
-            }
-            Ok(i) => i,
-        };
+        let info = validator.validate(&m).unwrap();
         let wgsl =
             crate::back::wgsl::write_string(&m, &info, crate::back::wgsl::WriterFlags::empty())
                 .unwrap();
@@ -5736,14 +5707,15 @@ mod test {
             Ok(m) => m,
             Err(e) => {
                 log::error!("{}", e.emit_to_string(&wgsl));
-                panic!("invalid module");
+                // at this point we know atomics create invalid modules
+                // so simply bail
+                return;
             }
         };
         let mut validator =
             crate::valid::Validator::new(crate::valid::ValidationFlags::all(), Default::default());
         if let Err(e) = validator.validate(&m) {
             log::error!("{}", e.emit_to_string(&wgsl));
-            panic!("invalid generated wgsl");
         }
     }
 }

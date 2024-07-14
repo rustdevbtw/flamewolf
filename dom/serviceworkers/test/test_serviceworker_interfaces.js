@@ -63,7 +63,6 @@ let ecmaGlobals = [
   "Error",
   "EvalError",
   "FinalizationRegistry",
-  "Float16Array",
   "Float32Array",
   "Float64Array",
   "Function",
@@ -248,6 +247,8 @@ let interfaceNamesInGlobalScope = [
   "LockManager",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "MediaCapabilities",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "MediaCapabilitiesInfo",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "MessageChannel",
   // IMPORTANT: Do not change this list without review from a DOM peer!

@@ -59,6 +59,8 @@ class MockRtpTransportControllerSend
               network_state_estimate_observer,
               (),
               (override));
+  MOCK_METHOD(TransportFeedbackObserver*, transport_feedback_observer, (),
+              (override));
   MOCK_METHOD(RtpPacketSender*, packet_sender, (), (override));
   MOCK_METHOD(void,
               SetAllocatedSendBitrateLimits,

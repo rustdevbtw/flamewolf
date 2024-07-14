@@ -24,7 +24,6 @@ ChromeUtils.defineESModuleGetters(this, {
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   FxAccounts: "resource://gre/modules/FxAccounts.sys.mjs",
   SyncedTabs: "resource://services-sync/SyncedTabs.sys.mjs",
-  SyncedTabsManagement: "resource://services-sync/SyncedTabs.sys.mjs",
   Weave: "resource://services-sync/main.sys.mjs",
 });
 
@@ -318,9 +317,6 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
       tabContainer.appendChild(
         this._createCloseTabElement(tabInfo.url, device)
       );
-      tabContainer.appendChild(
-        this._createUndoCloseTabElement(tabInfo.url, device)
-      );
     }
     return tabContainer;
   }
@@ -379,53 +375,16 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
 
   _createCloseTabElement(url, device) {
     let closeBtn = document.createXULElement("image");
-    closeBtn.setAttribute("class", "close-icon remotetabs-icon");
-    closeBtn.addEventListener("click", e => {
+    closeBtn.setAttribute("class", "close-icon remotetabs-close");
+
+    closeBtn.addEventListener("click", function (e) {
       e.stopPropagation();
-
-      let tabContainer = closeBtn.parentNode;
-      let tabList = tabContainer.parentNode;
-
-      let undoBtn = tabContainer.querySelector(".undo-icon.remotetabs-icon");
-
-      let prevClose = tabList.querySelector(
-        ".undo-icon.remotetabs-icon:not([hidden])"
-      );
-      if (prevClose) {
-        let prevCloseContainer = prevClose.parentNode;
-        prevCloseContainer.classList.add("tabitem-removed");
-        prevCloseContainer.addEventListener("transitionend", () => {
-          prevCloseContainer.remove();
-        });
-      }
-      closeBtn.hidden = true;
-      undoBtn.hidden = false;
       // The user could be hitting multiple tabs across multiple devices, with a few
       // seconds in-between -- we should not immediately fire off pushes, so we
       // add it to a queue and send in bulk at a later time
-      SyncedTabsManagement.enqueueTabToClose(device.id, url);
+      fxAccounts.commands.closeTab.enqueueTabToClose(device, url);
     });
     return closeBtn;
-  }
-
-  _createUndoCloseTabElement(url, device) {
-    let undoBtn = document.createXULElement("image");
-    undoBtn.setAttribute("class", "undo-icon remotetabs-icon");
-    undoBtn.hidden = true;
-
-    undoBtn.addEventListener("click", function (e) {
-      e.stopPropagation();
-
-      undoBtn.hidden = true;
-      let closeBtn = undoBtn.parentNode.querySelector(
-        ".close-icon.remotetabs-icon"
-      );
-      closeBtn.hidden = false;
-
-      // remove this tab from being remotely closed
-      SyncedTabsManagement.removePendingTabToClose(device.id, url);
-    });
-    return undoBtn;
   }
 
   destroy() {

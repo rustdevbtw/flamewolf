@@ -8,24 +8,17 @@ from .. import AUTH_REQUIRED_EVENT, RESPONSE_COMPLETED_EVENT, RESPONSE_STARTED_E
 
 pytestmark = pytest.mark.asyncio
 
-LOAD_EVENT = "browsingContext.load"
-
 
 @pytest.mark.parametrize("navigate", [False, True], ids=["fetch", "navigate"])
 async def test_provide_response_auth_required(
-    setup_blocked_request,
-    subscribe_events,
-    wait_for_event,
-    bidi_session,
-    navigate,
-    wait_for_future_safe,
+    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, navigate, wait_for_future_safe
 ):
     request = await setup_blocked_request("authRequired", navigate=navigate)
 
     await subscribe_events(
         events=[
             AUTH_REQUIRED_EVENT,
-            LOAD_EVENT,
+            "browsingContext.load",
         ]
     )
 
@@ -41,13 +34,7 @@ async def test_provide_response_auth_required(
 @pytest.mark.parametrize("phase", ["beforeRequestSent", "responseStarted"])
 @pytest.mark.parametrize("navigate", [False, True], ids=["fetch", "navigate"])
 async def test_provide_response_phase(
-    setup_blocked_request,
-    subscribe_events,
-    wait_for_event,
-    bidi_session,
-    phase,
-    navigate,
-    wait_for_future_safe,
+    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, phase, navigate, wait_for_future_safe
 ):
     request = await setup_blocked_request(phase, navigate=navigate)
 
@@ -55,7 +42,7 @@ async def test_provide_response_phase(
         events=[
             RESPONSE_STARTED_EVENT,
             RESPONSE_COMPLETED_EVENT,
-            LOAD_EVENT,
+            "browsingContext.load",
         ]
     )
 
@@ -67,7 +54,7 @@ async def test_provide_response_phase(
         on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
 
     if navigate:
-        on_load = wait_for_event(LOAD_EVENT)
+        on_load = wait_for_event("browsingContext.load")
 
     await bidi_session.network.provide_response(request=request)
 

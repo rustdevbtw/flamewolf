@@ -121,11 +121,12 @@ TEST_F(RtpSenderAudioTest, SendAudioWithAudioLevelExtension) {
   auto sent_payload = transport_.last_sent_packet().payload();
   EXPECT_THAT(sent_payload, ElementsAreArray(payload));
   // Verify AudioLevel extension.
-  AudioLevel audio_level;
+  bool voice_activity;
+  uint8_t audio_level;
   EXPECT_TRUE(transport_.last_sent_packet().GetExtension<AudioLevelExtension>(
-      &audio_level));
-  EXPECT_EQ(kAudioLevel, audio_level.level());
-  EXPECT_FALSE(audio_level.voice_activity());
+      &voice_activity, &audio_level));
+  EXPECT_EQ(kAudioLevel, audio_level);
+  EXPECT_FALSE(voice_activity);
 }
 
 TEST_F(RtpSenderAudioTest, SendAudioWithoutAbsoluteCaptureTime) {

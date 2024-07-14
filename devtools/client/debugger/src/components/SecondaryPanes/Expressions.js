@@ -36,6 +36,7 @@ import { getExpressionResultGripAndFront } from "../../utils/expressions";
 import { CloseButton } from "../shared/Button/index";
 
 const { debounce } = require("resource://devtools/shared/debounce.js");
+const classnames = require("resource://devtools/client/shared/classnames.js");
 
 const { ObjectInspector } = objectInspector;
 
@@ -47,6 +48,7 @@ class Expressions extends Component {
       editing: false,
       editIndex: -1,
       inputValue: "",
+      focused: false,
     };
   }
 
@@ -85,6 +87,7 @@ class Expressions extends Component {
       editing: false,
       editIndex: -1,
       inputValue: "",
+      focused: false,
     }));
   };
 
@@ -102,7 +105,7 @@ class Expressions extends Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
-    const { editing, inputValue } = this.state;
+    const { editing, inputValue, focused } = this.state;
     const {
       expressions,
       showInput,
@@ -119,7 +122,8 @@ class Expressions extends Component {
         nextProps.isOriginalVariableMappingDisabled ||
       editing !== nextState.editing ||
       inputValue !== nextState.inputValue ||
-      nextProps.showInput !== showInput
+      nextProps.showInput !== showInput ||
+      focused !== nextState.focused
     );
   }
 
@@ -133,7 +137,7 @@ class Expressions extends Component {
     if (!prevState.editing && this.state.editing) {
       _input.setSelectionRange(0, _input.value.length);
       _input.focus();
-    } else if (this.props.showInput) {
+    } else if (this.props.showInput && !this.state.focused) {
       _input.focus();
     }
   }
@@ -172,11 +176,16 @@ class Expressions extends Component {
   };
 
   hideInput = () => {
+    this.setState({ focused: false });
     this.props.onExpressionAdded();
   };
 
   createElement = element => {
     return document.createElement(element);
+  };
+
+  onFocus = () => {
+    this.setState({ focused: true });
   };
 
   onBlur() {
@@ -353,10 +362,13 @@ class Expressions extends Component {
   }
 
   renderNewExpressionInput() {
-    const { editing, inputValue } = this.state;
+    const { editing, inputValue, focused } = this.state;
     return form(
       {
-        className: "expression-input-container expression-input-form",
+        className: classnames(
+          "expression-input-container expression-input-form",
+          { focused }
+        ),
         onSubmit: this.handleNewSubmit,
       },
       input({
@@ -366,6 +378,7 @@ class Expressions extends Component {
         onChange: this.handleChange,
         onBlur: this.hideInput,
         onKeyDown: this.handleKeyDown,
+        onFocus: this.onFocus,
         value: !editing ? inputValue : "",
         ref: c => (this._input = c),
         ...(features.autocompleteExpression && {
@@ -383,11 +396,16 @@ class Expressions extends Component {
   }
 
   renderExpressionEditInput(expression) {
-    const { inputValue, editing } = this.state;
+    const { inputValue, editing, focused } = this.state;
     return form(
       {
         key: expression.input,
-        className: "expression-input-container expression-input-form",
+        className: classnames(
+          "expression-input-container expression-input-form",
+          {
+            focused,
+          }
+        ),
         onSubmit: e => this.handleExistingSubmit(e, expression),
       },
       input({
@@ -396,6 +414,7 @@ class Expressions extends Component {
         onChange: this.handleChange,
         onBlur: this.clear,
         onKeyDown: this.handleKeyDown,
+        onFocus: this.onFocus,
         value: editing ? inputValue : expression.input,
         ref: c => (this._input = c),
         ...(features.autocompleteExpression && {

@@ -331,7 +331,7 @@ class mozInlineSpellChecker final : public nsIInlineSpellChecker,
   void EndListeningToEditSubActions() { mIsListeningToEditSubActions = false; }
 
   void OnBlur(mozilla::dom::Event& aEvent);
-  void OnPointerClick(mozilla::dom::Event& aPointerEvent);
+  void OnMouseClick(mozilla::dom::Event& aMouseEvent);
   void OnKeyDown(mozilla::dom::Event& aKeyEvent);
 };
 

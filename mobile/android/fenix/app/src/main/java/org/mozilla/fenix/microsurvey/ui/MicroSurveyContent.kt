@@ -5,7 +5,6 @@
 package org.mozilla.fenix.microsurvey.ui
 
 import androidx.annotation.DrawableRes
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,13 +24,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.list.RadioButtonListItem
 import org.mozilla.fenix.theme.FirefoxTheme
 
-private val shape = RoundedCornerShape(8.dp)
+private val shape = RoundedCornerShape(16.dp)
+private val elevation: Dp = 5.dp
 
 /**
  * The micro survey content UI to hold question and answer data.
@@ -53,14 +54,12 @@ fun MicroSurveyContent(
     onSelectionChange: (String) -> Unit,
 ) {
     Card(
-        border = BorderStroke(1.dp, FirefoxTheme.colors.borderPrimary),
-        elevation = 0.dp,
         shape = shape,
         backgroundColor = backgroundColor,
+        elevation = elevation,
         modifier = Modifier
             .wrapContentHeight()
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .fillMaxWidth(),
     ) {
         Column(modifier = Modifier.wrapContentHeight()) {
             Header(icon, question)
@@ -86,7 +85,7 @@ private fun Header(icon: Int, question: String) {
     ) {
         Image(
             painter = painterResource(icon),
-            contentDescription = stringResource(id = R.string.microsurvey_feature_icon_content_description),
+            contentDescription = null,
             modifier = Modifier.size(24.dp),
         )
 

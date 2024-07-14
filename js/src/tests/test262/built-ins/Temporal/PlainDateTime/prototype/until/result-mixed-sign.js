@@ -13,8 +13,8 @@ features: [Temporal]
 // Test case provided by André Bargull
 
 const cal = new (class extends Temporal.Calendar {
-  dateUntil(date, duration, options) {
-    return super.dateUntil(date, duration, options).negated();
+  dateAdd(date, duration, options) {
+    return super.dateAdd(date, duration.negated(), options);
   }
 })("iso8601");
 

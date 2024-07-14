@@ -1491,7 +1491,6 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                     function,
                     arguments,
                     &mut ctx.as_expression(block, &mut emitter),
-                    true,
                 )?;
                 block.extend(emitter.finish(&ctx.function.expressions));
                 return Ok(());
@@ -1748,7 +1747,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                 ref arguments,
             } => {
                 let handle = self
-                    .call(span, function, arguments, ctx, false)?
+                    .call(span, function, arguments, ctx)?
                     .ok_or(Error::FunctionReturnsVoid(function.span))?;
                 return Ok(Typed::Plain(handle));
             }
@@ -1942,7 +1941,6 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
         function: &ast::Ident<'source>,
         arguments: &[Handle<ast::Expression<'source>>],
         ctx: &mut ExpressionContext<'source, '_, '_>,
-        is_statement: bool,
     ) -> Result<Option<Handle<crate::Expression>>, Error<'source>> {
         match ctx.globals.get(function.name) {
             Some(&LoweredGlobalDecl::Type(ty)) => {
@@ -2088,7 +2086,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                         self.subgroup_gather_helper(span, mode, arguments, ctx)?,
                     ));
                 } else if let Some(fun) = crate::AtomicFunction::map(function.name) {
-                    return self.atomic_helper(span, fun, arguments, is_statement, ctx);
+                    return Ok(Some(self.atomic_helper(span, fun, arguments, ctx)?));
                 } else {
                     match function.name {
                         "select" => {
@@ -2170,7 +2168,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                                         compare: Some(compare),
                                     },
                                     value,
-                                    result: Some(result),
+                                    result,
                                 },
                                 span,
                             );
@@ -2461,38 +2459,25 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
         span: Span,
         fun: crate::AtomicFunction,
         args: &[Handle<ast::Expression<'source>>],
-        is_statement: bool,
         ctx: &mut ExpressionContext<'source, '_, '_>,
-    ) -> Result<Option<Handle<crate::Expression>>, Error<'source>> {
+    ) -> Result<Handle<crate::Expression>, Error<'source>> {
         let mut args = ctx.prepare_args(args, 2, span);
 
         let pointer = self.atomic_pointer(args.next()?, ctx)?;
-        let value = self.expression(args.next()?, ctx)?;
-        let value_inner = resolve_inner!(ctx, value);
+
+        let value = args.next()?;
+        let value = self.expression(value, ctx)?;
+        let ty = ctx.register_type(value)?;
+
         args.finish()?;
 
-        // If we don't use the return value of a 64-bit `min` or `max`
-        // operation, generate a no-result form of the `Atomic` statement, so
-        // that we can pass validation with only `SHADER_INT64_ATOMIC_MIN_MAX`
-        // whenever possible.
-        let is_64_bit_min_max =
-            matches!(fun, crate::AtomicFunction::Min | crate::AtomicFunction::Max)
-                && matches!(
-                    *value_inner,
-                    crate::TypeInner::Scalar(crate::Scalar { width: 8, .. })
-                );
-        let result = if is_64_bit_min_max && is_statement {
-            None
-        } else {
-            let ty = ctx.register_type(value)?;
-            Some(ctx.interrupt_emitter(
-                crate::Expression::AtomicResult {
-                    ty,
-                    comparison: false,
-                },
-                span,
-            )?)
-        };
+        let result = ctx.interrupt_emitter(
+            crate::Expression::AtomicResult {
+                ty,
+                comparison: false,
+            },
+            span,
+        )?;
         let rctx = ctx.runtime_expression_ctx(span)?;
         rctx.block.push(
             crate::Statement::Atomic {

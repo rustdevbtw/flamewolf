@@ -123,9 +123,7 @@ class CodecObserver : public test::EndToEndTest,
 
 TEST_F(CodecEndToEndTest, SendsAndReceivesVP8) {
   test::FunctionVideoEncoderFactory encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return CreateVp8Encoder(env);
-      });
+      []() { return VP8Encoder::Create(); });
   test::FunctionVideoDecoderFactory decoder_factory(
       [](const Environment& env, const SdpVideoFormat& format) {
         return CreateVp8Decoder(env);
@@ -137,9 +135,7 @@ TEST_F(CodecEndToEndTest, SendsAndReceivesVP8) {
 
 TEST_F(CodecEndToEndTest, SendsAndReceivesVP8Rotation90) {
   test::FunctionVideoEncoderFactory encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return CreateVp8Encoder(env);
-      });
+      []() { return VP8Encoder::Create(); });
   test::FunctionVideoDecoderFactory decoder_factory(
       [](const Environment& env, const SdpVideoFormat& format) {
         return CreateVp8Decoder(env);
@@ -152,9 +148,7 @@ TEST_F(CodecEndToEndTest, SendsAndReceivesVP8Rotation90) {
 #if defined(RTC_ENABLE_VP9)
 TEST_F(CodecEndToEndTest, SendsAndReceivesVP9) {
   test::FunctionVideoEncoderFactory encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return CreateVp9Encoder(env);
-      });
+      []() { return VP9Encoder::Create(); });
   test::FunctionVideoDecoderFactory decoder_factory(
       []() { return VP9Decoder::Create(); });
   CodecObserver test(500, kVideoRotation_0, absl::nullopt, "VP9",
@@ -164,9 +158,7 @@ TEST_F(CodecEndToEndTest, SendsAndReceivesVP9) {
 
 TEST_F(CodecEndToEndTest, SendsAndReceivesVP9VideoRotation90) {
   test::FunctionVideoEncoderFactory encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return CreateVp9Encoder(env);
-      });
+      []() { return VP9Encoder::Create(); });
   test::FunctionVideoDecoderFactory decoder_factory(
       []() { return VP9Decoder::Create(); });
   CodecObserver test(5, kVideoRotation_90, absl::nullopt, "VP9",
@@ -176,9 +168,7 @@ TEST_F(CodecEndToEndTest, SendsAndReceivesVP9VideoRotation90) {
 
 TEST_F(CodecEndToEndTest, SendsAndReceivesVP9ExplicitColorSpace) {
   test::FunctionVideoEncoderFactory encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return CreateVp9Encoder(env);
-      });
+      []() { return VP9Encoder::Create(); });
   test::FunctionVideoDecoderFactory decoder_factory(
       []() { return VP9Decoder::Create(); });
   CodecObserver test(5, kVideoRotation_90,
@@ -190,9 +180,7 @@ TEST_F(CodecEndToEndTest, SendsAndReceivesVP9ExplicitColorSpace) {
 TEST_F(CodecEndToEndTest,
        SendsAndReceivesVP9ExplicitColorSpaceWithHdrMetadata) {
   test::FunctionVideoEncoderFactory encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return CreateVp9Encoder(env);
-      });
+      []() { return VP9Encoder::Create(); });
   test::FunctionVideoDecoderFactory decoder_factory(
       []() { return VP9Decoder::Create(); });
   CodecObserver test(5, kVideoRotation_90,
@@ -224,9 +212,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_P(EndToEndTestH264, SendsAndReceivesH264) {
   test::FunctionVideoEncoderFactory encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return CreateH264Encoder(env);
-      });
+      []() { return H264Encoder::Create(); });
   test::FunctionVideoDecoderFactory decoder_factory(
       []() { return H264Decoder::Create(); });
   CodecObserver test(500, kVideoRotation_0, absl::nullopt, "H264",
@@ -236,9 +222,7 @@ TEST_P(EndToEndTestH264, SendsAndReceivesH264) {
 
 TEST_P(EndToEndTestH264, SendsAndReceivesH264VideoRotation90) {
   test::FunctionVideoEncoderFactory encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return CreateH264Encoder(env);
-      });
+      []() { return H264Encoder::Create(); });
   test::FunctionVideoDecoderFactory decoder_factory(
       []() { return H264Decoder::Create(); });
   CodecObserver test(5, kVideoRotation_90, absl::nullopt, "H264",
@@ -247,12 +231,11 @@ TEST_P(EndToEndTestH264, SendsAndReceivesH264VideoRotation90) {
 }
 
 TEST_P(EndToEndTestH264, SendsAndReceivesH264PacketizationMode0) {
-  SdpVideoFormat codec(cricket::kH264CodecName);
-  codec.parameters[cricket::kH264FmtpPacketizationMode] = "0";
+  cricket::VideoCodec codec =
+      cricket::CreateVideoCodec(cricket::kH264CodecName);
+  codec.SetParam(cricket::kH264FmtpPacketizationMode, "0");
   test::FunctionVideoEncoderFactory encoder_factory(
-      [codec](const Environment& env, const SdpVideoFormat& format) {
-        return CreateH264Encoder(env, H264EncoderSettings::Parse(codec));
-      });
+      [codec]() { return H264Encoder::Create(codec); });
   test::FunctionVideoDecoderFactory decoder_factory(
       []() { return H264Decoder::Create(); });
   CodecObserver test(500, kVideoRotation_0, absl::nullopt, "H264",
@@ -261,12 +244,11 @@ TEST_P(EndToEndTestH264, SendsAndReceivesH264PacketizationMode0) {
 }
 
 TEST_P(EndToEndTestH264, SendsAndReceivesH264PacketizationMode1) {
-  SdpVideoFormat codec(cricket::kH264CodecName);
-  codec.parameters[cricket::kH264FmtpPacketizationMode] = "1";
+  cricket::VideoCodec codec =
+      cricket::CreateVideoCodec(cricket::kH264CodecName);
+  codec.SetParam(cricket::kH264FmtpPacketizationMode, "1");
   test::FunctionVideoEncoderFactory encoder_factory(
-      [codec](const Environment& env, const SdpVideoFormat& format) {
-        return CreateH264Encoder(env, H264EncoderSettings::Parse(codec));
-      });
+      [codec]() { return H264Encoder::Create(codec); });
   test::FunctionVideoDecoderFactory decoder_factory(
       []() { return H264Decoder::Create(); });
   CodecObserver test(500, kVideoRotation_0, absl::nullopt, "H264",

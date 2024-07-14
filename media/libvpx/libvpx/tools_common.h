@@ -16,6 +16,7 @@
 #include "vpx/vpx_codec.h"
 #include "vpx/vpx_image.h"
 #include "vpx/vpx_integer.h"
+#include "vpx_ports/msvc.h"
 
 #if CONFIG_ENCODERS
 #include "./y4minput.h"

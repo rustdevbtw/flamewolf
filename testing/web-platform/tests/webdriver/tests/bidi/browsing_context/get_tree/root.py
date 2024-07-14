@@ -93,7 +93,7 @@ async def test_child_context(
         child1_info,
         context=None,
         children=1,
-        parent_expected=False,
+        is_root=False,
         parent=None,
         url=test_page_same_origin_frame,
     )

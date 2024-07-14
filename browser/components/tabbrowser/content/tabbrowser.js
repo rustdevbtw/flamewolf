@@ -2814,7 +2814,9 @@
           // but we were opened from another browser, set the cross group
           // opener ID:
           if (openerBrowser && !openWindowInfo) {
-            b.browsingContext.crossGroupOpener = openerBrowser.browsingContext;
+            b.browsingContext.setCrossGroupOpener(
+              openerBrowser.browsingContext
+            );
           }
         }
       } catch (e) {
@@ -2854,10 +2856,6 @@
           globalHistoryOptions,
           triggeringRemoteType,
           wasSchemelessInput,
-          hasValidUserGestureActivation:
-            !!openWindowInfo?.hasValidUserGestureActivation,
-          textDirectiveUserActivation:
-            !!openWindowInfo?.textDirectiveUserActivation,
         });
       }
 
@@ -3111,8 +3109,6 @@
         globalHistoryOptions,
         triggeringRemoteType,
         wasSchemelessInput,
-        hasValidUserGestureActivation,
-        textDirectiveUserActivation,
       }
     ) {
       if (
@@ -3177,8 +3173,6 @@
             globalHistoryOptions,
             triggeringRemoteType,
             wasSchemelessInput,
-            hasValidUserGestureActivation,
-            textDirectiveUserActivation,
           });
         } catch (ex) {
           console.error(ex);
@@ -3376,9 +3370,10 @@
     },
 
     warnAboutClosingTabs(tabsToClose, aCloseTabs, aSource) {
-      // We want to warn about closing duplicates even if there was only a
-      // single duplicate, so we intentionally place this above the check for
-      // tabsToClose <= 1.
+      if (tabsToClose <= 1) {
+        return true;
+      }
+
       const shownDupeDialogPref =
         "browser.tabs.haveShownCloseAllDuplicateTabsWarning";
       if (
@@ -3395,10 +3390,6 @@
           { id: "tabbrowser-confirm-close-duplicate-tabs-text" },
         ]);
         return Services.prompt.confirm(window, title, text);
-      }
-
-      if (tabsToClose <= 1) {
-        return true;
       }
 
       const pref =
@@ -6323,7 +6314,7 @@
         "DOMModalDialogClosed",
         event => {
           if (
-            event.detail?.promptType != "beforeunload" ||
+            !event.detail?.wasPermitUnload ||
             event.detail.areLeaving ||
             event.target.nodeName != "browser"
           ) {

@@ -14,7 +14,6 @@
 #include <memory>
 #include <vector>
 
-#include "api/environment/environment.h"
 #include "modules/video_coding/codecs/h264/include/h264.h"
 
 namespace webrtc {
@@ -30,10 +29,9 @@ struct OpenH264EncoderTemplateAdapter {
   }
 
   static std::unique_ptr<VideoEncoder> CreateEncoder(
-      const Environment& env,
       const SdpVideoFormat& format) {
 #if defined(WEBRTC_USE_H264)
-    return CreateH264Encoder(env, H264EncoderSettings::Parse(format));
+    return H264Encoder::Create(cricket::CreateVideoCodec(format));
 #else
     return nullptr;
 #endif

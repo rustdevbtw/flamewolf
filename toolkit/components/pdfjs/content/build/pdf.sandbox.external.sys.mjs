@@ -36,9 +36,6 @@ export class SandboxSupportBase {
     throw new Error("Not implemented");
   }
   callSandboxFunction(name, args) {
-    if (!this.commFun) {
-      return;
-    }
     try {
       args = this.exportValueToSandbox(args);
       this.commFun(name, args);

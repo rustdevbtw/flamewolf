@@ -1,6 +1,6 @@
 ---
 source: core/src/ast/structs.rs
-expression: "Struct::new(&syn::parse_quote! {\n                /// Some docs.\n                #[diplomat :: rust_link(foo :: Bar, Struct)] struct\n                MyLocalStruct { a : i32, b : Box < MyLocalStruct > }\n            }, true, &Default::default())"
+expression: "Struct::new(&syn::parse_quote! {\n                /// Some docs.\n                #[diplomat :: rust_link(foo :: Bar, Struct)] struct\n                MyLocalStruct { a : i32, b : Box < MyLocalStruct > }\n            }, true)"
 ---
 name: MyLocalStruct
 docs:
@@ -28,5 +28,6 @@ fields:
       - []
 methods: []
 output_only: true
-attrs: {}
+attrs:
+  cfg: []
 

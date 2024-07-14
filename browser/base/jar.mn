@@ -41,7 +41,6 @@ browser.jar:
         content/browser/browser-captivePortal.js      (content/browser-captivePortal.js)
         content/browser/browser-command-listeners.js  (content/browser-command-listeners.js)
         content/browser/browser-commands.js           (content/browser-commands.js)
-        content/browser/browser-context.js            (content/browser-context.js)
         content/browser/browser-customization.js      (content/browser-customization.js)
         content/browser/browser-data-submission-info-bar.js (content/browser-data-submission-info-bar.js)
 #ifndef MOZILLA_OFFICIAL
@@ -50,7 +49,6 @@ browser.jar:
         content/browser/browser-fullScreenAndPointerLock.js (content/browser-fullScreenAndPointerLock.js)
         content/browser/browser-gestureSupport.js           (content/browser-gestureSupport.js)
         content/browser/browser-init.js                     (content/browser-init.js)
-        content/browser/browser-menubar.js                  (content/browser-menubar.js)
         content/browser/browser-pageActions.js              (content/browser-pageActions.js)
         content/browser/browser-pagestyle.js                (content/browser-pagestyle.js)
         content/browser/browser-places.js                   (content/browser-places.js)
@@ -66,7 +64,6 @@ browser.jar:
         content/browser/browser-unified-extensions.js       (content/browser-unified-extensions.js)
         content/browser/browser-graphics-utils.js           (content/browser-graphics-utils.js)
         content/browser/browser-webrtc.js                   (content/browser-webrtc.js)
-        content/browser/main-popupset.js                    (content/main-popupset.js)
 *       content/browser/pageinfo/pageInfo.xhtml             (content/pageinfo/pageInfo.xhtml)
         content/browser/pageinfo/pageInfo.js                (content/pageinfo/pageInfo.js)
         content/browser/pageinfo/pageInfo.css               (content/pageinfo/pageInfo.css)

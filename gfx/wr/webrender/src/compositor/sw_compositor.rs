@@ -356,8 +356,6 @@ impl DerefMut for SwCompositeGraphNodeRef {
 struct SwCompositeGraphNode {
     /// Job to be queued for this graph node once ready.
     job: Option<SwCompositeJob>,
-    /// Whether there is a job that requires processing.
-    has_job: AtomicBool,
     /// The number of remaining bands associated with this job. When this is
     /// non-zero and the node has no more parents left, then the node is being
     /// actively used by the composite thread to process jobs. Once it hits
@@ -380,7 +378,6 @@ impl SwCompositeGraphNode {
     fn new() -> SwCompositeGraphNodeRef {
         SwCompositeGraphNodeRef::new(SwCompositeGraphNode {
             job: None,
-            has_job: AtomicBool::new(false),
             remaining_bands: AtomicU8::new(0),
             available_bands: AtomicI8::new(0),
             parents: AtomicU32::new(0),
@@ -391,7 +388,6 @@ impl SwCompositeGraphNode {
     /// Reset the node's state for a new frame
     fn reset(&mut self) {
         self.job = None;
-        self.has_job.store(false, Ordering::SeqCst);
         self.remaining_bands.store(0, Ordering::SeqCst);
         self.available_bands.store(0, Ordering::SeqCst);
         // Initialize parents to 1 as sentinel dependency for uninitialized job
@@ -410,7 +406,6 @@ impl SwCompositeGraphNode {
     /// that would block immediate composition.
     fn set_job(&mut self, job: SwCompositeJob, num_bands: u8) -> bool {
         self.job = Some(job);
-        self.has_job.store(true, Ordering::SeqCst);
         self.remaining_bands.store(num_bands, Ordering::SeqCst);
         self.available_bands.store(num_bands as _, Ordering::SeqCst);
         // Subtract off the sentinel parent dependency now that job is initialized and check
@@ -444,8 +439,6 @@ impl SwCompositeGraphNode {
         }
         // Clear the job to release any locked resources.
         self.job = None;
-        // Signal that resources have been released.
-        self.has_job.store(false, Ordering::SeqCst);
         let mut lock = None;
         for child in self.children.drain(..) {
             // Remove the child's parent dependency on this node. If there are no more
@@ -1338,12 +1331,6 @@ impl Compositor for SwCompositor {
                     if let Some(tile_info) = self.compositor.map_tile(device, id, dirty_rect, valid_rect) {
                         stride = tile_info.stride;
                         buf = tile_info.data;
-                    }
-                } else if let Some(ref composite_thread) = self.composite_thread {
-                    // Check if the tile is currently in use before proceeding to modify it.
-                    if tile.graph_node.get().has_job.load(Ordering::SeqCst) {
-                        // Need to wait for the SwComposite thread to finish any queued jobs.
-                        composite_thread.wait_for_composites(false);
                     }
                 }
                 self.gl.set_texture_buffer(

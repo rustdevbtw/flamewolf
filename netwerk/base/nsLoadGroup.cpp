@@ -1132,7 +1132,7 @@ nsLoadGroup::Observe(nsISupports* aSubject, const char* aTopic,
 
   OriginAttributes attrs;
   StoragePrincipalHelper::GetRegularPrincipalOriginAttributes(this, attrs);
-  if (!attrs.IsPrivateBrowsing()) {
+  if (attrs.mPrivateBrowsingId == 0) {
     return NS_OK;
   }
 

@@ -35,6 +35,10 @@ from mozversioncontrol import (
     HgRepository,
 )
 
+from .task_config import (
+    try_config_commit,
+)
+
 TOKEN_FILE = (
     Path(get_state_dir(specific_to_topsrcdir=False)) / "lando_auth0_user_token.json"
 )
@@ -70,9 +74,7 @@ def load_token_from_disk() -> Optional[dict]:
     return user_token
 
 
-def get_stack_info(
-    vcs: SupportedVcsRepository, head: Optional[str]
-) -> Tuple[str, List[str]]:
+def get_stack_info(vcs: SupportedVcsRepository) -> Tuple[str, List[str]]:
     """Retrieve information about the current stack for submission via Lando.
 
     Returns a tuple of the current public base commit as a Mercurial SHA,
@@ -90,7 +92,7 @@ def get_stack_info(
     if isinstance(vcs, HgRepository):
         branch_nodes_kwargs["base_ref"] = base_commit
 
-    nodes = vcs.get_branch_nodes(head, **branch_nodes_kwargs)
+    nodes = vcs.get_branch_nodes(**branch_nodes_kwargs)
     if not nodes:
         raise ValueError("Could not find any commit hashes for submission.")
     elif len(nodes) == 1:
@@ -393,9 +395,7 @@ class LandoAPI:
         return response_json
 
 
-def push_to_lando_try(
-    vcs: SupportedVcsRepository, commit_message: str, changed_files: dict
-):
+def push_to_lando_try(vcs: SupportedVcsRepository, commit_message: str):
     """Push a set of patches to Lando's try endpoint."""
     # Map `Repository` subclasses to the `patch_format` value Lando expects.
     PATCH_FORMAT_STRING_MAPPING = {
@@ -419,9 +419,9 @@ def push_to_lando_try(
     # Get the time when the push was initiated, not including Auth0 login time.
     push_start_time = time.perf_counter()
 
-    with vcs.try_commit(commit_message, changed_files) as head:
+    with try_config_commit(vcs, commit_message):
         try:
-            base_commit, patches = get_stack_info(vcs, head)
+            base_commit, patches = get_stack_info(vcs)
         except ValueError as exc:
             error_msg = "abort: error gathering patches for submission."
             print(error_msg)

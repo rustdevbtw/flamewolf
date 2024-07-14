@@ -54,31 +54,6 @@ namespace layers {
 
 using gfx::Matrix4x4;
 
-already_AddRefed<StyleAnimationValue> AnimatedValue::AsAnimationValue(
-    nsCSSPropertyID aProperty) const {
-  RefPtr<StyleAnimationValue> result;
-  mValue.match(
-      [&](const AnimationTransform& aTransform) {
-        // Linear search. It's likely that the length of the array is one in
-        // most common case, so it shouldn't have much performance impact.
-        for (const auto& value : Transform().mAnimationValues) {
-          AnimatedPropertyID property(eCSSProperty_UNKNOWN);
-          Servo_AnimationValue_GetPropertyId(value, &property);
-          if (property.mID == aProperty) {
-            result = value;
-            break;
-          }
-        }
-      },
-      [&](const float& aOpacity) {
-        result = Servo_AnimationValue_Opacity(aOpacity).Consume();
-      },
-      [&](const nscolor& aColor) {
-        result = Servo_AnimationValue_Color(aProperty, aColor).Consume();
-      });
-  return result.forget();
-}
-
 void CompositorAnimationStorage::ClearById(const uint64_t& aId) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   MutexAutoLock lock(mLock);
@@ -145,21 +120,20 @@ OMTAValue CompositorAnimationStorage::GetOMTAValue(const uint64_t& aId) const {
 
 void CompositorAnimationStorage::SetAnimatedValue(
     uint64_t aId, AnimatedValue* aPreviousValue,
-    const gfx::Matrix4x4& aFrameTransform, const TransformData& aData,
-    SampledAnimationArray&& aValue) {
+    const gfx::Matrix4x4& aFrameTransform, const TransformData& aData) {
   mLock.AssertCurrentThreadOwns();
 
   if (!aPreviousValue) {
     MOZ_ASSERT(!mAnimatedValues.Contains(aId));
     mAnimatedValues.InsertOrUpdate(
-        aId, MakeUnique<AnimatedValue>(gfx::Matrix4x4(), aFrameTransform, aData,
-                                       std::move(aValue)));
+        aId,
+        MakeUnique<AnimatedValue>(gfx::Matrix4x4(), aFrameTransform, aData));
     return;
   }
   MOZ_ASSERT(aPreviousValue->Is<AnimationTransform>());
   MOZ_ASSERT(aPreviousValue == GetAnimatedValue(aId));
 
-  aPreviousValue->SetTransform(aFrameTransform, aData, std::move(aValue));
+  aPreviousValue->SetTransform(aFrameTransform, aData);
 }
 
 void CompositorAnimationStorage::SetAnimatedValue(uint64_t aId,
@@ -194,15 +168,14 @@ void CompositorAnimationStorage::SetAnimatedValue(uint64_t aId,
   aPreviousValue->SetOpacity(aOpacity);
 }
 
-void CompositorAnimationStorage::SetAnimations(
-    uint64_t aId, const LayersId& aLayersId, const AnimationArray& aValue,
-    const TimeStamp& aPreviousSampleTime) {
+void CompositorAnimationStorage::SetAnimations(uint64_t aId,
+                                               const LayersId& aLayersId,
+                                               const AnimationArray& aValue) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   MutexAutoLock lock(mLock);
 
-  mAnimations[aId] =
-      std::make_unique<AnimationStorageData>(AnimationHelper::ExtractAnimations(
-          aLayersId, aValue, this, aPreviousSampleTime));
+  mAnimations[aId] = std::make_unique<AnimationStorageData>(
+      AnimationHelper::ExtractAnimations(aLayersId, aValue));
 
   PROFILER_MARKER("SetAnimation", GRAPHICS,
                   MarkerInnerWindowId(mCompositorBridge->GetInnerWindowId()),
@@ -233,7 +206,7 @@ static ParentLayerRect GetClipRectForPartialPrerender(
 void CompositorAnimationStorage::StoreAnimatedValue(
     nsCSSPropertyID aProperty, uint64_t aId,
     const std::unique_ptr<AnimationStorageData>& aAnimationStorageData,
-    SampledAnimationArray&& aAnimationValues,
+    const AutoTArray<RefPtr<StyleAnimationValue>, 1>& aAnimationValues,
     const MutexAutoLock& aProofOfMapLock, const RefPtr<APZSampler>& aApzSampler,
     AnimatedValue* aAnimatedValueEntry,
     JankedAnimationMap& aJankedAnimationMap) {
@@ -304,8 +277,7 @@ void CompositorAnimationStorage::StoreAnimatedValue(
         }
       }
 
-      SetAnimatedValue(aId, aAnimatedValueEntry, frameTransform, transformData,
-                       std::move(aAnimationValues));
+      SetAnimatedValue(aId, aAnimatedValueEntry, frameTransform, transformData);
       break;
     }
     default:
@@ -339,7 +311,7 @@ bool CompositorAnimationStorage::SampleAnimations(
       const nsCSSPropertyID lastPropertyAnimationGroupProperty =
           animationStorageData->mAnimation.LastElement().mProperty;
       isAnimating = true;
-      SampledAnimationArray animationValues;
+      AutoTArray<RefPtr<StyleAnimationValue>, 1> animationValues;
       AnimatedValue* previousValue = GetAnimatedValue(iter.first);
       AnimationHelper::SampleResult sampleResult =
           AnimationHelper::SampleAnimationForEachNode(
@@ -392,7 +364,7 @@ bool CompositorAnimationStorage::SampleAnimations(
           // For the 2nd case, we store the base styles until we have some other
           // new sampled results or the new animations arrived (i.e. case 1).
           StoreAnimatedValue(lastPropertyAnimationGroupProperty, iter.first,
-                             animationStorageData, std::move(animationValues),
+                             animationStorageData, animationValues,
                              aProofOfMapLock, apzSampler, previousValue,
                              janked);
         }
@@ -401,8 +373,8 @@ bool CompositorAnimationStorage::SampleAnimations(
 
       // Store the normal sampled result.
       StoreAnimatedValue(lastPropertyAnimationGroupProperty, iter.first,
-                         animationStorageData, std::move(animationValues),
-                         aProofOfMapLock, apzSampler, previousValue, janked);
+                         animationStorageData, animationValues, aProofOfMapLock,
+                         apzSampler, previousValue, janked);
     }
   };
 

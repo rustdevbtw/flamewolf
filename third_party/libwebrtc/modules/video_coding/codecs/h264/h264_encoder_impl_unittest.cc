@@ -11,9 +11,7 @@
 
 #include "modules/video_coding/codecs/h264/h264_encoder_impl.h"
 
-#include "api/environment/environment_factory.h"
 #include "api/video_codecs/video_encoder.h"
-#include "modules/video_coding/include/video_error_codes.h"
 #include "test/gtest.h"
 
 namespace webrtc {
@@ -41,7 +39,7 @@ void SetDefaultSettings(VideoCodec* codec_settings) {
 }
 
 TEST(H264EncoderImplTest, CanInitializeWithDefaultParameters) {
-  H264EncoderImpl encoder(CreateEnvironment(), {});
+  H264EncoderImpl encoder(cricket::CreateVideoCodec("H264"));
   VideoCodec codec_settings;
   SetDefaultSettings(&codec_settings);
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK,
@@ -51,9 +49,9 @@ TEST(H264EncoderImplTest, CanInitializeWithDefaultParameters) {
 }
 
 TEST(H264EncoderImplTest, CanInitializeWithNonInterleavedModeExplicitly) {
-  H264EncoderImpl encoder(
-      CreateEnvironment(),
-      {.packetization_mode = H264PacketizationMode::NonInterleaved});
+  cricket::VideoCodec codec = cricket::CreateVideoCodec("H264");
+  codec.SetParam(cricket::kH264FmtpPacketizationMode, "1");
+  H264EncoderImpl encoder(codec);
   VideoCodec codec_settings;
   SetDefaultSettings(&codec_settings);
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK,
@@ -63,9 +61,22 @@ TEST(H264EncoderImplTest, CanInitializeWithNonInterleavedModeExplicitly) {
 }
 
 TEST(H264EncoderImplTest, CanInitializeWithSingleNalUnitModeExplicitly) {
-  H264EncoderImpl encoder(
-      CreateEnvironment(),
-      {.packetization_mode = H264PacketizationMode::SingleNalUnit});
+  cricket::VideoCodec codec = cricket::CreateVideoCodec("H264");
+  codec.SetParam(cricket::kH264FmtpPacketizationMode, "0");
+  H264EncoderImpl encoder(codec);
+  VideoCodec codec_settings;
+  SetDefaultSettings(&codec_settings);
+  EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK,
+            encoder.InitEncode(&codec_settings, kSettings));
+  EXPECT_EQ(H264PacketizationMode::SingleNalUnit,
+            encoder.PacketizationModeForTesting());
+}
+
+TEST(H264EncoderImplTest, CanInitializeWithRemovedParameter)
+{
+  cricket::VideoCodec codec = cricket::CreateVideoCodec("H264");
+  codec.RemoveParam(cricket::kH264FmtpPacketizationMode);
+  H264EncoderImpl encoder(codec);
   VideoCodec codec_settings;
   SetDefaultSettings(&codec_settings);
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK,

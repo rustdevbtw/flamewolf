@@ -7,21 +7,26 @@
 use std::sync::Arc;
 
 use crate::{
+    id::Id,
     lock::{rank, Mutex},
     resource::Resource,
     resource_log,
+    storage::Storage,
     track::ResourceMetadata,
 };
 
 use super::{ResourceTracker, TrackerIndex};
 
+/// Satisfy clippy.
+type Pair<T> = (Id<<T as Resource>::Marker>, Arc<T>);
+
 /// Stores all the resources that a bind group stores.
 #[derive(Debug)]
-pub(crate) struct StatelessBindGroupState<T: Resource> {
-    resources: Mutex<Vec<Arc<T>>>,
+pub(crate) struct StatelessBindGroupSate<T: Resource> {
+    resources: Mutex<Vec<Pair<T>>>,
 }
 
-impl<T: Resource> StatelessBindGroupState<T> {
+impl<T: Resource> StatelessBindGroupSate<T> {
     pub fn new() -> Self {
         Self {
             resources: Mutex::new(rank::STATELESS_BIND_GROUP_STATE_RESOURCES, Vec::new()),
@@ -34,25 +39,37 @@ impl<T: Resource> StatelessBindGroupState<T> {
     /// accesses will be in a constant ascending order.
     pub(crate) fn optimize(&self) {
         let mut resources = self.resources.lock();
-        resources.sort_unstable_by_key(|resource| resource.as_info().tracker_index());
+        resources.sort_unstable_by_key(|&(id, _)| id.unzip().0);
     }
 
     /// Returns a list of all resources tracked. May contain duplicates.
     pub fn used_resources(&self) -> impl Iterator<Item = Arc<T>> + '_ {
         let resources = self.resources.lock();
-        resources.iter().cloned().collect::<Vec<_>>().into_iter()
+        resources
+            .iter()
+            .map(|(_, resource)| resource.clone())
+            .collect::<Vec<_>>()
+            .into_iter()
     }
 
     /// Returns a list of all resources tracked. May contain duplicates.
     pub fn drain_resources(&self) -> impl Iterator<Item = Arc<T>> + '_ {
         let mut resources = self.resources.lock();
-        resources.drain(..).collect::<Vec<_>>().into_iter()
+        resources
+            .drain(..)
+            .map(|(_, r)| r)
+            .collect::<Vec<_>>()
+            .into_iter()
     }
 
     /// Adds the given resource.
-    pub fn add_single(&self, resource: &Arc<T>) {
+    pub fn add_single<'a>(&self, storage: &'a Storage<T>, id: Id<T::Marker>) -> Option<&'a T> {
+        let resource = storage.get(id).ok()?;
+
         let mut resources = self.resources.lock();
-        resources.push(resource.clone());
+        resources.push((id, resource.clone()));
+
+        Some(resource)
     }
 }
 
@@ -77,6 +94,8 @@ impl<T: Resource> ResourceTracker for StatelessTracker<T> {
             return false;
         }
 
+        resource_log!("StatelessTracker::remove_abandoned {index:?}");
+
         self.tracker_assert_in_bounds(index);
 
         unsafe {
@@ -85,32 +104,13 @@ impl<T: Resource> ResourceTracker for StatelessTracker<T> {
                 //RefCount 2 means that resource is hold just by DeviceTracker and this suspected resource itself
                 //so it's already been released from user and so it's not inside Registry\Storage
                 if existing_ref_count <= 2 {
-                    resource_log!(
-                        "StatelessTracker<{}>::remove_abandoned: removing {}",
-                        T::TYPE,
-                        self.metadata.get_resource_unchecked(index).error_ident()
-                    );
-
                     self.metadata.remove(index);
                     return true;
                 }
 
-                resource_log!(
-                    "StatelessTracker<{}>::remove_abandoned: not removing {}, ref count {}",
-                    T::TYPE,
-                    self.metadata.get_resource_unchecked(index).error_ident(),
-                    existing_ref_count
-                );
-
                 return false;
             }
         }
-
-        resource_log!(
-            "StatelessTracker<{}>::remove_abandoned: does not contain index {index:?}",
-            T::TYPE,
-        );
-
         true
     }
 }
@@ -175,7 +175,13 @@ impl<T: Resource> StatelessTracker<T> {
     ///
     /// If the ID is higher than the length of internal vectors,
     /// the vectors will be extended. A call to set_size is not needed.
-    pub fn add_single(&mut self, resource: &Arc<T>) {
+    pub fn add_single<'a>(
+        &mut self,
+        storage: &'a Storage<T>,
+        id: Id<T::Marker>,
+    ) -> Option<&'a Arc<T>> {
+        let resource = storage.get(id).ok()?;
+
         let index = resource.as_info().tracker_index().as_usize();
 
         self.allow_index(index);
@@ -185,6 +191,8 @@ impl<T: Resource> StatelessTracker<T> {
         unsafe {
             self.metadata.insert(index, resource.clone());
         }
+
+        Some(resource)
     }
 
     /// Adds the given resources from the given tracker.

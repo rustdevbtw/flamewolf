@@ -55,7 +55,6 @@ class SearchBox extends PureComponent {
       onKeyDown: PropTypes.func,
       placeholder: PropTypes.string.isRequired,
       summary: PropTypes.string,
-      summaryId: PropTypes.string,
       summaryTooltip: PropTypes.string,
       type: PropTypes.string,
       value: PropTypes.string,
@@ -216,7 +215,6 @@ class SearchBox extends PureComponent {
     const {
       autocompleteProvider,
       summary,
-      summaryId,
       summaryTooltip,
       learnMoreTitle,
       learnMoreUrl,
@@ -228,10 +226,12 @@ class SearchBox extends PureComponent {
       autocompleteProvider && this.state.focused && value !== "";
     const showLearnMoreLink = learnMoreUrl && value === "";
 
+    const inputClassList = [`devtools-${type}input`];
+
     return dom.div(
       { className: "devtools-searchbox" },
       dom.input({
-        className: `devtools-${type}input`,
+        className: inputClassList.join(" "),
         onBlur: this.onBlur,
         onChange: e => this.onChange(e.target.value),
         onFocus: this.onFocus,
@@ -240,7 +240,6 @@ class SearchBox extends PureComponent {
         ref: this.inputRef,
         value,
         type: "search",
-        "aria-describedby": (summary && summaryId) || undefined,
       }),
       showLearnMoreLink &&
         MDNLink({
@@ -251,8 +250,7 @@ class SearchBox extends PureComponent {
         ? dom.span(
             {
               className: "devtools-searchinput-summary",
-              id: summaryId,
-              title: summaryTooltip,
+              title: summaryTooltip || "",
             },
             summary
           )

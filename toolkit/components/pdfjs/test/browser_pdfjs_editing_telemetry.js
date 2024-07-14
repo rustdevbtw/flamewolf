@@ -87,8 +87,10 @@ add_task(async function test() {
 
       Assert.equal(Glean.pdfjs.editing.print.testGetValue(), 1);
 
-      await waitForPdfJSClose(browser);
-      await SpecialPowers.popPrefEnv();
+      await SpecialPowers.spawn(browser, [], async function () {
+        var viewer = content.wrappedJSObject.PDFViewerApplication;
+        await viewer.close();
+      });
     }
   );
 });

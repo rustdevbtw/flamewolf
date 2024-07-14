@@ -27,7 +27,6 @@ public class WebAuthnUtils {
   private static final byte AUTHENTICATOR_TRANSPORT_NFC = 2;
   private static final byte AUTHENTICATOR_TRANSPORT_BLE = 4;
   private static final byte AUTHENTICATOR_TRANSPORT_INTERNAL = 8;
-  private static final byte AUTHENTICATOR_TRANSPORT_HYBRID = 16;
 
   // From WebAuthentication.webidl
   public enum AttestationPreference {
@@ -50,13 +49,10 @@ public class WebAuthnUtils {
     if ((transports & AUTHENTICATOR_TRANSPORT_INTERNAL) == AUTHENTICATOR_TRANSPORT_INTERNAL) {
       result.add(Transport.INTERNAL);
     }
-    if ((transports & AUTHENTICATOR_TRANSPORT_HYBRID) == AUTHENTICATOR_TRANSPORT_HYBRID) {
-      result.add(Transport.HYBRID);
-    }
     return result;
   }
 
-  /* package */ static JSONArray getJSONTransportsForByte(final byte transports) {
+  private static JSONArray getJSONTransportsForByte(final byte transports) {
     final JSONArray json = new JSONArray();
     if ((transports & AUTHENTICATOR_TRANSPORT_USB) == AUTHENTICATOR_TRANSPORT_USB) {
       json.put("usb");
@@ -69,9 +65,6 @@ public class WebAuthnUtils {
     }
     if ((transports & AUTHENTICATOR_TRANSPORT_INTERNAL) == AUTHENTICATOR_TRANSPORT_INTERNAL) {
       json.put("internal");
-    }
-    if ((transports & AUTHENTICATOR_TRANSPORT_HYBRID) == AUTHENTICATOR_TRANSPORT_HYBRID) {
-      json.put("hybrid");
     }
     return json;
   }

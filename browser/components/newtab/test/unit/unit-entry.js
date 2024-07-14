@@ -119,6 +119,23 @@ const TEST_GLOBAL = {
     },
     platform: "win",
   },
+  ASRouterPreferences: {
+    console: new FakeConsoleAPI({
+      maxLogLevel: "off", // set this to "debug" or "all" to get more ASRouter logging in tests
+      prefix: "ASRouter",
+    }),
+  },
+  AWScreenUtils: {
+    evaluateTargetingAndRemoveScreens() {
+      return true;
+    },
+    async removeScreens() {
+      return true;
+    },
+    evaluateScreenTargeting() {
+      return true;
+    },
+  },
   BrowserUtils: {
     sendToDeviceEmailsSupported() {
       return true;
@@ -440,10 +457,13 @@ const TEST_GLOBAL = {
         Promise.resolve([{ identifier: "google" }, { identifier: "bing" }]),
       defaultEngine: {
         identifier: "google",
+        searchForm:
+          "https://www.google.com/search?q=&ie=utf-8&oe=utf-8&client=firefox-b",
         aliases: ["@google"],
       },
       defaultPrivateEngine: {
         identifier: "bing",
+        searchForm: "https://www.bing.com",
         aliases: ["@bing"],
       },
       getEngineByAlias: async () => null,

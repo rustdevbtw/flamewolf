@@ -25,20 +25,6 @@ export var LayoutUtils = {
     return win.ownerGlobal.windowUtils.toScreenRect(x, y, width, height);
   },
 
-  /**
-   * Convert rect into the top level widget coordinates in LayoutDevicePixel
-   * units.
-   */
-  rectToTopLevelWidgetRect(win, rect) {
-    const { x, y, width, height } = this._rectToClientRect(win, rect);
-    return win.ownerGlobal.windowUtils.toTopLevelWidgetRect(
-      x,
-      y,
-      width,
-      height
-    );
-  },
-
   _rectToClientRect(win, rect) {
     // We need to compensate the position for ancestor iframes in the same
     // process that might shift things over. Those might have different CSS

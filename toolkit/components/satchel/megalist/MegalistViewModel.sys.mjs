@@ -116,9 +116,6 @@ export class MegalistViewModel {
         snapshot.stickers.push(sticker);
       }
     }
-    if ("toggleTooltip" in snapshotData) {
-      snapshot.toggleTooltip = snapshotData.toggleTooltip;
-    }
 
     this.#messageToView("Snapshot", { snapshotId, snapshot });
   }

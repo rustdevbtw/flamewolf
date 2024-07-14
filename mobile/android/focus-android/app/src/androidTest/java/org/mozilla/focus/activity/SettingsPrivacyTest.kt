@@ -124,7 +124,7 @@ class SettingsPrivacyTest {
         searchScreen {
         }.loadPage(crossSiteCookiesURL) {
             progressBar.waitUntilGone(waitingTime)
-            verifyCookiesEnabled("BLOCKED")
+            verifyCookiesEnabled("PARTITIONED")
         }.clearBrowsingData {
         }.openSearchBar {
         }.loadPage(sameSiteCookiesUrl) {

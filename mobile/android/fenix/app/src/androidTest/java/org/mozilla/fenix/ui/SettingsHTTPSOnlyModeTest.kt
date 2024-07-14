@@ -159,6 +159,10 @@ class SettingsHTTPSOnlyModeTest : TestSetup() {
             verifyPageContent(httpsOnlyBackButton)
             clickPageObject(itemContainingText(httpsOnlyBackButton))
             verifyPageContent("Example Domain")
+        }.openNavigationToolbar {
+        }.enterURLAndEnterToBrowser(insecureHttpPage.toUri()) {
+            clickPageObject(itemContainingText(httpsOnlyContinueButton))
+            verifyPageContent("http.badssl.com")
         }
     }
 
@@ -181,14 +185,6 @@ class SettingsHTTPSOnlyModeTest : TestSetup() {
             waitForPageToLoad()
         }.openNavigationToolbar {
             verifyUrl(httpsPageUrl)
-        }.enterURLAndEnterToBrowser(insecureHttpPage.toUri()) {
-            verifyPageContent(httpsOnlyErrorTitle)
-            verifyPageContent(httpsOnlyErrorMessage)
-            verifyPageContent(httpsOnlyErrorMessage2)
-            verifyPageContent(httpsOnlyBackButton)
-            clickPageObject(itemContainingText(httpsOnlyBackButton))
-            verifyPageContent("Example Domain")
-        }.openNavigationToolbar {
         }.goBackToBrowserScreen {
         }.openThreeDotMenu {
         }.openSettings {
@@ -200,8 +196,10 @@ class SettingsHTTPSOnlyModeTest : TestSetup() {
             exitMenu()
         }
         navigationToolbar {
-        }.enterURLAndEnterToBrowser(insecureHttpPage.toUri()) {
-            verifyPageContent("http.badssl.com")
+        }.enterURLAndEnterToBrowser(httpPageUrl.toUri()) {
+            waitForPageToLoad()
+        }.openNavigationToolbar {
+            verifyUrl(httpPageUrl)
         }
     }
 }

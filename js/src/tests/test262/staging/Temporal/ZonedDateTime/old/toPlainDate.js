@@ -38,7 +38,10 @@ const fakeGregorian = {
   yearMonthFromFields() {},
   yearOfWeek() {},
 };
-var zdt = Temporal.Instant.from("2019-10-29T09:46:38.271986102Z").toZonedDateTimeISO(tz).withCalendar(fakeGregorian);
+var zdt = Temporal.Instant.from("2019-10-29T09:46:38.271986102Z").toZonedDateTime({
+  timeZone: tz,
+  calendar: fakeGregorian
+});
 assert.sameValue(zdt.toPlainDate().getCalendar(), fakeGregorian);
 
 reportCompare(0, 0);

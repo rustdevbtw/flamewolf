@@ -205,11 +205,6 @@ iframe {
 .inspector-tabpanel.extension-sidebar {
   height: 100%;
   overflow-y: auto;
-
-  /* Prevent overflow issue (Bug 1905000) */
-  iframe.inspector-extension-sidebar-page {
-    display: block;
-  }
 }
 
 /* Used for both the computed view and the rule view, to truncate extremely

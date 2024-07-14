@@ -615,7 +615,8 @@ nsContentTreeOwner::Blur() {
     nsCOMPtr<nsIWindowMediator> windowMediator(
         do_GetService(kWindowMediatorCID));
     if (windowMediator) {
-      windowMediator->GetEnumerator(nullptr, getter_AddRefs(windowEnumerator));
+      windowMediator->GetZOrderAppWindowEnumerator(
+          nullptr, true, getter_AddRefs(windowEnumerator));
     }
   }
 

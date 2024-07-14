@@ -435,19 +435,13 @@ FormAutofillUtils = {
       element.checkVisibility &&
       !FormAutofillUtils.ignoreVisibilityCheck
     ) {
-      if (
-        !element.checkVisibility({
-          checkOpacity: true,
-          checkVisibilityCSS: true,
-        })
-      ) {
-        return false;
-      }
-    } else if (element.hidden || element.style.display == "none") {
-      return false;
+      return element.checkVisibility({
+        checkOpacity: true,
+        checkVisibilityCSS: true,
+      });
     }
 
-    return element.getAttribute("aria-hidden") != "true";
+    return !element.hidden && element.style.display != "none";
   },
 
   /**

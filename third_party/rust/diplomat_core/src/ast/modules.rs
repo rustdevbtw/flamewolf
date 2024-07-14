@@ -6,8 +6,8 @@ use serde::Serialize;
 use syn::{ImplItem, Item, ItemMod, UseTree, Visibility};
 
 use super::{
-    AttrInheritContext, Attrs, CustomType, Enum, Ident, Method, ModSymbol, Mutability,
-    OpaqueStruct, Path, PathType, RustLink, Struct,
+    Attrs, CustomType, Enum, Ident, Method, ModSymbol, Mutability, OpaqueStruct, Path, PathType,
+    RustLink, Struct, ValidityError,
 };
 use crate::environment::*;
 
@@ -66,10 +66,19 @@ pub struct Module {
     pub imports: Vec<(Path, Ident)>,
     pub declared_types: BTreeMap<Ident, CustomType>,
     pub sub_modules: Vec<Module>,
-    pub attrs: Attrs,
 }
 
 impl Module {
+    pub fn check_validity(&self, in_path: &Path, env: &Env, errors: &mut Vec<ValidityError>) {
+        self.declared_types.values().for_each(|t| {
+            t.check_validity(&in_path.sub_path(self.name.clone()), env, errors);
+        });
+
+        self.sub_modules.iter().for_each(|t| {
+            t.check_validity(&in_path.sub_path(self.name.clone()), env, errors);
+        });
+    }
+
     pub fn all_rust_links(&self) -> HashSet<&RustLink> {
         let mut rust_links = self
             .declared_types
@@ -84,7 +93,7 @@ impl Module {
     }
 
     pub fn insert_all_types(&self, in_path: Path, out: &mut Env) {
-        let mut mod_symbols = ModuleEnv::new(self.attrs.clone());
+        let mut mod_symbols = ModuleEnv::default();
 
         self.imports.iter().for_each(|(path, name)| {
             mod_symbols.insert(name.clone(), ModSymbol::Alias(path.clone()));
@@ -119,12 +128,6 @@ impl Module {
                 .iter()
                 .any(|a| a.path().to_token_stream().to_string() == "diplomat :: bridge");
 
-        let mod_attrs: Attrs = (&*input.attrs).into();
-
-        let impl_parent_attrs: Attrs =
-            mod_attrs.attrs_for_inheritance(AttrInheritContext::MethodOrImplFromModule);
-        let type_parent_attrs: Attrs = mod_attrs.attrs_for_inheritance(AttrInheritContext::Type);
-
         input
             .content
             .as_ref()
@@ -140,15 +143,15 @@ impl Module {
                 Item::Struct(strct) => {
                     if analyze_types {
                         let custom_type = match DiplomatStructAttribute::parse(&strct.attrs[..]) {
-                            Ok(None) => CustomType::Struct(Struct::new(strct, false, &type_parent_attrs)),
+                            Ok(None) => CustomType::Struct(Struct::new(strct, false)),
                             Ok(Some(DiplomatStructAttribute::Out)) => {
-                                CustomType::Struct(Struct::new(strct, true, &type_parent_attrs))
+                                CustomType::Struct(Struct::new(strct, true))
                             }
                             Ok(Some(DiplomatStructAttribute::Opaque)) => {
-                                CustomType::Opaque(OpaqueStruct::new(strct, Mutability::Immutable, &type_parent_attrs))
+                                CustomType::Opaque(OpaqueStruct::new(strct, Mutability::Immutable))
                             }
                             Ok(Some(DiplomatStructAttribute::OpaqueMut)) => {
-                                CustomType::Opaque(OpaqueStruct::new(strct, Mutability::Mutable, &type_parent_attrs))
+                                CustomType::Opaque(OpaqueStruct::new(strct, Mutability::Mutable))
                             }
                             Err(errors) => {
                                 panic!("Multiple conflicting Diplomat struct attributes, there can be at most one: {errors:?}");
@@ -161,10 +164,8 @@ impl Module {
 
                 Item::Enum(enm) => {
                     if analyze_types {
-                        let ident = (&enm.ident).into();
-                        let enm = Enum::new(enm, &type_parent_attrs);
                         custom_types_by_name
-                            .insert(ident, CustomType::Enum(enm));
+                            .insert((&enm.ident).into(), CustomType::Enum(Enum::from(enm)));
                     }
                 }
 
@@ -176,9 +177,8 @@ impl Module {
                             syn::Type::Path(s) => PathType::from(s),
                             _ => panic!("Self type not found"),
                         };
-                        let mut impl_attrs = impl_parent_attrs.clone();
-                        impl_attrs.add_attrs(&imp.attrs);
-                        let method_parent_attrs = impl_attrs.attrs_for_inheritance(AttrInheritContext::MethodFromImpl);
+                        let attrs = Attrs::from(&*imp.attrs);
+
                         let mut new_methods = imp
                             .items
                             .iter()
@@ -187,7 +187,7 @@ impl Module {
                                 _ => None,
                             })
                             .filter(|m| matches!(m.vis, Visibility::Public(_)))
-                            .map(|m| Method::from_syn(m, self_path.clone(), Some(&imp.generics), &method_parent_attrs))
+                            .map(|m| Method::from_syn(m, self_path.clone(), Some(&imp.generics), &attrs))
                             .collect();
 
                         let self_ident = self_path.path.elements.last().unwrap();
@@ -216,7 +216,6 @@ impl Module {
             imports,
             declared_types: custom_types_by_name,
             sub_modules,
-            attrs: mod_attrs,
         }
     }
 }
@@ -251,10 +250,21 @@ pub struct File {
 }
 
 impl File {
+    /// Performs all necessary validity checks and returns any errors
+    ///
+    /// Environment should be passed in from `.all_types()`
+    pub fn check_validity(&self, env: &Env) -> Vec<ValidityError> {
+        let mut errors = vec![];
+        self.modules
+            .values()
+            .for_each(|t| t.check_validity(&Path::empty(), env, &mut errors));
+        errors
+    }
+
     /// Fuses all declared types into a single environment `HashMap`.
     pub fn all_types(&self) -> Env {
         let mut out = Env::default();
-        let mut top_symbols = ModuleEnv::new(Default::default());
+        let mut top_symbols = ModuleEnv::default();
 
         self.modules.values().for_each(|m| {
             m.insert_all_types(Path::empty(), &mut out);

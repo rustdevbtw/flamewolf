@@ -53,11 +53,6 @@ interface BrowserToolbarInteractor {
      * Opens the share fragment.  Called when the user clicks the "Share" action in the toolbar.
      */
     fun onShareActionClicked()
-
-    /**
-     * Opens a new tab. Called when the user taps on the New Tab button.
-     */
-    fun onNewTabButtonClicked()
 }
 
 /**
@@ -127,9 +122,5 @@ class DefaultBrowserToolbarInteractor(
 
     override fun onShareActionClicked() {
         browserToolbarController.onShareActionClicked()
-    }
-
-    override fun onNewTabButtonClicked() {
-        browserToolbarController.handleNewTabButtonClick()
     }
 }

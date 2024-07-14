@@ -1036,25 +1036,15 @@ class TelemetryEvent {
     let results = currentResults
       .map(r => lazy.UrlbarUtils.searchEngagementTelemetryType(r))
       .join(",");
-    let actions = currentResults
-      .map((r, i) => lazy.UrlbarUtils.searchEngagementTelemetryAction(r, i))
-      .join(",");
     const search_engine_default_id = Services.search.defaultEngine.telemetryId;
 
     let eventInfo;
     if (method === "engagement") {
-      let selected_result = lazy.UrlbarUtils.searchEngagementTelemetryType(
+      const selected_result = lazy.UrlbarUtils.searchEngagementTelemetryType(
         currentResults[selIndex],
         selType
       );
-
-      if (selType == "action") {
-        let actionKey = lazy.UrlbarUtils.searchEngagementTelemetryAction(
-          currentResults[selIndex],
-          selIndex
-        );
-        selected_result = `action_${actionKey}`;
-      }
+      const selected_result_subtype = "";
 
       if (selected_result === "input_field" && !this._controller.view?.isOpen) {
         numResults = 0;
@@ -1071,13 +1061,13 @@ class TelemetryEvent {
         n_results: numResults,
         selected_position: selIndex + 1,
         selected_result,
+        selected_result_subtype,
         provider,
         engagement_type:
           selType === "help" || selType === "dismiss" ? selType : action,
         search_engine_default_id,
         groups,
         results,
-        actions,
       };
     } else if (method === "abandonment") {
       eventInfo = {
@@ -1091,7 +1081,6 @@ class TelemetryEvent {
         search_engine_default_id,
         groups,
         results,
-        actions,
       };
     } else if (method === "impression") {
       eventInfo = {
@@ -1105,7 +1094,6 @@ class TelemetryEvent {
         search_engine_default_id,
         groups,
         results,
-        actions,
       };
     } else {
       console.error(`Unknown telemetry event method: ${method}`);

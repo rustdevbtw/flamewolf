@@ -18,7 +18,6 @@
 #include "jit/JitFrames.h"
 #include "jit/JitSpewer.h"
 #include "jit/MacroAssembler.h"
-#include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 #include "jit/MIRGenerator.h"
 #include "jit/SafepointIndex.h"

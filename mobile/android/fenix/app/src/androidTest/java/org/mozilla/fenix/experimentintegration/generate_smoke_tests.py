@@ -73,9 +73,8 @@ def generate_smoke_tests(tests_names=None):
         tests.append(
             f"""
 @pytest.mark.smoke_test
-def test_smoke_{test_name}(setup_experiment, gradlewbuild, open_app):
+def test_smoke_{test_name}(setup_experiment, gradlewbuild):
     setup_experiment()
-    open_app()
     gradlewbuild.test("{test}", smoke=True)
 """
         )

@@ -27,7 +27,6 @@ pub mod ffi {
     impl ICU4XLocaleDirectionality {
         /// Construct a new ICU4XLocaleDirectionality instance
         #[diplomat::rust_link(icu::locid_transform::LocaleDirectionality::new, FnInStruct)]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors), constructor)]
         pub fn create(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XLocaleDirectionality>, ICU4XError> {
@@ -44,7 +43,6 @@ pub mod ffi {
             icu::locid_transform::LocaleDirectionality::new_with_expander,
             FnInStruct
         )]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "with_expander")]
         pub fn create_with_expander(
             provider: &ICU4XDataProvider,
             expander: &ICU4XLocaleExpander,
@@ -76,7 +74,6 @@ pub mod ffi {
         }
 
         #[diplomat::rust_link(icu::locid_transform::LocaleDirectionality::get, FnInStruct)]
-        #[diplomat::attr(supports = indexing, indexer)]
         pub fn get(&self, locale: &ICU4XLocale) -> ICU4XLocaleDirection {
             match self.0.get(&locale.0) {
                 Some(Direction::LeftToRight) => ICU4XLocaleDirection::LeftToRight,

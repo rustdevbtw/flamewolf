@@ -1413,12 +1413,6 @@ permissions-autoplay-settings =
     .label = Settings…
     .accesskey = t
 
-
-permissions-location = Exec
-permissions-location-settings =
-    .label = Settings…
-    .accesskey = t
-
 permissions-block-popups =
     .label = Block pop-up windows
     .accesskey = B

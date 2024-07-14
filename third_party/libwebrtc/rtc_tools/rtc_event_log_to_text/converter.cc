@@ -333,11 +333,10 @@ bool Convert(std::string inputfile,
       fprintf(output, " transmission_offset=%d",
               event.rtp.header.extension.transmissionTimeOffset);
     }
-    if (event.rtp.header.extension.audio_level()) {
+    if (event.rtp.header.extension.hasAudioLevel) {
       fprintf(output, " voice_activity=%d",
-              event.rtp.header.extension.audio_level()->voice_activity());
-      fprintf(output, " audio_level=%u",
-              event.rtp.header.extension.audio_level()->level());
+              event.rtp.header.extension.voiceActivity);
+      fprintf(output, " audio_level=%u", event.rtp.header.extension.audioLevel);
     }
     if (event.rtp.header.extension.hasVideoRotation) {
       fprintf(output, " video_rotation=%d",
@@ -368,11 +367,10 @@ bool Convert(std::string inputfile,
       fprintf(output, " transmission_offset=%d",
               event.rtp.header.extension.transmissionTimeOffset);
     }
-    if (event.rtp.header.extension.audio_level()) {
+    if (event.rtp.header.extension.hasAudioLevel) {
       fprintf(output, " voice_activity=%d",
-              event.rtp.header.extension.audio_level()->voice_activity());
-      fprintf(output, " audio_level=%u",
-              event.rtp.header.extension.audio_level()->level());
+              event.rtp.header.extension.voiceActivity);
+      fprintf(output, " audio_level=%u", event.rtp.header.extension.audioLevel);
     }
     if (event.rtp.header.extension.hasVideoRotation) {
       fprintf(output, " video_rotation=%d",

@@ -1131,7 +1131,7 @@
     }
 
     get _isCustomizing() {
-      return document.documentElement.hasAttribute("customizing");
+      return document.documentElement.getAttribute("customizing") == "true";
     }
 
     // This overrides the TabsBase _selectNewTab method so that we can
@@ -1182,8 +1182,7 @@
         // - for vertical orientation
         if (
           event.originalTarget != arrowScrollbox.scrollbox ||
-          event.detail == 0 ||
-          event.originalTarget.getAttribute("orient") == "vertical"
+          event.detail == 0
         ) {
           return;
         }

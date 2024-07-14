@@ -24,7 +24,7 @@ function invalidCode(code, name, messageId) {
 
 ruleTester.run("valid-lazy", rule, {
   // Note: these tests build on top of one another, although lazy gets
-  // redeclared, it
+  // re-declared, it
   valid: [
     `
        const lazy = {};

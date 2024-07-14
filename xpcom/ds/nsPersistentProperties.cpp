@@ -55,6 +55,7 @@ class MOZ_STACK_CLASS nsPropertiesParser {
         mUnicodeValue(u'\0'),
         mHaveMultiLine(false),
         mMultiLineCanSkipN(false),
+        mMinLength(0),
         mState(eParserState_AwaitingKey),
         mSpecialState(eParserSpecial_None),
         mProps(aProps) {}
@@ -62,6 +63,19 @@ class MOZ_STACK_CLASS nsPropertiesParser {
   void FinishValueState(nsAString& aOldValue) {
     static const char trimThese[] = " \t";
     mKey.Trim(trimThese, false, true);
+
+    // This is really ugly hack but it should be fast
+    char16_t backup_char;
+    uint32_t minLength = mMinLength;
+    if (minLength) {
+      backup_char = mValue[minLength - 1];
+      mValue.SetCharAt('x', minLength - 1);
+    }
+    mValue.Trim(trimThese, false, true);
+    if (minLength) {
+      mValue.SetCharAt(backup_char, minLength - 1);
+    }
+
     mProps->SetStringProperty(NS_ConvertUTF16toUTF8(mKey), mValue, aOldValue);
     mSpecialState = eParserSpecial_None;
     WaitForKey();
@@ -98,6 +112,7 @@ class MOZ_STACK_CLASS nsPropertiesParser {
 
   void EnterValueState() {
     mValue.Truncate();
+    mMinLength = 0;
     mState = eParserState_Value;
     mSpecialState = eParserSpecial_None;
   }
@@ -117,6 +132,8 @@ class MOZ_STACK_CLASS nsPropertiesParser {
                                 //  - any sequence above followed by any
                                 //    combination of ' ' and '\t'
   bool mMultiLineCanSkipN;      // TRUE if "\\\r" was detected
+  uint32_t mMinLength;          // limit right trimming at the end to not trim
+                                // escaped whitespaces
   EParserState mState;
   // if we see a '\' then we enter this special state
   EParserSpecial mSpecialState;
@@ -205,12 +222,15 @@ bool nsPropertiesParser::ParseValueCharacter(char16_t aChar,
         // the easy characters - \t, \n, and so forth
         case 't':
           mValue += char16_t('\t');
+          mMinLength = mValue.Length();
           break;
         case 'n':
           mValue += char16_t('\n');
+          mMinLength = mValue.Length();
           break;
         case 'r':
           mValue += char16_t('\r');
+          mMinLength = mValue.Length();
           break;
         case '\\':
           mValue += char16_t('\\');
@@ -251,6 +271,7 @@ bool nsPropertiesParser::ParseValueCharacter(char16_t aChar,
       } else {
         // non-hex character. Append what we have, and move on.
         mValue += mUnicodeValue;
+        mMinLength = mValue.Length();
         mSpecialState = eParserSpecial_None;
 
         // leave aTokenStart at this unknown character, so it gets appended
@@ -264,6 +285,7 @@ bool nsPropertiesParser::ParseValueCharacter(char16_t aChar,
         aTokenStart = aCur + 1;
         mSpecialState = eParserSpecial_None;
         mValue += mUnicodeValue;
+        mMinLength = mValue.Length();
       }
 
       break;

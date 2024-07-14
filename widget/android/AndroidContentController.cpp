@@ -39,13 +39,6 @@ void AndroidContentController::UpdateOverscrollOffset(
   }
 }
 
-void AndroidContentController::HideDynamicToolbar(
-    const ScrollableLayerGuid& /* aGuid */) {
-  if (mAndroidWindow) {
-    mAndroidWindow->HideDynamicToolbar();
-  }
-}
-
 void AndroidContentController::NotifyAPZStateChange(
     const ScrollableLayerGuid& aGuid, APZStateChange aChange, int aArg,
     Maybe<uint64_t> aInputBlockId) {

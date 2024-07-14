@@ -21,7 +21,7 @@ async function testVal(urlFormatString, clobberedURLString = null) {
   info("Setting the value property directly");
   gURLBar.value = str;
   gBrowser.selectedBrowser.focus();
-  await UrlbarTestUtils.checkFormatting(window, urlFormatString, {
+  UrlbarTestUtils.checkFormatting(window, urlFormatString, {
     clobberedURLString,
   });
 
@@ -33,7 +33,7 @@ async function testVal(urlFormatString, clobberedURLString = null) {
     "URL is not highlighted"
   );
   gBrowser.selectedBrowser.focus();
-  await UrlbarTestUtils.checkFormatting(window, urlFormatString, {
+  UrlbarTestUtils.checkFormatting(window, urlFormatString, {
     clobberedURLString,
     additionalMsg: "with input simulation",
   });
@@ -182,9 +182,6 @@ add_task(async function test_url_formatting_after_visiting_bookmarks() {
   EventUtils.sendKey("RETURN");
   await BrowserTestUtils.browserLoaded(gBrowser, false, null, true);
 
-  await UrlbarTestUtils.checkFormatting(
-    window,
-    "<something.>example.com</test>"
-  );
+  UrlbarTestUtils.checkFormatting(window, "<something.>example.com</test>");
   SpecialPowers.popPrefEnv();
 });

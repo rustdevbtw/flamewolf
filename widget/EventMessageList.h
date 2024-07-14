@@ -59,6 +59,8 @@ NS_EVENT_MESSAGE(eMouseDown)
 NS_EVENT_MESSAGE(eMouseEnterIntoWidget)
 NS_EVENT_MESSAGE(eMouseExitFromWidget)
 NS_EVENT_MESSAGE(eMouseDoubleClick)
+NS_EVENT_MESSAGE(eMouseClick)
+NS_EVENT_MESSAGE(eMouseAuxClick)
 // eMouseActivate is fired when the widget is activated by a click.
 NS_EVENT_MESSAGE(eMouseActivate)
 NS_EVENT_MESSAGE(eMouseOver)
@@ -70,9 +72,6 @@ NS_EVENT_MESSAGE(eMouseTouchDrag)
 NS_EVENT_MESSAGE(eMouseLongTap)
 NS_EVENT_MESSAGE(eMouseExploreByTouch)
 NS_EVENT_MESSAGE_FIRST_LAST(eMouseEvent, eMouseMove, eMouseExploreByTouch)
-
-NS_EVENT_MESSAGE(ePointerClick)
-NS_EVENT_MESSAGE(ePointerAuxClick)
 
 // Pointer spec events
 NS_EVENT_MESSAGE(ePointerMove)

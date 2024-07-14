@@ -9,8 +9,6 @@ learn-more = <span data-l10n-name="link">Learn more</span>
 ## In the Rule View when a CSS property cannot be successfully applied we display
 ## an icon. When this icon is hovered this message is displayed to explain why
 ## the property is not applied.
-## The variables are all passed from the same place, in `InactiveCssTooltipHelper#getTemplate`
-## (devtools/client/shared/widgets/tooltip/inactive-css-tooltip-helper.js#95)
 ## Variables:
 ##   $property (string) - A CSS property name e.g. "color".
 ##   $display (string) - A CSS display value e.g. "inline-block".
@@ -43,7 +41,7 @@ inactive-css-placeholder-pseudo-element-not-supported = <strong>{ $property }</s
 
 inactive-css-property-because-of-display = <strong>{ $property }</strong> has no effect on this element since it has a display of <strong>{ $display }</strong>.
 
-inactive-css-not-display-block-on-floated-2 = The <strong>display</strong> value has been changed by the engine to <strong>{ $display }</strong> because the element is <strong>floated</strong>.
+inactive-css-not-display-block-on-floated = The <strong>display</strong> value has been changed by the engine to <strong>block</strong> because the element is <strong>floated</strong>.
 
 inactive-css-property-is-impossible-to-override-in-visited = It’s impossible to override <strong>{ $property }</strong> due to <strong>:visited</strong> restriction.
 
@@ -59,15 +57,11 @@ inactive-css-not-for-internal-table-elements-except-table-cells = <strong>{ $pro
 
 inactive-css-not-table = <strong>{ $property }</strong> has no effect on this element since it’s not a table.
 
-inactive-css-collapsed-table-borders = <strong>{ $property }</strong> has no effect on this element since it’s a table with collapsed borders.
-
 inactive-css-not-table-cell = <strong>{ $property }</strong> has no effect on this element since it’s not a table cell.
 
 inactive-scroll-padding-when-not-scroll-container = <strong>{ $property }</strong> has no effect on this element since it doesn’t scroll.
 
 inactive-css-border-image = <strong>{ $property }</strong> has no effect on this element since it cannot be applied to internal table elements where <strong>border-collapse</strong> is set to <strong>collapse</strong> on the parent table element.
-
-inactive-css-resize = <strong>{ $property }</strong> has no effect on this element since it can only be applied to elements with an overflow value other than visible, and to certain replaced elements, such as textareas.
 
 inactive-css-ruby-element = <strong>{ $property }</strong> has no effect on this element since it is a ruby element. Its size is determined by the font size of the ruby text.
 
@@ -84,8 +78,6 @@ inactive-css-text-wrap-balance-lines-exceeded =
      }
 
 inactive-css-text-wrap-balance-fragmented = <strong>{ $property }</strong> has no effect on this element because it is fragmented, i.e. its content is split across multiple columns or pages.
-
-inactive-css-no-width-height = <strong>{ $property }</strong> has no effect on this element since its width and height cannot be set.
 
 ## In the Rule View when a CSS property cannot be successfully applied we display
 ## an icon. When this icon is hovered this message is displayed to explain how
@@ -132,15 +124,11 @@ inactive-css-not-for-internal-table-elements-except-table-cells-fix = Try settin
 
 inactive-css-not-table-fix = Try adding <strong>display:table</strong> or <strong>display:inline-table</strong>. { learn-more }
 
-inactive-css-collapsed-table-borders-fix = Try adding <strong>border-collapse:separate</strong>. { learn-more }
-
 inactive-css-not-table-cell-fix = Try adding <strong>display:table-cell</strong>. { learn-more }
 
 inactive-scroll-padding-when-not-scroll-container-fix = Try adding <strong>overflow:auto</strong>, <strong>overflow:scroll</strong>, or <strong>overflow:hidden</strong>. { learn-more }
 
 inactive-css-border-image-fix = On the parent table element, remove the property or change the value of <strong>border-collapse</strong> to a value other than <strong>collapse</strong>. { learn-more }
-
-inactive-css-resize-fix = Try setting <strong>overflow</strong> to a value other than <strong>visible</strong> or targeting a replaced element supporting it. { learn-more }
 
 inactive-css-ruby-element-fix = Try changing the <strong>font-size</strong> of the ruby text. { learn-more }
 

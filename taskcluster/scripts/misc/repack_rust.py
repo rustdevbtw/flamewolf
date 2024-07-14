@@ -347,7 +347,7 @@ def fetch_manifest(channel="stable", host=None, targets=()):
                 },
             }
         return manifest
-    if channel.startswith(("beta-", "nightly-")):
+    if "-" in channel:
         channel, date = channel.split("-", 1)
         prefix = "/" + date
     else:

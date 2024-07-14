@@ -27,7 +27,6 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.accounts.AccountState
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
-import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.settings.SupportUtils
@@ -72,15 +71,13 @@ class HomeMenuView(
      * Builds the [HomeMenu].
      */
     fun build() {
-        if (!context.settings().enableMenuRedesign) {
-            HomeMenu(
-                lifecycleOwner = lifecycleOwner,
-                context = context,
-                onItemTapped = ::onItemTapped,
-                onHighlightPresent = { menuButton.get()?.setHighlight(it) },
-                onMenuBuilderChanged = { menuButton.get()?.menuBuilder = it },
-            )
-        }
+        HomeMenu(
+            lifecycleOwner = lifecycleOwner,
+            context = context,
+            onItemTapped = ::onItemTapped,
+            onHighlightPresent = { menuButton.get()?.setHighlight(it) },
+            onMenuBuilderChanged = { menuButton.get()?.menuBuilder = it },
+        )
 
         menuButton.get()?.setColorFilter(
             ContextCompat.getColor(
@@ -92,15 +89,6 @@ class HomeMenuView(
         menuButton.get()?.register(
             object : mozilla.components.concept.menu.MenuButton.Observer {
                 override fun onShow() {
-                    if (context.settings().enableMenuRedesign) {
-                        navController.nav(
-                            R.id.homeFragment,
-                            HomeFragmentDirections.actionGlobalMenuDialogFragment(
-                                accesspoint = MenuAccessPoint.Home,
-                            ),
-                        )
-                    }
-
                     // MenuButton used in [HomeMenuView] doesn't emit toolbar facts.
                     // A wrapper is responsible for that, but we are using the button
                     // directly, hence recording the event directly.

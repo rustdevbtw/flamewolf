@@ -756,16 +756,6 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
                 ):
                     bt_result["measurements"].setdefault("cpuTime", []).extend(cpu_vals)
 
-            def _extract_android_power_vals():
-                power_vals = raw_result.get("android").get("power", {})
-                if power_vals:
-                    bt_result["measurements"].setdefault("powerUsage", []).extend(
-                        [
-                            round(vals["powerUsage"] * (1 * 10**-6), 2)
-                            for vals in power_vals
-                        ]
-                    )
-
             if support_class:
                 bt_result["custom_data"] = True
                 support_class.handle_result(
@@ -894,8 +884,6 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
                             bt_result["statistics"][metric] = raw_result["statistics"][
                                 "visualMetrics"
                             ][metric]
-
-            _extract_android_power_vals()
 
             results.append(bt_result)
 
@@ -1266,16 +1254,7 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
             with open(jobs_file, "w") as f:
                 f.write(json.dumps(jobs_json))
 
-        support_class_success = True
-        for test in tests:
-            if test.get("support_class"):
-                support_class_success = test.get("support_class").report_test_success()
-
-        return (
-            (success and validate_success)
-            and len(self.failed_vismets) == 0
-            and support_class_success
-        )
+        return (success and validate_success) and len(self.failed_vismets) == 0
 
 
 class MissingResultsError(Exception):

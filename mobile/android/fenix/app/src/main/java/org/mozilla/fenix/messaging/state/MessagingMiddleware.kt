@@ -59,7 +59,9 @@ class MessagingMiddleware(
 
             is MessageDismissed -> onMessageDismissed(context, action.message)
 
-            is MicrosurveyAction.Completed -> onMicrosurveyCompleted(context, action.message, action.answer)
+            is MicrosurveyAction.Completed -> {
+                onMicrosurveyCompleted(context, action.message, action.answer)
+            }
 
             else -> {
                 // no-op
@@ -73,7 +75,7 @@ class MessagingMiddleware(
         message: Message,
         answer: String,
     ) {
-        val newMessages = removeMessage(context, message)
+        val newMessages = removeMessage(context, message = message)
         context.store.dispatch(UpdateMessages(newMessages))
         consumeMessageToShowIfNeeded(context, message)
         coroutineScope.launch {

@@ -24,11 +24,10 @@ internal const val SAVE_MENU_ROUTE = "save_menu"
 @Composable
 internal fun SaveSubmenu(
     isBookmarked: Boolean,
-    isPinned: Boolean,
     onBackButtonClick: () -> Unit,
     onBookmarkPageMenuClick: () -> Unit,
     onEditBookmarkButtonClick: () -> Unit,
-    onShortcutsMenuClick: () -> Unit,
+    onAddToShortcutsMenuClick: () -> Unit,
     onAddToHomeScreenMenuClick: () -> Unit,
     onSaveToCollectionMenuClick: () -> Unit,
     onSaveAsPDFMenuClick: () -> Unit,
@@ -50,9 +49,10 @@ internal fun SaveSubmenu(
 
             Divider(color = FirefoxTheme.colors.borderSecondary)
 
-            ShortcutsMenuItem(
-                isPinned = isPinned,
-                onShortcutsMenuClick = onShortcutsMenuClick,
+            MenuItem(
+                label = stringResource(id = R.string.browser_menu_add_to_shortcuts),
+                beforeIconPainter = painterResource(id = R.drawable.mozac_ic_pin_24),
+                onClick = onAddToShortcutsMenuClick,
             )
 
             Divider(color = FirefoxTheme.colors.borderSecondary)
@@ -104,27 +104,6 @@ private fun BookmarkMenuItem(
     }
 }
 
-@Composable
-private fun ShortcutsMenuItem(
-    isPinned: Boolean,
-    onShortcutsMenuClick: () -> Unit,
-) {
-    MenuItem(
-        label = if (isPinned) {
-            stringResource(id = R.string.browser_menu_remove_from_shortcuts)
-        } else {
-            stringResource(id = R.string.browser_menu_add_to_shortcuts)
-        },
-        beforeIconPainter = painterResource(id = R.drawable.mozac_ic_pin_slash_fill_24),
-        state = if (isPinned) {
-            MenuItemState.ACTIVE
-        } else {
-            MenuItemState.ENABLED
-        },
-        onClick = onShortcutsMenuClick,
-    )
-}
-
 @LightDarkPreview
 @Composable
 private fun SaveSubmenuPreview() {
@@ -134,11 +113,10 @@ private fun SaveSubmenuPreview() {
         ) {
             SaveSubmenu(
                 isBookmarked = false,
-                isPinned = false,
                 onBackButtonClick = {},
                 onBookmarkPageMenuClick = {},
                 onEditBookmarkButtonClick = {},
-                onShortcutsMenuClick = {},
+                onAddToShortcutsMenuClick = {},
                 onAddToHomeScreenMenuClick = {},
                 onSaveToCollectionMenuClick = {},
                 onSaveAsPDFMenuClick = {},
@@ -156,11 +134,10 @@ private fun SaveSubmenuPrivatePreview() {
         ) {
             SaveSubmenu(
                 isBookmarked = false,
-                isPinned = false,
                 onBackButtonClick = {},
                 onBookmarkPageMenuClick = {},
                 onEditBookmarkButtonClick = {},
-                onShortcutsMenuClick = {},
+                onAddToShortcutsMenuClick = {},
                 onAddToHomeScreenMenuClick = {},
                 onSaveToCollectionMenuClick = {},
                 onSaveAsPDFMenuClick = {},

@@ -67,8 +67,19 @@ MIDIPermissionRequest::GetTypes(nsIArray** aTypes) {
 NS_IMETHODIMP
 MIDIPermissionRequest::Cancel() {
   mCancelTimer = nullptr;
-  mPromise->MaybeRejectWithSecurityError(
-      "WebMIDI requires a site permission add-on to activate");
+
+  if (StaticPrefs::dom_sitepermsaddon_provider_enabled()) {
+    mPromise->MaybeRejectWithSecurityError(
+        "WebMIDI requires a site permission add-on to activate");
+  } else {
+    // This message is used for the initial XPIProvider-based implementation
+    // of Site Permissions.
+    // It should be removed as part of Bug 1789718.
+    mPromise->MaybeRejectWithSecurityError(
+        "WebMIDI requires a site permission add-on to activate — see "
+        "https://extensionworkshop.com/documentation/publish/"
+        "site-permission-add-on/ for details.");
+  }
   return NS_OK;
 }
 

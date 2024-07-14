@@ -4,6 +4,9 @@
 
 "use strict";
 
+const {
+  TYPES: { THREAD_STATE },
+} = require("resource://devtools/server/actors/resources/index.js");
 const Targets = require("resource://devtools/server/actors/targets/index.js");
 
 const {
@@ -121,6 +124,7 @@ class BreakpointWatcher {
 
     this.onAvailable([
       {
+        resourceType: THREAD_STATE,
         state: STATES.PAUSED,
         why,
         frame: packet.frame.form(),
@@ -138,6 +142,7 @@ class BreakpointWatcher {
 
     this.onAvailable([
       {
+        resourceType: THREAD_STATE,
         state: STATES.RESUMED,
       },
     ]);

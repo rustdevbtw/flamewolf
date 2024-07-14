@@ -94,7 +94,9 @@ function logInTab(tab, message) {
 }
 
 function hasMessage(messageResources, text) {
-  return messageResources.find(resource => resource.arguments[0] === text);
+  return messageResources.find(
+    resource => resource.message.arguments[0] === text
+  );
 }
 
 // All resource command callbacks share the same pattern here: they add all

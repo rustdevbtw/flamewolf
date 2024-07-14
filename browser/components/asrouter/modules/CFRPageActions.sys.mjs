@@ -315,7 +315,7 @@ export class PageAction {
   maybeLoadCustomElement(win) {
     if (!win.customElements.get("remote-text")) {
       Services.scriptloader.loadSubScript(
-        "chrome://browser/content/asrouter/components/remote-text.js",
+        "resource://activity-stream/data/custom-elements/paragraph.js",
         win
       );
     }

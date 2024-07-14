@@ -45,24 +45,29 @@ def test_close_browsing_context(session):
     assert new_handle not in handles
 
 
-@pytest.mark.parametrize("type", ["tab", "window"])
-def test_close_browsing_context_with_accepted_beforeunload_prompt(session, url, type):
+def test_close_browsing_context_with_dismissed_beforeunload_prompt(session, inline):
     original_handles = session.handles
 
-    new_handle = session.new_window(type_hint=type)
+    new_handle = session.new_window()
     session.window_handle = new_handle
 
-    session.url = url("/webdriver/tests/support/html/beforeunload.html")
+    session.url = inline("""
+      <input type="text">
+      <script>
+        window.addEventListener("beforeunload", function (event) {
+          event.preventDefault();
+        });
+      </script>
+    """)
 
-    element = session.find.css("input", all=False)
-    element.send_keys("bar")
+    session.find.css("input", all=False).send_keys("foo")
 
     response = close(session)
     handles = assert_success(response, original_handles)
     assert session.handles == original_handles
     assert new_handle not in handles
 
-    # A beforeunload prompt has to be automatically accepted
+    # A beforeunload prompt has to be automatically dismissed
     with pytest.raises(error.NoSuchWindowException):
         session.alert.text
 

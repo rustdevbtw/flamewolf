@@ -82,7 +82,7 @@ static int arm_get_cpu_caps(void) {
   return flags;
 }
 
-#elif defined(VPX_USE_ANDROID_CPU_FEATURES)
+#elif defined(ANDROID_USE_CPU_FEATURES_LIB)
 
 static int arm_get_cpu_caps(void) {
   int flags = 0;

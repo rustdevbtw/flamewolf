@@ -51,11 +51,7 @@ async function runTest(spawnWindowType) {
       let openPromise;
 
       if (spawnWindowType == "newTab") {
-        openPromise = BrowserTestUtils.waitForNewTab(
-          gBrowser,
-          finalURL.href,
-          true
-        );
+        openPromise = BrowserTestUtils.waitForNewTab(gBrowser, finalURL.href);
       } else {
         openPromise = BrowserTestUtils.waitForNewWindow({ url: finalURL.href });
       }

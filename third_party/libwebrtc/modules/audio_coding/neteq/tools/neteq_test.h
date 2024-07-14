@@ -100,7 +100,6 @@ class NetEqTest : public NetEqSimulator {
 
   void SetNextAction(Action next_operation) override;
   NetEqState GetNetEqState() override;
-  NetEq* GetNetEq() override { return neteq_.get(); }
 
   // Returns the statistics from NetEq.
   NetEqNetworkStatistics SimulationStats();

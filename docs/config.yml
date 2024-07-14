@@ -44,7 +44,6 @@ categories:
         - xpcom
         - nspr
         - security/nss
-        - content-security
     build_doc:
         - mach
         - tools/try

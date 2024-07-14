@@ -96,12 +96,14 @@
 //!
 //! [Nomicon]: https://doc.rust-lang.org/nomicon/lifetime-elision.html
 
-use super::lifetimes::{BoundedLifetime, Lifetime, LifetimeEnv, Lifetimes, MaybeStatic};
-use super::LoweringContext;
+use super::{
+    Lifetime, LifetimeEnv, LoweringContext, MaybeStatic, MethodLifetime, TypeLifetime,
+    TypeLifetimes,
+};
 use crate::ast;
 use smallvec::SmallVec;
 
-/// Lower [`ast::Lifetime`]s to [`Lifetime`]s.
+/// Lower [`ast::Lifetime`]s to [`TypeLifetime`]s.
 ///
 /// This helper traits allows the [`lower_type`] and [`lower_out_type`] methods
 /// to abstractly lower lifetimes without concern for what sort of tracking
@@ -109,25 +111,12 @@ use smallvec::SmallVec;
 /// when visiting lifetimes in the input.
 pub trait LifetimeLowerer {
     /// Lowers an [`ast::Lifetime`].
-    fn lower_lifetime(&mut self, lifetime: &ast::Lifetime) -> MaybeStatic<Lifetime>;
+    fn lower_lifetime(&mut self, lifetime: &ast::Lifetime) -> MaybeStatic<TypeLifetime>;
 
     /// Lowers a slice of [`ast::Lifetime`]s by calling
     /// [`LifetimeLowerer::lower_lifetime`] repeatedly.
-    ///
-
-    /// `type_generics` is the full list of generics on the type definition of the type
-    /// this lifetimes list is found on (needed for generating anon lifetimes)
-    fn lower_lifetimes(
-        &mut self,
-        lifetimes: &[ast::Lifetime],
-        type_generics: &ast::LifetimeEnv,
-    ) -> Lifetimes {
-        let mut lifetimes = Lifetimes::from_fn(lifetimes, |lifetime| self.lower_lifetime(lifetime));
-
-        for _ in lifetimes.as_slice().len()..type_generics.nodes.len() {
-            lifetimes.append_lifetime(self.lower_lifetime(&ast::Lifetime::Anonymous))
-        }
-        lifetimes
+    fn lower_lifetimes(&mut self, lifetimes: &[ast::Lifetime]) -> TypeLifetimes {
+        TypeLifetimes::from_fn(lifetimes, |lifetime| self.lower_lifetime(lifetime))
     }
 
     /// Lowers a slice of [`ast::Lifetime`], where the strategy may vary depending
@@ -140,16 +129,7 @@ pub trait LifetimeLowerer {
     /// Additionally, elision inferences knows to not search inside the generics
     /// of `Self` types for candidate lifetimes to correspond to elided lifetimes
     /// in the output.
-    ///
-    /// `type_generics` is the full list of generics on the type definition of the type
-    /// this generics list is found on (needed for generating anon lifetimes)
-
-    fn lower_generics(
-        &mut self,
-        lifetimes: &[ast::Lifetime],
-        type_generics: &ast::LifetimeEnv,
-        is_self: bool,
-    ) -> Lifetimes;
+    fn lower_generics(&mut self, lifetimes: &[ast::Lifetime], is_self: bool) -> TypeLifetimes;
 }
 
 /// A state machine for tracking which lifetime in a function's parameters
@@ -159,16 +139,16 @@ enum ElisionSource {
     /// No borrows in the input, no elision.
     NoBorrows,
     /// `&self` or `&mut self`, elision allowed.
-    SelfParam(MaybeStatic<Lifetime>),
+    SelfParam(MaybeStatic<TypeLifetime>),
     /// One param contains a borrow, elision allowed.
-    OneParam(MaybeStatic<Lifetime>),
+    OneParam(MaybeStatic<TypeLifetime>),
     /// Multiple borrows and no self borrow, no elision.
     MultipleBorrows,
 }
 
 impl ElisionSource {
     /// Potentially transition to a new state.
-    fn visit_lifetime(&mut self, lifetime: MaybeStatic<Lifetime>) {
+    fn visit_lifetime(&mut self, lifetime: MaybeStatic<TypeLifetime>) {
         match self {
             ElisionSource::NoBorrows => *self = ElisionSource::OneParam(lifetime),
             ElisionSource::SelfParam(_) => {
@@ -190,8 +170,8 @@ impl ElisionSource {
 /// lifetimes, and caching lifetimes of `Self`.
 pub(super) struct BaseLifetimeLowerer<'ast> {
     lifetime_env: &'ast ast::LifetimeEnv,
-    self_lifetimes: Option<Lifetimes>,
-    nodes: SmallVec<[BoundedLifetime; super::lifetimes::INLINE_NUM_LIFETIMES]>,
+    self_lifetimes: Option<TypeLifetimes>,
+    nodes: SmallVec<[Lifetime; 4]>,
     num_lifetimes: usize,
 }
 
@@ -231,21 +211,21 @@ pub(super) struct ReturnLifetimeLowerer<'ast> {
 }
 
 impl<'ast> BaseLifetimeLowerer<'ast> {
-    /// Returns a [`Lifetime`] representing a new anonymous lifetime, and
+    /// Returns a [`TypeLifetime`] representing a new anonymous lifetime, and
     /// pushes it to the nodes vector.
-    fn new_elided(&mut self) -> Lifetime {
+    fn new_elided(&mut self) -> TypeLifetime {
         let index = self.num_lifetimes;
         self.num_lifetimes += 1;
-        Lifetime::new(index)
+        TypeLifetime::new(index)
     }
 
     /// Lowers a single [`ast::Lifetime`]. If the lifetime is elided, then a fresh
     /// [`ImplicitLifetime`] is generated.
-    fn lower_lifetime(&mut self, lifetime: &ast::Lifetime) -> MaybeStatic<Lifetime> {
+    fn lower_lifetime(&mut self, lifetime: &ast::Lifetime) -> MaybeStatic<TypeLifetime> {
         match lifetime {
             ast::Lifetime::Static => MaybeStatic::Static,
             ast::Lifetime::Named(named) => {
-                MaybeStatic::NonStatic(Lifetime::from_ast(named, self.lifetime_env))
+                MaybeStatic::NonStatic(TypeLifetime::from_ast(named, self.lifetime_env))
             }
             ast::Lifetime::Anonymous => MaybeStatic::NonStatic(self.new_elided()),
         }
@@ -253,11 +233,11 @@ impl<'ast> BaseLifetimeLowerer<'ast> {
 
     /// Retrieves the cached  `Self` lifetimes, or caches newly generated
     /// lifetimes and returns those.
-    fn self_lifetimes_or_new(&mut self, ast_lifetimes: &[ast::Lifetime]) -> Lifetimes {
+    fn self_lifetimes_or_new(&mut self, ast_lifetimes: &[ast::Lifetime]) -> TypeLifetimes {
         if let Some(lifetimes) = &self.self_lifetimes {
             lifetimes.clone()
         } else {
-            let lifetimes = Lifetimes::from_fn(ast_lifetimes, |lt| self.lower_lifetime(lt));
+            let lifetimes = TypeLifetimes::from_fn(ast_lifetimes, |lt| self.lower_lifetime(lt));
             self.self_lifetimes = Some(lifetimes.clone());
             lifetimes
         }
@@ -266,23 +246,28 @@ impl<'ast> BaseLifetimeLowerer<'ast> {
 
 impl<'ast> SelfParamLifetimeLowerer<'ast> {
     /// Returns a new [`SelfParamLifetimeLowerer`].
-    pub fn new(
-        lifetime_env: &'ast ast::LifetimeEnv,
-        ctx: &mut LoweringContext,
-    ) -> Result<Self, ()> {
-        let mut hir_nodes = Ok(SmallVec::new());
+    pub fn new(lifetime_env: &'ast ast::LifetimeEnv, ctx: &mut LoweringContext) -> Option<Self> {
+        let mut hir_nodes = Some(SmallVec::new());
 
         for ast_node in lifetime_env.nodes.iter() {
             let lifetime = ctx.lower_ident(ast_node.lifetime.name(), "named lifetime");
             match (lifetime, &mut hir_nodes) {
-                (Ok(lifetime), Ok(hir_nodes)) => {
-                    hir_nodes.push(BoundedLifetime::new(
+                (Some(lifetime), Some(hir_nodes)) => {
+                    hir_nodes.push(Lifetime::new(
                         lifetime,
-                        ast_node.longer.iter().map(|i| Lifetime::new(*i)).collect(),
-                        ast_node.shorter.iter().map(|i| Lifetime::new(*i)).collect(),
+                        ast_node
+                            .longer
+                            .iter()
+                            .map(|i| MethodLifetime::new(*i))
+                            .collect(),
+                        ast_node
+                            .shorter
+                            .iter()
+                            .map(|i| MethodLifetime::new(*i))
+                            .collect(),
                     ));
                 }
-                _ => hir_nodes = Err(()),
+                _ => hir_nodes = None,
             }
         }
 
@@ -307,7 +292,7 @@ impl<'ast> SelfParamLifetimeLowerer<'ast> {
     pub fn lower_self_ref(
         mut self,
         lifetime: &ast::Lifetime,
-    ) -> (MaybeStatic<Lifetime>, ParamLifetimeLowerer<'ast>) {
+    ) -> (MaybeStatic<TypeLifetime>, ParamLifetimeLowerer<'ast>) {
         let self_lifetime = self.base.lower_lifetime(lifetime);
 
         (
@@ -343,22 +328,17 @@ impl<'ast> ParamLifetimeLowerer<'ast> {
 }
 
 impl<'ast> LifetimeLowerer for ParamLifetimeLowerer<'ast> {
-    fn lower_lifetime(&mut self, borrow: &ast::Lifetime) -> MaybeStatic<Lifetime> {
+    fn lower_lifetime(&mut self, borrow: &ast::Lifetime) -> MaybeStatic<TypeLifetime> {
         let lifetime = self.base.lower_lifetime(borrow);
         self.elision_source.visit_lifetime(lifetime);
         lifetime
     }
 
-    fn lower_generics(
-        &mut self,
-        lifetimes: &[ast::Lifetime],
-        type_generics: &ast::LifetimeEnv,
-        is_self: bool,
-    ) -> Lifetimes {
+    fn lower_generics(&mut self, lifetimes: &[ast::Lifetime], is_self: bool) -> TypeLifetimes {
         if is_self {
             self.base.self_lifetimes_or_new(lifetimes)
         } else {
-            self.lower_lifetimes(lifetimes, type_generics)
+            self.lower_lifetimes(lifetimes)
         }
     }
 }
@@ -371,11 +351,11 @@ impl<'ast> ReturnLifetimeLowerer<'ast> {
 }
 
 impl<'ast> LifetimeLowerer for ReturnLifetimeLowerer<'ast> {
-    fn lower_lifetime(&mut self, borrow: &ast::Lifetime) -> MaybeStatic<Lifetime> {
+    fn lower_lifetime(&mut self, borrow: &ast::Lifetime) -> MaybeStatic<TypeLifetime> {
         match borrow {
             ast::Lifetime::Static => MaybeStatic::Static,
             ast::Lifetime::Named(named) => {
-                MaybeStatic::NonStatic(Lifetime::from_ast(named, self.base.lifetime_env))
+                MaybeStatic::NonStatic(TypeLifetime::from_ast(named, self.base.lifetime_env))
             }
             ast::Lifetime::Anonymous => match self.elision_source {
                 ElisionSource::SelfParam(lifetime) | ElisionSource::OneParam(lifetime) => lifetime,
@@ -389,38 +369,30 @@ impl<'ast> LifetimeLowerer for ReturnLifetimeLowerer<'ast> {
         }
     }
 
-    fn lower_generics(
-        &mut self,
-        lifetimes: &[ast::Lifetime],
-        type_generics: &ast::LifetimeEnv,
-        is_self: bool,
-    ) -> Lifetimes {
+    fn lower_generics(&mut self, lifetimes: &[ast::Lifetime], is_self: bool) -> TypeLifetimes {
         if is_self {
             self.base.self_lifetimes_or_new(lifetimes)
         } else {
-            self.lower_lifetimes(lifetimes, type_generics)
+            self.lower_lifetimes(lifetimes)
         }
     }
 }
 
 impl LifetimeLowerer for &ast::LifetimeEnv {
-    fn lower_lifetime(&mut self, lifetime: &ast::Lifetime) -> MaybeStatic<Lifetime> {
+    fn lower_lifetime(&mut self, lifetime: &ast::Lifetime) -> MaybeStatic<TypeLifetime> {
         match lifetime {
             ast::Lifetime::Static => MaybeStatic::Static,
-            ast::Lifetime::Named(named) => MaybeStatic::NonStatic(Lifetime::from_ast(named, self)),
+            ast::Lifetime::Named(named) => {
+                MaybeStatic::NonStatic(TypeLifetime::from_ast(named, self))
+            }
             ast::Lifetime::Anonymous => {
                 panic!("anonymous lifetime inside struct, this shouldn't pass rustc's checks")
             }
         }
     }
 
-    fn lower_generics(
-        &mut self,
-        lifetimes: &[ast::Lifetime],
-        type_generics: &ast::LifetimeEnv,
-        _: bool,
-    ) -> Lifetimes {
-        self.lower_lifetimes(lifetimes, type_generics)
+    fn lower_generics(&mut self, lifetimes: &[ast::Lifetime], _: bool) -> TypeLifetimes {
+        self.lower_lifetimes(lifetimes)
     }
 }
 
@@ -438,17 +410,14 @@ mod tests {
             let m = crate::ast::Module::from_syn(&syn::parse_quote! { $($tokens)* }, true);
 
             let mut env = crate::Env::default();
-            let mut top_symbols = crate::ModuleEnv::new(Default::default());
+            let mut top_symbols = crate::ModuleEnv::default();
 
             m.insert_all_types(crate::ast::Path::empty(), &mut env);
             top_symbols.insert(m.name.clone(), crate::ast::ModSymbol::SubModule(m.name.clone()));
 
             env.insert(crate::ast::Path::empty(), top_symbols);
 
-            // Don't run validation: it will error on elision. We want this code to support
-            // elision even if we don't actually allow it, since good diagnostics involve understanding
-            // broken code.
-            let (_, tcx) = crate::hir::TypeContext::from_ast_without_validation(&env, crate::hir::BasicAttributeValidator::new("test-backend")).unwrap();
+            let tcx = crate::hir::TypeContext::from_ast(&env, crate::hir::BasicAttributeValidator::new("test-backend")).unwrap();
 
             tcx
         }}
@@ -473,11 +442,11 @@ mod tests {
             mod ffi {
                 #[diplomat::opaque]
                 struct Opaque<'a> {
-                    s: &'a DiplomatStr,
+                    s: &'a str,
                 }
 
                 struct Struct<'a> {
-                    s: &'a DiplomatStr,
+                    s: &'a str,
                 }
 
                 #[diplomat::out]
@@ -486,53 +455,19 @@ mod tests {
                 }
 
                 impl<'a> OutStruct<'a> {
-                    pub fn new(s: &'a DiplomatStr) -> Self {
+                    pub fn new(s: &'a str) -> Self {
                         Self { inner: Box::new(Opaque { s }) }
                     }
 
                 }
 
                 impl<'a> Struct<'a> {
-                    pub fn rustc_elision(self, s: &DiplomatStr) -> &DiplomatStr {
+                    pub fn rustc_elision(self, s: &str) -> &str {
                         s
                     }
                 }
             }
         }
-    }
-
-    #[test]
-    fn test_elision_in_struct() {
-        let tcx = tcx! {
-            mod ffi {
-                #[diplomat::opaque]
-                struct Opaque;
-
-                #[diplomat::opaque]
-                struct Opaque2<'a>(&'a str);
-
-                impl Opaque {
-                    // This should have two elided lifetimes
-                    pub fn elided(&self, x: &Opaque2) {
-
-                    }
-                }
-            }
-        };
-
-        let method = &tcx
-            .opaques()
-            .iter()
-            .find(|def| def.name == "Opaque")
-            .unwrap()
-            .methods[0];
-
-        assert_eq!(
-            method.lifetime_env.num_lifetimes(),
-            3,
-            "elided() must have three anon lifetimes"
-        );
-        insta::assert_debug_snapshot!(method);
     }
 
     #[test]
@@ -548,12 +483,12 @@ mod tests {
                 struct Input<'p, 'q> {
                     p_data: &'p Opaque,
                     q_data: &'q Opaque,
-                    name: &'static DiplomatStr,
+                    name: &'static str,
                     inner: Inner<'q>,
                 }
 
                 struct Inner<'a> {
-                    more_data: &'a DiplomatStr,
+                    more_data: &'a str,
                 }
 
                 struct Output<'p,'q> {
@@ -562,7 +497,7 @@ mod tests {
                 }
 
                 impl<'a, 'b> Input<'a, 'b> {
-                    pub fn as_output(self, _s: &'static DiplomatStr) -> Output<'b, 'a> {
+                    pub fn as_output(self, _s: &'static str) -> Output<'b, 'a> {
                         Output { data: self.data }
                     }
 
@@ -586,7 +521,7 @@ mod tests {
                 .push(DebugBorrowingField(bf));
         });
 
-        struct DebugBorrowingField<'m>(crate::hir::borrowing_field::BorrowingField<'m>);
+        struct DebugBorrowingField<'m>(crate::hir::BorrowingField<'m>);
 
         impl<'m> fmt::Debug for DebugBorrowingField<'m> {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

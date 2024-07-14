@@ -9,21 +9,15 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
-import org.mozilla.fenix.ext.requireComponents
-import org.mozilla.fenix.ext.settings
-import org.mozilla.fenix.messaging.MicrosurveyMessageController
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
+ * todo update behaviour FXDROID-1944.
  * todo pass question and icon values from messaging FXDROID-1945.
  * todo add dismiss request FXDROID-1946.
  */
@@ -32,12 +26,6 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * A bottom sheet fragment for displaying a microsurvey.
  */
 class MicrosurveyBottomSheetFragment : BottomSheetDialogFragment() {
-
-    private val microsurveyMessageController by lazy {
-        MicrosurveyMessageController(requireComponents.appStore, (activity as HomeActivity))
-    }
-
-    private val closeBottomSheet = { dismiss() }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
         super.onCreateDialog(savedInstanceState).apply {
@@ -61,7 +49,6 @@ class MicrosurveyBottomSheetFragment : BottomSheetDialogFragment() {
             getString(R.string.likert_scale_option_3),
             getString(R.string.likert_scale_option_4),
             getString(R.string.likert_scale_option_5),
-            getString(R.string.likert_scale_option_6),
         )
 
         setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -72,16 +59,6 @@ class MicrosurveyBottomSheetFragment : BottomSheetDialogFragment() {
                     question = "How satisfied are you with printing in Firefox?", // todo get value from messaging
                     icon = R.drawable.ic_print, // todo get value from messaging
                     answers = answers, // todo get value from messaging
-                    onPrivacyPolicyLinkClick = {
-                        closeBottomSheet
-                        // todo get value from messaging
-                        microsurveyMessageController.onPrivacyPolicyLinkClicked("homepage")
-                    },
-                    onCloseButtonClicked = {
-                        context.settings().shouldShowMicrosurveyPrompt = false
-                        dismiss()
-                    },
-                    modifier = Modifier.nestedScroll(rememberNestedScrollInteropConnection()),
                 )
             }
         }

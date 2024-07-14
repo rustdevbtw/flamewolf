@@ -1744,7 +1744,7 @@ export var PanelView = class extends AssociatedToNode {
         let isDown =
           keyCode == "ArrowDown" || (keyCode == "Tab" && !event.shiftKey);
         let button = this.moveSelection(isDown, keyCode != "Tab");
-        button.focus();
+        Services.focus.setFocus(button, Services.focus.FLAG_BYKEY);
         break;
       }
       case "Home":
@@ -1808,12 +1808,7 @@ export var PanelView = class extends AssociatedToNode {
         );
         button.dispatchEvent(dispEvent);
         // This event will trigger a command event too.
-        const ClickEventConstructor = Services.prefs.getBoolPref(
-          "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
-        )
-          ? event.target.ownerGlobal.PointerEvent
-          : event.target.ownerGlobal.MouseEvent;
-        dispEvent = new ClickEventConstructor("click", details);
+        dispEvent = new event.target.ownerGlobal.MouseEvent("click", details);
         button.dispatchEvent(dispEvent);
         this._doingKeyboardActivation = false;
         break;

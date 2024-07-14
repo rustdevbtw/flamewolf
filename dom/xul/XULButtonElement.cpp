@@ -569,7 +569,7 @@ nsresult XULButtonElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
       }
       if (NS_VK_RETURN == keyEvent->mKeyCode) {
         if (RefPtr<nsIDOMXULButtonElement> button = AsXULButton()) {
-          if (OnPointerClicked(*keyEvent)) {
+          if (MouseClicked(*keyEvent)) {
             aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
           }
         }
@@ -593,7 +593,7 @@ nsresult XULButtonElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
           EventStateManager* esm = aVisitor.mPresContext->EventStateManager();
           esm->SetContentState(nullptr, ElementState::ACTIVE);
           esm->SetContentState(nullptr, ElementState::HOVER);
-          if (OnPointerClicked(*keyEvent)) {
+          if (MouseClicked(*keyEvent)) {
             aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
           }
         }
@@ -601,10 +601,10 @@ nsresult XULButtonElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
       break;
     }
 
-    case ePointerClick: {
+    case eMouseClick: {
       WidgetMouseEvent* mouseEvent = event->AsMouseEvent();
       if (mouseEvent->IsLeftClickEvent()) {
-        if (OnPointerClicked(*mouseEvent)) {
+        if (MouseClicked(*mouseEvent)) {
           aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
         }
       }
@@ -632,7 +632,7 @@ void XULButtonElement::Blurred() {
   mIsHandlingKeyEvent = false;
 }
 
-bool XULButtonElement::OnPointerClicked(WidgetGUIEvent& aEvent) {
+bool XULButtonElement::MouseClicked(WidgetGUIEvent& aEvent) {
   // Don't execute if we're disabled.
   if (IsDisabled() || !IsInComposedDoc()) {
     return false;

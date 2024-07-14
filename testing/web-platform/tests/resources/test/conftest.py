@@ -40,7 +40,11 @@ def pytest_collect_file(file_path, path, parent):
         return
     test_type = test_type.split(os.path.sep)[1]
 
-    return HTMLFile.from_parent(parent, path=file_path, test_type=test_type)
+    # Handle the deprecation of Node construction in pytest6
+    # https://docs.pytest.org/en/stable/deprecations.html#node-construction-changed-to-node-from-parent
+    if hasattr(HTMLItem, "from_parent"):
+        return HTMLItem.from_parent(parent, filename=str(file_path), test_type=test_type)
+    return HTMLItem(parent, str(file_path), test_type)
 
 
 def pytest_configure(config):
@@ -140,29 +144,26 @@ def _summarize(actual):
     return summarized
 
 
-class HTMLFile(pytest.File):
-    def __init__(self, test_type=None, **kwargs):
-        super().__init__(**kwargs)
-        self.test_type = test_type
-
-    def collect(self):
-        url = self.session.config.server.url(self.path)
+class HTMLItem(pytest.Item, pytest.Collector):
+    def __init__(self, parent, filename, test_type):
+        self.url = parent.session.config.server.url(filename)
+        self.type = test_type
         # Some tests are reliant on the WPT servers substitution functionality,
         # so tests must be retrieved from the server rather than read from the
         # file system directly.
-        handle = urllib.request.urlopen(url,
-                                        context=self.parent.session.config.ssl_context)
+        handle = urllib.request.urlopen(self.url,
+                                        context=parent.session.config.ssl_context)
         try:
             markup = handle.read()
         finally:
             handle.close()
 
-        if self.test_type not in TEST_TYPES:
-            raise ValueError('Unrecognized test type: "%s"' % self.test_type)
+        if test_type not in TEST_TYPES:
+            raise ValueError('Unrecognized test type: "%s"' % test_type)
 
         parsed = html5lib.parse(markup, namespaceHTMLElements=False)
         name = None
-        expected = None
+        self.expected = None
 
         for element in parsed.iter():
             if not name and element.tag == 'title':
@@ -171,37 +172,39 @@ class HTMLFile(pytest.File):
             if element.tag == 'script':
                 if element.attrib.get('id') == 'expected':
                     try:
-                        expected = json.loads(element.text)
+                        self.expected = json.loads(element.text)
                     except ValueError:
                         print("Failed parsing JSON in %s" % filename)
                         raise
 
         if not name:
             raise ValueError('No name found in %s add a <title> element' % filename)
-        elif self.test_type == 'functional':
-            if not expected:
+        elif self.type == 'functional':
+            if not self.expected:
                 raise ValueError('Functional tests must specify expected report data')
-        elif self.test_type == 'unit' and expected:
+        elif self.type == 'unit' and self.expected:
             raise ValueError('Unit tests must not specify expected report data')
 
-        yield HTMLItem.from_parent(self, name=name, url=url, expected=expected)
+        # Ensure that distinct items have distinct fspath attributes.
+        # This is necessary because pytest has an internal cache keyed on it,
+        # and only the first test with any given fspath will be run.
+        #
+        # This cannot use super(HTMLItem, self).__init__(..) because only the
+        # Collector constructor takes the fspath argument.
+        pytest.Item.__init__(self, name, parent)
+        pytest.Collector.__init__(self, name, parent, fspath=py.path.local(filename))
 
-
-class HTMLItem(pytest.Item):
-    def __init__(self, name, parent=None, config=None, session=None, nodeid=None, test_type=None, url=None, expected=None, **kwargs):
-        super().__init__(name, parent, config, session, nodeid, **kwargs)
-
-        self.test_type = self.parent.test_type
-        self.url = url
-        self.expected = expected
 
     def reportinfo(self):
         return self.fspath, None, self.url
 
+    def repr_failure(self, excinfo):
+        return pytest.Collector.repr_failure(self, excinfo)
+
     def runtest(self):
-        if self.test_type == 'unit':
+        if self.type == 'unit':
             self._run_unit_test()
-        elif self.test_type == 'functional':
+        elif self.type == 'functional':
             self._run_functional_test()
         else:
             raise NotImplementedError

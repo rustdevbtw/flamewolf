@@ -16,7 +16,6 @@
 #include "mozilla/InternalMutationEvent.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_mousewheel.h"
 #include "mozilla/StaticPrefs_ui.h"
 #include "mozilla/WritingModes.h"
@@ -58,36 +57,6 @@ const char* ToChar(EventMessage aEventMessage) {
     default:
       return "illegal event message";
   }
-}
-
-bool IsPointerEventMessage(EventMessage aMessage) {
-  switch (aMessage) {
-    case ePointerDown:
-    case ePointerMove:
-    case ePointerUp:
-    case ePointerCancel:
-    case ePointerOver:
-    case ePointerOut:
-    case ePointerEnter:
-    case ePointerLeave:
-    case ePointerGotCapture:
-    case ePointerLostCapture:
-      return true;
-    case ePointerClick:
-    case ePointerAuxClick:
-    case eContextMenu:
-      return StaticPrefs::
-          dom_w3c_pointer_events_dispatch_click_as_pointer_event();
-    default:
-      return false;
-  }
-}
-
-bool IsPointerEventMessageOriginallyMouseEventMessage(EventMessage aMessage) {
-  return StaticPrefs::
-             dom_w3c_pointer_events_dispatch_click_as_pointer_event() &&
-         (aMessage == ePointerClick || aMessage == ePointerAuxClick ||
-          aMessage == eContextMenu);
 }
 
 const char* ToChar(EventClassID aEventClassID) {
@@ -345,7 +314,9 @@ bool WidgetEvent::HasMouseEventMessage() const {
   switch (mMessage) {
     case eMouseDown:
     case eMouseUp:
+    case eMouseClick:
     case eMouseDoubleClick:
+    case eMouseAuxClick:
     case eMouseEnterIntoWidget:
     case eMouseExitFromWidget:
     case eMouseActivate:
@@ -354,18 +325,9 @@ bool WidgetEvent::HasMouseEventMessage() const {
     case eMouseHitTest:
     case eMouseMove:
       return true;
-    // TODO: Perhaps, we should rename this method.
-    case ePointerClick:
-    case ePointerAuxClick:
-      return true;
     default:
       return false;
   }
-}
-
-bool WidgetEvent::IsMouseEventClassOrHasClickRelatedPointerEvent() const {
-  return mClass == eMouseEventClass ||
-         IsPointerEventMessageOriginallyMouseEventMessage(mMessage);
 }
 
 bool WidgetEvent::HasDragEventMessage() const {
@@ -535,8 +497,7 @@ bool WidgetEvent::IsAllowedToDispatchInSystemGroup() const {
   // We don't expect to implement default behaviors with pointer events because
   // if we do, prevent default on mouse events can't prevent default behaviors
   // anymore.
-  return mClass != ePointerEventClass ||
-         IsPointerEventMessageOriginallyMouseEventMessage(mMessage);
+  return mClass != ePointerEventClass;
 }
 
 bool WidgetEvent::IsBlockedForFingerprintingResistance() const {
@@ -550,10 +511,6 @@ bool WidgetEvent::IsBlockedForFingerprintingResistance() const {
               keyboardEvent->mKeyNameIndex == KEY_NAME_INDEX_AltGraph);
     }
     case ePointerEventClass: {
-      if (IsPointerEventMessageOriginallyMouseEventMessage(mMessage)) {
-        return false;
-      }
-
       const WidgetPointerEvent* pointerEvent = AsPointerEvent();
 
       // We suppress the pointer events if it is not primary for fingerprinting

@@ -185,9 +185,11 @@ add_task(async function test() {
 
             previousWidth = actualWidth;
           }
+
+          var viewer = content.wrappedJSObject.PDFViewerApplication;
+          await viewer.close();
         }
       );
-      await waitForPdfJSClose(newTabBrowser);
     }
   );
 });
@@ -237,20 +239,9 @@ add_task(async function test_browser_zoom() {
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:blank" },
     async function (newTabBrowser) {
-      const promise = waitForPdfJS(
-        newTabBrowser,
-        TESTROOT + "file_pdfjs_test.pdf"
-      );
-      await BrowserTestUtils.waitForContentEvent(
-        newTabBrowser,
-        "documentloaded",
-        false,
-        null,
-        true
-      );
+      await waitForPdfJS(newTabBrowser, TESTROOT + "file_pdfjs_test.pdf");
 
       const initialWidth = await waitForRenderAndGetWidth(newTabBrowser);
-      await promise;
 
       // Zoom in
       let newWidthPromise = waitForRenderAndGetWidth(newTabBrowser);
@@ -279,7 +270,10 @@ add_task(async function test_browser_zoom() {
       );
 
       // Clean-up after the PDF viewer.
-      await waitForPdfJSClose(newTabBrowser);
+      await SpecialPowers.spawn(newTabBrowser, [], function () {
+        const viewer = content.wrappedJSObject.PDFViewerApplication;
+        return viewer.close();
+      });
     }
   );
 });

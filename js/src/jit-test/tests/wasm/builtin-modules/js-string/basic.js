@@ -144,16 +144,15 @@ let polyFillImports = {
     }
     return string;
   },
-  fromCharCodeArray: (array, arrayStart, arrayEnd) => {
+  fromCharCodeArray: (array, arrayStart, arrayCount) => {
     arrayStart >>>= 0;
-    arrayEnd >>>= 0;
-    if (array == null ||
-        arrayStart > arrayEnd ||
-        arrayEnd > arrayLength(array)) {
+    arrayCount >>>= 0;
+    let length = arrayLength(array);
+    if (BigInt(arrayStart) + BigInt(arrayCount) > BigInt(length)) {
       throw new WebAssembly.RuntimeError();
     }
     let result = '';
-    for (let i = arrayStart; i < arrayEnd; i++) {
+    for (let i = arrayStart; i < arrayStart + arrayCount; i++) {
       result += String.fromCharCode(arrayGet(array, i));
     }
     return result;
@@ -161,9 +160,6 @@ let polyFillImports = {
   intoCharCodeArray: (string, arr, arrayStart) => {
     arrayStart >>>= 0;
     throwIfNotString(string);
-    if (arr == null) {
-      throw new WebAssembly.RuntimeError();
-    }
     let arrLength = arrayLength(arr);
     let stringLength = string.length;
     if (BigInt(arrayStart) + BigInt(stringLength) > BigInt(arrLength)) {
@@ -365,42 +361,12 @@ for (let a of testStrings) {
   }
 }
 
-// fromCharCodeArray endIndex is an unsigned integer
+// fromCharCodeArray length is an unsigned integer
 {
   let arrayMutI16 = createArrayMutI16(1);
   assertErrorMessage(() => assertSameBehavior(
     builtinExports['fromCharCodeArray'],
     polyfillExports['fromCharCodeArray'],
     arrayMutI16, 1, -1
-  ), WebAssembly.RuntimeError, /./);
-}
-
-// fromCharCodeArray is startIndex and endIndex, not a count
-{
-  let arrayMutI16 = createArrayMutI16(1);
-  // Ask for [1, 1) to get an empty string. If misinterpreted as a count, this
-  // will result in a trap.
-  assertEq(assertSameBehavior(
-    builtinExports['fromCharCodeArray'],
-    polyfillExports['fromCharCodeArray'],
-    arrayMutI16, 1, 1
-  ), "");
-}
-
-// fromCharCodeArray array is null
-{
-  assertErrorMessage(() => assertSameBehavior(
-    builtinExports['fromCharCodeArray'],
-    polyfillExports['fromCharCodeArray'],
-    null, 0, 0
-  ), WebAssembly.RuntimeError, /./);
-}
-
-// intoCharCodeArray array is null
-{
-  assertErrorMessage(() => assertSameBehavior(
-    builtinExports['intoCharCodeArray'],
-    polyfillExports['intoCharCodeArray'],
-    "test", null, 0,
   ), WebAssembly.RuntimeError, /./);
 }

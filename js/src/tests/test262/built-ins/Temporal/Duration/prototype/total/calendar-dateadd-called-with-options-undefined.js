@@ -18,7 +18,7 @@ const relativeTo = new Temporal.ZonedDateTime(0n, timeZone, calendar);
 // Total of a calendar unit where larger calendar units have to be converted
 // down, to cover the path that goes through UnbalanceDateDurationRelative
 // The calls come from the path:
-// Duration.total() -> AddZonedDateTime -> calendar.dateAdd()
+// Duration.total() -> UnbalanceDateDurationRelative -> calendar.dateAdd()
 
 const instance1 = new Temporal.Duration(1, 1, 1, 1, 1);
 instance1.total({ unit: "days", relativeTo });
@@ -28,9 +28,11 @@ assert.sameValue(calendar.dateAddCallCount, 1, "converting larger calendar units
 // up, to cover the path that goes through MoveRelativeZonedDateTime
 // The calls come from these paths:
 // Duration.total() ->
-//   AddZonedDateTime -> calendar.dateAdd()
-//   DifferenceZonedDateTimeWithRounding -> RoundRelativeDuration -> NudgeToCalendarUnit ->
-//       AddDateTime -> calendar.dateAdd() (2x)
+//   MoveRelativeZonedDateTime -> AddZonedDateTime -> BuiltinTimeZoneGetInstantFor -> calendar.dateAdd()
+//   BalanceDuration ->
+//     AddZonedDateTime -> BuiltinTimeZoneGetInstantFor -> calendar.dateAdd()
+//   RoundDuration ->
+//     MoveRelativeDate -> calendar.dateAdd()
 
 calendar.dateAddCallCount = 0;
 

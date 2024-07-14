@@ -41,10 +41,9 @@ const duration = {
 
 const style = "narrow";
 
-const df = new Intl.DurationFormat('en', { style });
+const expected = partitionDurationFormatPattern(duration, style);
 
-const expected = partitionDurationFormatPattern(df, duration);
-
+let df = new Intl.DurationFormat('en', { style });
 compare(df.formatToParts(duration), expected, `Using style : ${style}`);
 
 reportCompare(0, 0);

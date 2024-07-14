@@ -39,7 +39,6 @@
 #include "UIKitUtils.h"
 
 #include "mozilla/BasicEvents.h"
-#include "mozilla/EventForwards.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/TouchEvents.h"
 #include "mozilla/Unused.h"
@@ -217,10 +216,8 @@ class nsAutoRetainUIKitObject {
 - (void)sendMouseEvent:(EventMessage)aType
                  point:(LayoutDeviceIntPoint)aPoint
                 widget:(nsWindow*)aWindow {
-  MOZ_DIAGNOSTIC_ASSERT(
-      aType != eContextMenu,
-      "eContextMenu event may need to be dispatched as WidgetPointerEvent");
-  WidgetMouseEvent event(true, aType, aWindow, WidgetMouseEvent::eReal);
+  WidgetMouseEvent event(true, aType, aWindow, WidgetMouseEvent::eReal,
+                         WidgetMouseEvent::eNormal);
 
   event.mRefPoint = aPoint;
   event.mClickCount = 1;

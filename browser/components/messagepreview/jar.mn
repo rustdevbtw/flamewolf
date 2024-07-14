@@ -6,5 +6,4 @@ browser.jar:
     content/browser/messagepreview/messagepreview.html
     content/browser/messagepreview/messagepreview.js
     content/browser/messagepreview/limelight.svg
-    content/browser/messagepreview/switch.svg
     content/browser/messagepreview/messagepreview.css

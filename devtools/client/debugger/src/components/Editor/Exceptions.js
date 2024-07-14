@@ -12,7 +12,6 @@ import {
   getDocument,
 } from "../../utils/editor/index";
 import { createLocation } from "../../utils/location";
-import { markerTypes } from "../../constants";
 
 import { features } from "../../utils/prefs";
 
@@ -32,48 +31,21 @@ class Exceptions extends Component {
     };
   }
 
-  componentDidMount() {
-    this.setMarkers();
-  }
-
-  componentDidUpdate(prevProps) {
-    this.clearMarkers(prevProps);
-    this.setMarkers();
-  }
-
-  componentWillUnmount() {
-    this.clearMarkers();
-  }
-
-  clearMarkers(prevProps) {
+  componentDidUpdate() {
     const { exceptions, selectedSource, editor } = this.props;
-    if (!features.codemirrorNext || !editor) {
+
+    if (!features.codemirrorNext) {
       return;
     }
 
-    if (
-      !selectedSource ||
-      !exceptions.length ||
-      prevProps?.selectedSource !== selectedSource
-    ) {
-      editor.removeLineContentMarker(markerTypes.LINE_EXCEPTION_MARKER);
-      editor.removePositionContentMarker(markerTypes.EXCEPTION_POSITION_MARKER);
-    }
-  }
-
-  setMarkers() {
-    const { exceptions, selectedSource, editor } = this.props;
-    if (
-      !features.codemirrorNext ||
-      !selectedSource ||
-      !editor ||
-      !exceptions.length
-    ) {
+    if (!selectedSource || !editor || !exceptions.length) {
+      editor.removeLineContentMarker("line-exception-marker");
+      editor.removePositionContentMarker("exception-position-marker");
       return;
     }
 
     editor.setLineContentMarker({
-      id: markerTypes.LINE_EXCEPTION_MARKER,
+      id: "line-exception-marker",
       lineClassName: "line-exception",
       condition: line => {
         const lineNumber = fromEditorLine(selectedSource.id, line);
@@ -95,7 +67,7 @@ class Exceptions extends Component {
     });
 
     editor.setPositionContentMarker({
-      id: markerTypes.EXCEPTION_POSITION_MARKER,
+      id: "exception-position-marker",
       positionClassName: "mark-text-exception",
       positions: exceptions.map(e => ({
         line: e.lineNumber,

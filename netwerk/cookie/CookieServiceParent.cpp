@@ -286,16 +286,13 @@ void CookieServiceParent::ActorDestroy(ActorDestroyReason aWhy) {
 
 IPCResult CookieServiceParent::RecvSetCookies(
     const nsCString& aBaseDomain, const OriginAttributes& aOriginAttributes,
-    nsIURI* aHost, bool aFromHttp, bool aIsThirdParty,
-    const nsTArray<CookieStruct>& aCookies) {
-  return SetCookies(aBaseDomain, aOriginAttributes, aHost, aFromHttp,
-                    aIsThirdParty, aCookies);
+    nsIURI* aHost, bool aFromHttp, const nsTArray<CookieStruct>& aCookies) {
+  return SetCookies(aBaseDomain, aOriginAttributes, aHost, aFromHttp, aCookies);
 }
 
 IPCResult CookieServiceParent::SetCookies(
     const nsCString& aBaseDomain, const OriginAttributes& aOriginAttributes,
-    nsIURI* aHost, bool aFromHttp, bool aIsThirdParty,
-    const nsTArray<CookieStruct>& aCookies,
+    nsIURI* aHost, bool aFromHttp, const nsTArray<CookieStruct>& aCookies,
     dom::BrowsingContext* aBrowsingContext) {
   if (!mCookieService) {
     return IPC_OK();
@@ -311,9 +308,9 @@ IPCResult CookieServiceParent::SetCookies(
   // we don't send it back to the same content process.
   mProcessingCookie = true;
 
-  bool ok = mCookieService->SetCookiesFromIPC(aBaseDomain, aOriginAttributes,
-                                              aHost, aFromHttp, aIsThirdParty,
-                                              aCookies, aBrowsingContext);
+  bool ok =
+      mCookieService->SetCookiesFromIPC(aBaseDomain, aOriginAttributes, aHost,
+                                        aFromHttp, aCookies, aBrowsingContext);
   mProcessingCookie = false;
   return ok ? IPC_OK() : IPC_FAIL(this, "Invalid cookie received.");
 }

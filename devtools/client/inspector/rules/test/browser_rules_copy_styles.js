@@ -203,20 +203,6 @@ add_task(async function () {
         copyRule: true,
       },
     },
-    {
-      desc: "Test Copy Rule not visible",
-      // Click in the rule view, but not on a rule, to check that the "Copy Rule" entry
-      // is not displayed in the menu
-      node: ruleEditor.element.parentElement,
-      visible: {
-        copyLocation: false,
-        copyDeclaration: false,
-        copyPropertyName: false,
-        copyPropertyValue: false,
-        copySelector: false,
-        copyRule: false,
-      },
-    },
   ];
 
   for (const {
@@ -244,7 +230,9 @@ async function checkCopyStyle(
   visible
 ) {
   const allMenuItems = openStyleContextMenuAndGetAllItems(view, node);
-
+  const menuItem = allMenuItems.find(
+    item => item.label === STYLE_INSPECTOR_L10N.getStr(menuItemLabel)
+  );
   const menuitemCopy = allMenuItems.find(
     item =>
       item.label ===
@@ -325,18 +313,13 @@ async function checkCopyStyle(
     "Copy Rule visible attribute is as expected: " + visible.copyRule
   );
 
-  if (menuItemLabel) {
-    const menuItem = allMenuItems.find(
-      item => item.label === STYLE_INSPECTOR_L10N.getStr(menuItemLabel)
+  try {
+    await waitForClipboardPromise(
+      () => menuItem.click(),
+      () => checkClipboardData(expectedPattern)
     );
-    try {
-      await waitForClipboardPromise(
-        () => menuItem.click(),
-        () => checkClipboardData(expectedPattern)
-      );
-    } catch (e) {
-      failedClipboard(expectedPattern);
-    }
+  } catch (e) {
+    failedClipboard(expectedPattern);
   }
 }
 

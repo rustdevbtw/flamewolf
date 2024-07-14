@@ -261,7 +261,6 @@ pub struct Device {
     null_rtv_handle: descriptor::Handle,
     mem_allocator: Option<Mutex<suballocation::GpuAllocatorWrapper>>,
     dxc_container: Option<Arc<shader_compilation::DxcContainer>>,
-    counters: wgt::HalCounters,
 }
 
 unsafe impl Send for Device {}
@@ -762,8 +761,8 @@ impl crate::Surface for Surface {
                 };
 
                 match &self.target {
-                    SurfaceTarget::WndHandle(_) | &SurfaceTarget::SurfaceHandle(_) => {}
-                    SurfaceTarget::Visual(visual) => {
+                    &SurfaceTarget::WndHandle(_) | &SurfaceTarget::SurfaceHandle(_) => {}
+                    &SurfaceTarget::Visual(ref visual) => {
                         if let Err(err) =
                             unsafe { visual.SetContent(swap_chain1.as_unknown()) }.into_result()
                         {
@@ -773,7 +772,7 @@ impl crate::Surface for Surface {
                             ));
                         }
                     }
-                    SurfaceTarget::SwapChainPanel(swap_chain_panel) => {
+                    &SurfaceTarget::SwapChainPanel(ref swap_chain_panel) => {
                         if let Err(err) =
                             unsafe { swap_chain_panel.SetSwapChain(swap_chain1.as_ptr()) }
                                 .into_result()

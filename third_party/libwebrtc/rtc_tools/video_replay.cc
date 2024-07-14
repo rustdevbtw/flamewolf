@@ -16,7 +16,6 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
-#include "absl/strings/str_split.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/field_trials.h"
@@ -31,7 +30,6 @@
 #include "common_video/libyuv/include/webrtc_libyuv.h"
 #include "media/engine/internal_decoder_factory.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
-#include "modules/rtp_rtcp/source/rtp_dependency_descriptor_extension.h"
 #include "modules/rtp_rtcp/source/rtp_packet.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "modules/rtp_rtcp/source/rtp_util.h"
@@ -104,22 +102,12 @@ ABSL_FLAG(uint32_t,
           webrtc::test::VideoTestConstants::kFlexfecSendSsrc,
           "Incoming FLEXFEC SSRC");
 
-ABSL_FLAG(std::vector<std::string>,
-          ext_map,
-          {},
-          "RTP extension to ID map in the format of EXT1:ID,EXT2:ID,EXT3:ID"
-          " Known extensions are:\n"
-          "TOFF    - kTimestampOffsetUri\n"
-          "ABSSEND - kAbsSendTimeUri\n"
-          "ABSCAPT - kAbsoluteCaptureTimeUri\n"
-          "ROT     - kVideoRotationUri\n"
-          "CONT    - kVideoContentTypeUri\n"
-          "DD      - kDependencyDescriptorUri\n"
-          "LALOC   - kVideoLayersAllocationUri\n"
-          "TWCC    - kTransportSequenceNumberUri\n"
-          "TWCC2   - kTransportSequenceNumberV2Uri\n"
-          "DELAY   - kPlayoutDelayUri\n"
-          "COLOR   - kColorSpaceUri\n");
+// Flag for abs-send-time id.
+ABSL_FLAG(int, abs_send_time_id, -1, "RTP extension ID for abs-send-time");
+
+// Flag for transmission-offset id.
+ABSL_FLAG(int, transmission_offset_id, -1,
+          "RTP extension ID for transmission-offset");
 
 // Flag for rtpdump input file.
 ABSL_FLAG(std::string, input_file, "", "input file");
@@ -187,6 +175,10 @@ bool ValidatePayloadType(int32_t payload_type) {
 
 bool ValidateOptionalPayloadType(int32_t payload_type) {
   return payload_type == -1 || ValidatePayloadType(payload_type);
+}
+
+bool ValidateRtpHeaderExtensionId(int32_t extension_id) {
+  return extension_id >= -1 && extension_id < 15;
 }
 
 bool ValidateInputFilenameNotEmpty(const std::string& string) {
@@ -548,35 +540,6 @@ class RtpReplayer final {
   }
 
  private:
-  RtpHeaderExtensionMap GetExtensionMapFromFlags() {
-    const std::map<std::string_view, absl::string_view> kKnownExtensions = {
-        {"TOFF", RtpExtension::kTimestampOffsetUri},
-        {"ABSSEND", RtpExtension::kAbsSendTimeUri},
-        {"ABSCAPT", RtpExtension::kAbsoluteCaptureTimeUri},
-        {"ROT", RtpExtension::kVideoRotationUri},
-        {"CONT", RtpExtension::kVideoContentTypeUri},
-        {"DD", RtpExtension::kDependencyDescriptorUri},
-        {"LALOC", RtpExtension::kVideoLayersAllocationUri},
-        {"TWCC", RtpExtension::kTransportSequenceNumberUri},
-        {"TWCC2", RtpExtension::kTransportSequenceNumberV2Uri},
-        {"DELAY", RtpExtension::kPlayoutDelayUri},
-        {"COLOR", RtpExtension::kColorSpaceUri},
-    };
-
-    RtpHeaderExtensionMap res;
-    for (const std::string& extension : absl::GetFlag(FLAGS_ext_map)) {
-      std::pair<std::string, std::string> ext = absl::StrSplit(extension, ':');
-      if (auto it = kKnownExtensions.find(ext.first);
-          it != kKnownExtensions.end()) {
-        res.RegisterByUri(std::stoi(ext.second), it->second);
-      } else {
-        RTC_DCHECK_NOTREACHED() << "Unknown extension \"" << ext.first << "\"";
-      }
-    }
-
-    return res;
-  }
-
   void ReplayPackets() {
     enum class Result { kOk, kUnknownSsrc, kParsingFailed };
     int64_t replay_start_ms = -1;
@@ -586,7 +549,15 @@ class RtpReplayer final {
     uint32_t start_timestamp = absl::GetFlag(FLAGS_start_timestamp);
     uint32_t stop_timestamp = absl::GetFlag(FLAGS_stop_timestamp);
 
-    RtpHeaderExtensionMap extensions = GetExtensionMapFromFlags();
+    RtpHeaderExtensionMap extensions;
+    if (absl::GetFlag(FLAGS_transmission_offset_id) != -1) {
+      extensions.RegisterByUri(absl::GetFlag(FLAGS_transmission_offset_id),
+                               RtpExtension::kTimestampOffsetUri);
+    }
+    if (absl::GetFlag(FLAGS_abs_send_time_id) != -1) {
+      extensions.RegisterByUri(absl::GetFlag(FLAGS_abs_send_time_id),
+                               RtpExtension::kAbsSendTimeUri);
+    }
 
     while (true) {
       int64_t now_ms = CurrentTimeMs();
@@ -630,15 +601,15 @@ class RtpReplayer final {
                                           Timestamp::Millis(CurrentTimeMs()));
         if (!received_packet.Parse(std::move(packet_buffer))) {
           result = Result::kParsingFailed;
-        } else {
-          call_->Receiver()->DeliverRtpPacket(
-              MediaType::VIDEO, received_packet,
-              [&result](const RtpPacketReceived& parsed_packet) -> bool {
-                result = Result::kUnknownSsrc;
-                // No point in trying to demux again.
-                return false;
-              });
+          return;
         }
+        call_->Receiver()->DeliverRtpPacket(
+            MediaType::VIDEO, received_packet,
+            [&result](const RtpPacketReceived& parsed_packet) -> bool {
+              result = Result::kUnknownSsrc;
+              // No point in trying to demux again.
+              return false;
+            });
         event.Set();
       });
       event.Wait(/*give_up_after=*/TimeDelta::Seconds(10));
@@ -720,6 +691,10 @@ int main(int argc, char* argv[]) {
       ValidateOptionalPayloadType(absl::GetFlag(FLAGS_ulpfec_payload_type)));
   RTC_CHECK(
       ValidateOptionalPayloadType(absl::GetFlag(FLAGS_flexfec_payload_type)));
+  RTC_CHECK(
+      ValidateRtpHeaderExtensionId(absl::GetFlag(FLAGS_abs_send_time_id)));
+  RTC_CHECK(ValidateRtpHeaderExtensionId(
+      absl::GetFlag(FLAGS_transmission_offset_id)));
   RTC_CHECK(ValidateInputFilenameNotEmpty(absl::GetFlag(FLAGS_input_file)));
   RTC_CHECK_GE(absl::GetFlag(FLAGS_extend_run_time_duration), 0);
 

@@ -33,8 +33,7 @@ promise_test(async(t) => {
                .pointerDown()
                .pointerUp()
                .send();
-  await verifyBeaconData(beacon_event.eventType, beacon_event.eventData,
-      get_host_info().HTTPS_REMOTE_ORIGIN);
+  await verifyBeaconData(beacon_event.eventType, beacon_event.eventData);
 
   // The second click should still have associated automatic beacon data, and a
   // beacon should be sent.
@@ -42,8 +41,7 @@ promise_test(async(t) => {
                .pointerDown()
                .pointerUp()
                .send();
-  await verifyBeaconData(beacon_event.eventType, beacon_event.eventData,
-      get_host_info().HTTPS_REMOTE_ORIGIN);
+  await verifyBeaconData(beacon_event.eventType, beacon_event.eventData);
 }, 'Set persisting automatic beacon but trigger two events in a click handler');
 
 </script>

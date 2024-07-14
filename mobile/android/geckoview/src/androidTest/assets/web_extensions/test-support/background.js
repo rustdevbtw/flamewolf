@@ -59,9 +59,6 @@ const APIS = {
   FlushApzRepaints({ tab }) {
     return browser.test.flushApzRepaints(tab.id);
   },
-  ZoomToFocusedInput({ tab }) {
-    return browser.test.zoomToFocusedInput(tab.id);
-  },
   PromiseAllPaintsDone({ tab }) {
     return browser.test.promiseAllPaintsDone(tab.id);
   },

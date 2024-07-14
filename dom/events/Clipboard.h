@@ -14,7 +14,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
 
-class nsIClipboardDataSnapshot;
+class nsIAsyncGetClipboardData;
 
 namespace mozilla::dom {
 
@@ -81,7 +81,7 @@ class Clipboard : public DOMEventTargetHelper {
 
   void RequestRead(Promise& aPromise, const ReadRequestType& aType,
                    nsPIDOMWindowInner& aOwner, nsIPrincipal& aSubjectPrincipal,
-                   nsIClipboardDataSnapshot& aRequest);
+                   nsIAsyncGetClipboardData& aRequest);
 };
 
 }  // namespace mozilla::dom

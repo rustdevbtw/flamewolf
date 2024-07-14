@@ -110,65 +110,61 @@ function assert_iframe_with_csp(t, url, csp, shouldBlock, urlId, blockedURI,
   if (csp != null)
     i.csp = csp;
 
+  var loaded = {};
+  var onLoadReceived = {};
+  window.addEventListener("message", function (e) {
+    if (e.source != i.contentWindow)
+        return;
+    if (e.data["loaded"])
+        loaded[e.data["id"]] = true;
+  });
+
   if (shouldBlock) {
     // Assert iframe does not load and is inaccessible.
-    window.addEventListener("message", t.step_func(function(e) {
-      if (e.source != i.contentWindow) return;
+    window.onmessage = t.step_func(function(e) {
+      if (e.source != i.contentWindow)
+          return;
       assert_unreached('No message should be sent from the frame.');
-    }));
-    i.onload = t.step_wait_func_done(function() {
-      if (!i.contentWindow) return false;
-      try {
-        let x = i.contentWindow.location.href;
-        return false;
-      } catch (e) {
-        return true;
-      }
-    }, t.step_func(() => {
+    });
+    i.onload = t.step_func(function () {
+      // Delay the check until after the postMessage has a chance to execute.
+      setTimeout(t.step_func_done(function () {
+        assert_equals(loaded[urlId], undefined);
+      }), 500);
       assert_throws_dom("SecurityError", () => {
-        let x = i.contentWindow.location.href;
+        var x = i.contentWindow.location.href;
       });
-    }), "The error frame should be cross-origin.", 5000, 500);
+    });
+  } else if (blockedURI) {
+    // Assert iframe loads with an expected violation.
+    window.addEventListener('message', t.step_func(e => {
+      if (e.source != i.contentWindow)
+        return;
+      if (!e.data.securitypolicyviolation)
+        return;
+      assert_equals(e.data["blockedURI"], blockedURI);
+      t.done();
+    }));
   } else {
-    let successPromises = [];
+    // Assert iframe loads.  Wait for the load event, the postMessage from the
+    // script and the img load event.
+    let img_loaded = !checkImageLoaded;
+    window.addEventListener('message', t.step_func(e => {
+      if (e.source != i.contentWindow)
+        return;
+      if (e.data === "img loaded")
+        img_loaded = true;
 
-    let loadPromise = new Promise(resolve => {
-      i.onload = resolve;
+      if (loaded[urlId] && onLoadReceived[urlId] && img_loaded) {
+        t.done();
+      }
+    }));
+    i.onload = t.step_func(function () {
+      onLoadReceived[urlId] = true;
+      if (loaded[urlId] && onLoadReceived[urlId] && img_loaded) {
+        t.done();
+      }
     });
-    successPromises.push(loadPromise);
-
-    let loadMsgPromise = new Promise(resolve => {
-      window.addEventListener("message", function (e) {
-        if (e.source != i.contentWindow) return;
-        if (e.data["loaded"] && e.data["id"] === urlId) resolve();
-      });
-    });
-    successPromises.push(loadMsgPromise);
-
-    if (blockedURI) {
-      let securityViolationPromise = new Promise(resolve => {
-        window.addEventListener('message', t.step_func(e => {
-          if (e.source != i.contentWindow) return;
-          if (!e.data.securitypolicyviolation) return;
-          assert_equals(e.data["blockedURI"], blockedURI);
-          resolve();
-        }));
-      });
-      successPromises.push(securityViolationPromise);
-    }
-
-    if (checkImageLoaded) {
-      let imageLoadedPromise = new Promise(resolve => {
-        window.addEventListener('message', e => {
-          if (e.source != i.contentWindow) return;
-          if (e.data === "img loaded") resolve();
-        });
-      });
-      successPromises.push(imageLoadedPromise);
-    }
-
-    // Wait for all promises to resolve.
-    Promise.all(successPromises).then(t.step_func_done());
   }
   document.body.appendChild(i);
 }

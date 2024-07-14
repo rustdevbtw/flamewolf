@@ -16,9 +16,6 @@
 class nsRange;
 
 namespace mozilla {
-namespace dom {
-class CrossShadowBoundaryRange;
-}
 
 template <typename T, typename U>
 class EditorDOMPointBase;
@@ -80,8 +77,6 @@ class RangeBoundaryBase {
   friend class EditorDOMPointBase;
 
   friend nsRange;
-
-  friend class mozilla::dom::CrossShadowBoundaryRange;
 
   friend void ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback&,
                                           RangeBoundary&, const char*,

@@ -2,11 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* eslint-env webextensions */
-/* eslint-disable no-unsanitized/property */ /* bug 1903144 */
-/* import-globals-from readability/readability-0.4.2.js */
-/* import-globals-from readability/JSDOMParser-0.4.2.js */
-
 // Class names to preserve in the readerized output. We preserve these class
 // names so that rules in readerview.css can match them. This list is taken from Fennec:
 // https://dxr.mozilla.org/mozilla-central/rev/7d47e7fa2489550ffa83aae67715c5497048923f/toolkit/components/reader/ReaderMode.jsm#21
@@ -282,7 +277,7 @@ function fetchDocument(url) {
     xhr.open("GET", url, true);
     xhr.onerror = evt => reject(evt.error);
     xhr.responseType = "document";
-    xhr.onload = _evt => {
+    xhr.onload = evt => {
       if (xhr.status !== 200) {
         reject("Reader mode XHR failed with status: " + xhr.status);
         return;
@@ -304,7 +299,6 @@ function getPreparedDocument(id, url) {
       .sendMessage({ action: "getSerializedDoc", id })
       .then(serializedDoc => {
         if (serializedDoc) {
-          // eslint-disable-next-line no-undef
           let doc = new JSDOMParser().parse(serializedDoc, url);
           resolve(doc);
         } else {
@@ -327,7 +321,7 @@ function connectNativePort() {
   let port = browser.runtime.connectNative("mozacReaderviewActive");
   port.onMessage.addListener(message => {
     switch (message.action) {
-      case "show": {
+      case "show":
         async function showAsync(options) {
           try {
             let doc;
@@ -345,7 +339,6 @@ function connectNativePort() {
             }
             readerView.show(doc, articleUrl, options);
           } catch (e) {
-            // eslint-disable-next-line no-console
             console.log(e);
             // We weren't able to find the prepared document and also
             // failed to fetch it. Let's load the original page which
@@ -355,10 +348,8 @@ function connectNativePort() {
         }
         showAsync(message.value);
         break;
-      }
       case "hide":
         window.location.href = articleUrl;
-        break;
       case "setColorScheme":
         readerView.setColorScheme(message.value.toLowerCase());
         break;

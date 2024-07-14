@@ -4,7 +4,7 @@
 
 // Don't manually modify this line, as it is automatically replaced on merge day
 // by the gecko_migration.py script.
-export const WEAVE_VERSION = "1.131.0";
+export const WEAVE_VERSION = "1.130.0";
 
 // Sync Server API version that the client supports.
 export const SYNC_API_VERSION = "1.5";
@@ -125,7 +125,7 @@ export const kSyncBackoffNotMet =
 export const kFirstSyncChoiceNotMade =
   "User has not selected an action for first sync";
 export const kSyncNotConfigured = "Sync is not configured";
-export const kFirefoxShuttingDown = "FlameWolf is about to shut down";
+export const kFirefoxShuttingDown = "Flamewolf is about to shut down";
 
 export const DEVICE_TYPE_DESKTOP = "desktop";
 export const DEVICE_TYPE_MOBILE = "mobile";

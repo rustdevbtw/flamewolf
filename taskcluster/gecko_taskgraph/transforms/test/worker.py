@@ -38,12 +38,10 @@ WINDOWS_WORKER_TYPES = {
     "windows10-64-2009-qr": {
         "virtual": "win10-64-2009",
         "virtual-with-gpu": "win10-64-2009-gpu",
-        "hardware": "t-win10-64-1803-hw",
     },
     "windows10-64-2009-shippable-qr": {
         "virtual": "win10-64-2009",
         "virtual-with-gpu": "win10-64-2009-gpu",
-        "hardware": "t-win10-64-1803-hw",
     },
     "windows11-32-2009-mingwclang-qr": {
         "virtual": "win11-64-2009",
@@ -60,7 +58,6 @@ WINDOWS_WORKER_TYPES = {
     "windows11-64-2009": {
         "virtual": "win11-64-2009",
         "virtual-with-gpu": "win11-64-2009-gpu",
-        "hardware": "win11-64-2009-hw",
     },
     "windows11-64-2009-ccov": {
         "virtual": "win11-64-2009-ssd",
@@ -77,17 +74,14 @@ WINDOWS_WORKER_TYPES = {
     "windows11-64-2009-shippable": {
         "virtual": "win11-64-2009",
         "virtual-with-gpu": "win11-64-2009-gpu",
-        "hardware": "win11-64-2009-hw",
     },
     "windows11-64-2009-qr": {
         "virtual": "win11-64-2009",
         "virtual-with-gpu": "win11-64-2009-gpu",
-        "hardware": "win11-64-2009-hw",
     },
     "windows11-64-2009-shippable-qr": {
         "virtual": "win11-64-2009",
         "virtual-with-gpu": "win11-64-2009-gpu",
-        "hardware": "win11-64-2009-hw",
     },
     "windows11-64-2009-devedition-qr": {
         "virtual": "win11-64-2009",
@@ -138,12 +132,8 @@ def set_worker_type(config, tasks):
                     win_worker_type_platform = WINDOWS_WORKER_TYPES[
                         "windows11-64-2009-hw-ref"
                     ]
-                elif test_platform.startswith("windows10-64"):
-                    win_worker_type_platform = WINDOWS_WORKER_TYPES["windows10-64"]
                 else:
-                    win_worker_type_platform = WINDOWS_WORKER_TYPES[
-                        "windows11-64-2009-qr"
-                    ]
+                    win_worker_type_platform = WINDOWS_WORKER_TYPES["windows10-64"]
             else:
                 # the other jobs run on a vm which may or may not be a win10 vm
                 win_worker_type_platform = WINDOWS_WORKER_TYPES[

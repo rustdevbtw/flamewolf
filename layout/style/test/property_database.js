@@ -11773,18 +11773,6 @@ var gCSSProperties = {
     alias_for: "flex-flow",
     subproperties: ["flex-direction", "flex-wrap"],
   },
-  "-webkit-font-feature-settings": {
-    domProp: "webkitFontFeatureSettings",
-    inherited: true,
-    type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
-    applies_to_first_letter: true,
-    applies_to_first_line: true,
-    applies_to_marker: true,
-    applies_to_placeholder: true,
-    applies_to_cue: true,
-    alias_for: "font-feature-settings",
-    subproperties: ["font-feature-settings"],
-  },
   "-webkit-line-clamp": {
     domProp: "webkitLineClamp",
     inherited: false,
@@ -14329,19 +14317,6 @@ if (IsCSSPropertyPrefEnabled("layout.css.transition-behavior.enabled")) {
   if (IsCSSPropertyPrefEnabled("layout.css.prefixes.transitions")) {
     gCSSProperties["-moz-transition"].subproperties.push("transition-behavior");
   }
-}
-
-if (IsCSSPropertyPrefEnabled("layout.css.field-sizing.enabled")) {
-  Object.assign(gCSSProperties, {
-    "field-sizing": {
-      domProp: "fieldSizing",
-      inherited: false,
-      type: CSS_TYPE_LONGHAND,
-      initial_values: ["fixed"],
-      other_values: ["content"],
-      invalid_values: ["none", "auto"],
-    },
-  });
 }
 
 // Copy aliased properties' fields from their alias targets. Keep this logic

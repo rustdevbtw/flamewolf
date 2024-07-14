@@ -408,7 +408,7 @@ interface Path2D
 {
   constructor();
   constructor(Path2D other);
-  constructor(UTF8String pathString);
+  constructor(DOMString pathString);
 
   [Throws] undefined addPath(Path2D path, optional DOMMatrix2DInit transform = {});
 };

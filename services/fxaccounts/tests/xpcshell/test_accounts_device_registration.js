@@ -663,14 +663,10 @@ add_task(
 
     await updatePromise;
 
-    const {
-      device: newDevice,
-      encryptedSendTabKeys,
-      encryptedCloseTabKeys,
-    } = await state.getUserAccountData();
-    Assert.equal(newDevice.registeredCommandsKeys.length, 2);
+    const { device: newDevice, encryptedSendTabKeys } =
+      await state.getUserAccountData();
+    Assert.equal(newDevice.registeredCommandsKeys.length, 1);
     Assert.notEqual(encryptedSendTabKeys, null);
-    Assert.notEqual(encryptedCloseTabKeys, null);
     await fxa.signOut(true);
   }
 );

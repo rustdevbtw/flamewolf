@@ -97,34 +97,21 @@ class StreamResetHandlerTest : public testing::Test {
           return callbacks_.CreateTimeout(precision);
         }),
         delayed_ack_timer_(timer_manager_.CreateTimer(
-            "test/delayed_ack",
-            []() { return TimeDelta::Zero(); },
+            "test/delayed_ack", []() { return TimeDelta::Zero(); },
             TimerOptions(TimeDelta::Zero()))),
         t3_rtx_timer_(timer_manager_.CreateTimer(
-            "test/t3_rtx",
-            []() { return TimeDelta::Zero(); },
+            "test/t3_rtx", []() { return TimeDelta::Zero(); },
             TimerOptions(TimeDelta::Zero()))),
-        data_tracker_(std::make_unique<DataTracker>("log: ",
-                                                    delayed_ack_timer_.get(),
-                                                    kPeerInitialTsn)),
-        reasm_(std::make_unique<ReassemblyQueue>("log: ", kArwnd)),
+        data_tracker_(std::make_unique<DataTracker>(
+            "log: ", delayed_ack_timer_.get(), kPeerInitialTsn)),
+        reasm_(std::make_unique<ReassemblyQueue>("log: ", kPeerInitialTsn,
+                                                 kArwnd)),
         retransmission_queue_(std::make_unique<RetransmissionQueue>(
-            "",
-            &callbacks_,
-            kMyInitialTsn,
-            kArwnd,
-            producer_,
-            [](TimeDelta rtt) {},
-            []() {},
-            *t3_rtx_timer_,
-            DcSctpOptions())),
-        handler_(
-            std::make_unique<StreamResetHandler>("log: ",
-                                                 &ctx_,
-                                                 &timer_manager_,
-                                                 data_tracker_.get(),
-                                                 reasm_.get(),
-                                                 retransmission_queue_.get())) {
+            "", &callbacks_, kMyInitialTsn, kArwnd, producer_,
+            [](TimeDelta rtt) {}, []() {}, *t3_rtx_timer_, DcSctpOptions())),
+        handler_(std::make_unique<StreamResetHandler>(
+            "log: ", &ctx_, &timer_manager_, data_tracker_.get(), reasm_.get(),
+            retransmission_queue_.get())) {
     EXPECT_CALL(ctx_, current_rto).WillRepeatedly(Return(kRto));
   }
 
@@ -199,7 +186,8 @@ class StreamResetHandlerTest : public testing::Test {
     data_tracker_ = std::make_unique<DataTracker>(
         "log: ", delayed_ack_timer_.get(), kPeerInitialTsn);
     data_tracker_->RestoreFromState(state);
-    reasm_ = std::make_unique<ReassemblyQueue>("log: ", kArwnd);
+    reasm_ =
+        std::make_unique<ReassemblyQueue>("log: ", kPeerInitialTsn, kArwnd);
     reasm_->RestoreFromState(state);
     retransmission_queue_ = std::make_unique<RetransmissionQueue>(
         "", &callbacks_, kMyInitialTsn, kArwnd, producer_, [](TimeDelta rtt) {},

@@ -637,7 +637,7 @@ void DataTransfer::GetExternalClipboardFormats(const bool& aPlainTextOnly,
   //       GetExternalTransferableFormats() too since those methods should
   //       work similarly.
 
-  MOZ_ASSERT(!mClipboardDataSnapshot);
+  MOZ_ASSERT(!mAsyncGetClipboardData);
 
   RefPtr<WindowContext> wc = GetWindowContext();
   if (NS_WARN_IF(!wc)) {
@@ -653,33 +653,33 @@ void DataTransfer::GetExternalClipboardFormats(const bool& aPlainTextOnly,
   }
 
   nsresult rv = NS_ERROR_FAILURE;
-  nsCOMPtr<nsIClipboardDataSnapshot> clipboardDataSnapshot;
+  nsCOMPtr<nsIAsyncGetClipboardData> asyncGetClipboardData;
   if (aPlainTextOnly) {
     rv = clipboard->GetDataSnapshotSync(
         AutoTArray<nsCString, 1>{nsLiteralCString(kTextMime)}, mClipboardType,
-        wc, getter_AddRefs(clipboardDataSnapshot));
+        wc, getter_AddRefs(asyncGetClipboardData));
   } else {
     AutoTArray<nsCString, ArrayLength(kNonPlainTextExternalFormats)> formats;
     formats.AppendElements(Span<const nsCString>(kNonPlainTextExternalFormats));
     rv = clipboard->GetDataSnapshotSync(formats, mClipboardType, wc,
-                                        getter_AddRefs(clipboardDataSnapshot));
+                                        getter_AddRefs(asyncGetClipboardData));
   }
 
-  if (NS_FAILED(rv) || !clipboardDataSnapshot) {
+  if (NS_FAILED(rv) || !asyncGetClipboardData) {
     return;
   }
 
   // Order is important for DataTransfer; ensure the returned list items follow
   // the sequence specified in kNonPlainTextExternalFormats.
   AutoTArray<nsCString, ArrayLength(kNonPlainTextExternalFormats)> flavors;
-  clipboardDataSnapshot->GetFlavorList(flavors);
+  asyncGetClipboardData->GetFlavorList(flavors);
   for (const auto& format : kNonPlainTextExternalFormats) {
     if (flavors.Contains(format)) {
       aResult.AppendElement(format);
     }
   }
 
-  mClipboardDataSnapshot = clipboardDataSnapshot;
+  mAsyncGetClipboardData = asyncGetClipboardData;
 }
 
 /* static */
@@ -1206,7 +1206,7 @@ void DataTransfer::Disconnect() {
 
 void DataTransfer::ClearAll() {
   mItems->ClearAllItems();
-  mClipboardDataSnapshot = nullptr;
+  mAsyncGetClipboardData = nullptr;
 }
 
 uint32_t DataTransfer::MozItemCount() const { return mItems->MozItemCount(); }
@@ -1289,8 +1289,8 @@ already_AddRefed<WindowContext> DataTransfer::GetWindowContext() const {
   return do_AddRef(innerWindow->GetWindowContext());
 }
 
-nsIClipboardDataSnapshot* DataTransfer::GetClipboardDataSnapshot() const {
-  return mClipboardDataSnapshot;
+nsIAsyncGetClipboardData* DataTransfer::GetAsyncGetClipboardData() const {
+  return mAsyncGetClipboardData;
 }
 
 nsresult DataTransfer::CacheExternalData(const char* aFormat, uint32_t aIndex,

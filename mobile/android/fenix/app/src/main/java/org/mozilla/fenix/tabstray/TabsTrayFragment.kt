@@ -13,7 +13,6 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.core.view.isVisible
@@ -154,7 +153,6 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                 initialState = TabsTrayState(
                     selectedPage = initialPage,
                     mode = initialMode,
-                    selectedTabId = requireComponents.core.store.state.selectedTabId,
                 ),
                 middlewares = listOf(
                     TabsTrayMiddleware(),
@@ -184,14 +182,15 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             navigationInteractor = navigationInteractor,
             profiler = requireComponents.core.engine.profiler,
             tabsUseCases = requireComponents.useCases.tabsUseCases,
-            closeSyncedTabsUseCases = requireComponents.useCases.closeSyncedTabsUseCases,
+            closeSyncedTabsUseCases = CloseTabsUseCases(
+                requireComponents.backgroundServices.syncedTabsCommands,
+            ),
             bookmarksUseCase = requireComponents.useCases.bookmarksUseCases,
             ioDispatcher = Dispatchers.IO,
             collectionStorage = requireComponents.core.tabCollectionStorage,
             selectTabPosition = ::selectTabPosition,
             dismissTray = ::dismissTabsTray,
             showUndoSnackbarForTab = ::showUndoSnackbarForTab,
-            showUndoSnackbarForSyncedTab = ::showUndoSnackbarForSyncedTab,
             showCancelledDownloadWarning = ::showCancelledDownloadWarning,
             showCollectionSnackbar = ::showCollectionSnackbar,
             showBookmarkSnackbar = ::showBookmarkSnackbar,
@@ -246,6 +245,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                 FirefoxTheme(theme = Theme.getTheme(allowPrivateTheme = false)) {
                     TabsTray(
                         appStore = requireComponents.appStore,
+                        browserStore = requireComponents.core.store,
                         tabsTrayStore = tabsTrayStore,
                         displayTabsInGrid = requireContext().settings().gridTabView,
                         isInDebugMode = Config.channel.isDebug ||
@@ -631,19 +631,6 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             onPositiveButtonClicked = ::onCancelDownloadWarningAccepted,
         )
         dialog.show(parentFragmentManager, DOWNLOAD_CANCEL_DIALOG_FRAGMENT_TAG)
-    }
-
-    @UiThread
-    internal fun showUndoSnackbarForSyncedTab(closeOperation: CloseTabsUseCases.UndoableOperation) {
-        lifecycleScope.allowUndo(
-            view = requireView(),
-            message = getString(R.string.snackbar_tab_closed),
-            undoActionTitle = getString(R.string.snackbar_deleted_undo),
-            onCancel = closeOperation::undo,
-            operation = { },
-            elevation = ELEVATION,
-            anchorView = getSnackbarAnchor(),
-        )
     }
 
     @VisibleForTesting

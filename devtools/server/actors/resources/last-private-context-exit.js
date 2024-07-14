@@ -4,6 +4,10 @@
 
 "use strict";
 
+const {
+  TYPES: { LAST_PRIVATE_CONTEXT_EXIT },
+} = require("resource://devtools/server/actors/resources/index.js");
+
 class LastPrivateContextExitWatcher {
   #onAvailable;
 
@@ -27,8 +31,9 @@ class LastPrivateContextExitWatcher {
   observe(subject, topic) {
     if (topic === "last-pb-context-exited") {
       this.#onAvailable([
-        // This resource doesn't transfer any data to the client, it is like a one shot event.
-        {},
+        {
+          resourceType: LAST_PRIVATE_CONTEXT_EXIT,
+        },
       ]);
     }
   }

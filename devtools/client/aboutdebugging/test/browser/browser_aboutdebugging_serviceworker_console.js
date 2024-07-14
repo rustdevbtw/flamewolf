@@ -16,8 +16,7 @@ Services.scriptloader.loadSubScript(
 
 const SW_TAB_URL =
   URL_ROOT_SSL + "resources/service-workers/controlled-sw.html";
-const SW_URL =
-  URL_ROOT_SSL + "resources/service-workers/controlled-sw.worker.js";
+const SW_URL = URL_ROOT_SSL + "resources/service-workers/controlled-sw.js";
 
 /**
  * Test various simple debugging operation against service workers debugged through about:debugging.

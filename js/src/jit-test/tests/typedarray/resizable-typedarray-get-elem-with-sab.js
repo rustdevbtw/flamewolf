@@ -8,7 +8,6 @@ const TypedArrays = [
   Int32Array,
   Uint32Array,
   Uint8ClampedArray,
-  Float16Array,
   Float32Array,
   Float64Array,
   BigInt64Array,

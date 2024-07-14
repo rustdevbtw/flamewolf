@@ -33,11 +33,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.doReturn
-import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.`when`
 
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
@@ -46,7 +44,7 @@ class CFRPopupFullscreenLayoutTest {
     val coroutinesTestRule = MainCoroutineRule()
 
     @Test
-    fun `GIVEN not attached to window WHEN the popup is shown THEN setup lifecycle owners`() {
+    fun `WHEN the popup is shown THEN setup lifecycle owners`() {
         val anchor = View(testContext).apply {
             setViewTreeLifecycleOwner(mock())
             this.setViewTreeSavedStateRegistryOwner(mock())
@@ -61,7 +59,6 @@ class CFRPopupFullscreenLayoutTest {
                 action = { },
             ),
         )
-        `when`(popupView.isAttachedToWindow).thenReturn(false)
         popupView.show()
 
         assertNotNull(popupView.findViewTreeLifecycleOwner())
@@ -77,30 +74,7 @@ class CFRPopupFullscreenLayoutTest {
     }
 
     @Test
-    fun `GIVEN already attached to window WHEN the popup is shown THEN do nothing`() {
-        val anchor = View(testContext).apply {
-            setViewTreeLifecycleOwner(mock())
-            this.setViewTreeSavedStateRegistryOwner(mock())
-        }
-
-        val popupView = spy(
-            CFRPopupFullscreenLayout(
-                anchor = anchor,
-                properties = mock(),
-                onDismiss = mock(),
-                text = { },
-                action = { },
-            ),
-        )
-        `when`(popupView.isAttachedToWindow).thenReturn(true)
-        popupView.show()
-
-        assertNull(popupView.findViewTreeLifecycleOwner())
-        assertNull(popupView.findViewTreeSavedStateRegistryOwner())
-    }
-
-    @Test
-    fun `GIVEN is attached to window WHEN the popup is dismissed THEN cleanup lifecycle owners and detach from window`() {
+    fun `WHEN the popup is dismissed THEN cleanup lifecycle owners and detach from window`() {
         val context = spy(testContext)
         val anchor = View(context).apply {
             setViewTreeLifecycleOwner(mock())
@@ -108,12 +82,11 @@ class CFRPopupFullscreenLayoutTest {
         }
         val windowManager = spy(context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
         doReturn(windowManager).`when`(context).getSystemService(Context.WINDOW_SERVICE)
-        val popupView = spy(CFRPopupFullscreenLayout(anchor, mock(), mock(), { }, { }))
-        `when`(popupView.isAttachedToWindow).thenReturn(false)
+        val popupView = CFRPopupFullscreenLayout(anchor, mock(), mock(), { }, { })
         popupView.show()
         assertNotNull(popupView.findViewTreeLifecycleOwner())
         assertNotNull(popupView.findViewTreeSavedStateRegistryOwner())
-        `when`(popupView.isAttachedToWindow).thenReturn(true)
+
         popupView.dismiss()
 
         assertNull(popupView.findViewTreeLifecycleOwner())
@@ -122,34 +95,9 @@ class CFRPopupFullscreenLayoutTest {
     }
 
     @Test
-    fun `GIVEN not attached to window WHEN the popup is dismissed THEN does nothing`() {
-        val context = spy(testContext)
-        val anchor = View(context).apply {
-            setViewTreeLifecycleOwner(mock())
-            this.setViewTreeSavedStateRegistryOwner(mock())
-        }
-        val windowManager = spy(context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
-        doReturn(windowManager).`when`(context).getSystemService(Context.WINDOW_SERVICE)
-        val popupView = spy(CFRPopupFullscreenLayout(anchor, mock(), mock(), { }, { }))
-        `when`(popupView.isAttachedToWindow).thenReturn(false)
-        popupView.show()
-        assertNotNull(popupView.findViewTreeLifecycleOwner())
-        assertNotNull(popupView.findViewTreeSavedStateRegistryOwner())
-
-        popupView.dismiss()
-
-        assertNotNull(popupView.findViewTreeLifecycleOwner())
-        assertNotNull(popupView.findViewTreeSavedStateRegistryOwner())
-        verify(windowManager, never()).removeViewImmediate(popupView)
-    }
-
-    @Test
     fun `GIVEN a popup WHEN adding it to window THEN use translucent layout params`() {
         val context = spy(testContext)
-        val anchor = View(context).apply {
-            setViewTreeLifecycleOwner(mock())
-            this.setViewTreeSavedStateRegistryOwner(mock())
-        }
+        val anchor = View(context)
         val windowManager = spy(context.getSystemService(Context.WINDOW_SERVICE))
         doReturn(windowManager).`when`(context).getSystemService(Context.WINDOW_SERVICE)
         val popupView = CFRPopupFullscreenLayout(anchor, mock(), mock(), { }, { })
@@ -598,10 +546,8 @@ class CFRPopupFullscreenLayoutTest {
             this.setViewTreeSavedStateRegistryOwner(mock())
         }
         val popupView = spy(CFRPopupFullscreenLayout(anchor, mock(), mock(), { }, { }))
-        `when`(popupView.isAttachedToWindow).thenReturn(false)
         popupView.show()
 
-        `when`(popupView.isAttachedToWindow).thenReturn(true)
         testContext.resources.configuration.orientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         popupView.orientationChangeListener.onDisplayChanged(1)
 

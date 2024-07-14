@@ -5,10 +5,10 @@
 
 // Test for the following data of engagement telemetry.
 // - selected_result
+// - selected_result_subtype
 // - selected_position
 // - provider
 // - results
-// - actions
 
 ChromeUtils.defineESModuleGetters(this, {
   UrlbarProviderClipboard:
@@ -31,6 +31,7 @@ add_task(async function selected_result_autofill_about() {
     assertEngagementTelemetry([
       {
         selected_result: "autofill_about",
+        selected_result_subtype: "",
         selected_position: 1,
         provider: "Autofill",
         results: "autofill_about",
@@ -53,6 +54,7 @@ add_task(async function selected_result_autofill_adaptive() {
     assertEngagementTelemetry([
       {
         selected_result: "autofill_adaptive",
+        selected_result_subtype: "",
         selected_position: 1,
         provider: "Autofill",
         results: "autofill_adaptive",
@@ -73,6 +75,7 @@ add_task(async function selected_result_autofill_origin() {
     assertEngagementTelemetry([
       {
         selected_result: "autofill_origin",
+        selected_result_subtype: "",
         selected_position: 1,
         provider: "Autofill",
         results: "autofill_origin,history",
@@ -91,6 +94,7 @@ add_task(async function selected_result_autofill_url() {
     assertEngagementTelemetry([
       {
         selected_result: "autofill_url",
+        selected_result_subtype: "",
         selected_position: 1,
         provider: "Autofill",
         results: "autofill_url",
@@ -114,6 +118,7 @@ add_task(async function selected_result_bookmark() {
     assertEngagementTelemetry([
       {
         selected_result: "bookmark",
+        selected_result_subtype: "",
         selected_position: 2,
         provider: "Places",
         results: "search_engine,bookmark",
@@ -137,6 +142,7 @@ add_task(async function selected_result_history() {
     assertEngagementTelemetry([
       {
         selected_result: "history",
+        selected_result_subtype: "",
         selected_position: 2,
         provider: "Places",
         results: "search_engine,history",
@@ -160,6 +166,7 @@ add_task(async function selected_result_keyword() {
     assertEngagementTelemetry([
       {
         selected_result: "keyword",
+        selected_result_subtype: "",
         selected_position: 1,
         provider: "BookmarkKeywords",
         results: "keyword",
@@ -178,6 +185,7 @@ add_task(async function selected_result_search_engine() {
     assertEngagementTelemetry([
       {
         selected_result: "search_engine",
+        selected_result_subtype: "",
         selected_position: 1,
         provider: "HeuristicFallback",
         results: "search_engine",
@@ -202,6 +210,7 @@ add_task(async function selected_result_search_suggest() {
     assertEngagementTelemetry([
       {
         selected_result: "search_suggest",
+        selected_result_subtype: "",
         selected_position: 2,
         provider: "SearchSuggestions",
         results: "search_engine,search_suggest,search_suggest",
@@ -230,6 +239,7 @@ add_task(async function selected_result_search_history() {
     assertEngagementTelemetry([
       {
         selected_result: "search_history",
+        selected_result_subtype: "",
         selected_position: 3,
         provider: "SearchSuggestions",
         results: "search_engine,search_history,search_history",
@@ -248,6 +258,7 @@ add_task(async function selected_result_url() {
     assertEngagementTelemetry([
       {
         selected_result: "url",
+        selected_result_subtype: "",
         selected_position: 1,
         provider: "HeuristicFallback",
         results: "url",
@@ -272,6 +283,7 @@ add_task(async function selected_result_tab() {
     assertEngagementTelemetry([
       {
         selected_result: "tab",
+        selected_result_subtype: "",
         selected_position: 4,
         provider: "Places",
         results: "search_engine,search_suggest,search_suggest,tab",
@@ -294,6 +306,7 @@ add_task(async function selected_result_remote_tab() {
     assertEngagementTelemetry([
       {
         selected_result: "remote_tab",
+        selected_result_subtype: "",
         selected_position: 2,
         provider: "RemoteTabs",
         results: "search_engine,remote_tab",
@@ -315,6 +328,7 @@ add_task(async function selected_result_addon() {
     assertEngagementTelemetry([
       {
         selected_result: "addon",
+        selected_result_subtype: "",
         selected_position: 1,
         provider: "Omnibox",
         results: "addon",
@@ -349,6 +363,7 @@ add_task(async function selected_result_tab_to_search() {
     assertEngagementTelemetry([
       {
         selected_result: "tab_to_search",
+        selected_result_subtype: "",
         selected_position: 2,
         provider: "TabToSearch",
         results: "search_engine,tab_to_search,history",
@@ -369,6 +384,7 @@ add_task(async function selected_result_top_site() {
     assertEngagementTelemetry([
       {
         selected_result: "top_site",
+        selected_result_subtype: "",
         selected_position: 1,
         provider: "UrlbarProviderTopSites",
         results: "top_site",
@@ -392,6 +408,7 @@ add_task(async function selected_result_calc() {
     assertEngagementTelemetry([
       {
         selected_result: "calc",
+        selected_result_subtype: "",
         selected_position: 2,
         provider: "calculator",
         results: "search_engine,calc",
@@ -421,6 +438,7 @@ add_task(async function selected_result_clipboard() {
     assertEngagementTelemetry([
       {
         selected_result: "clipboard",
+        selected_result_subtype: "",
         selected_position: 1,
         provider: "UrlbarProviderClipboard",
         results: "clipboard",
@@ -448,6 +466,7 @@ add_task(async function selected_result_unit() {
     assertEngagementTelemetry([
       {
         selected_result: "unit",
+        selected_result_subtype: "",
         selected_position: 2,
         provider: "UnitConversion",
         results: "search_engine,unit",
@@ -471,6 +490,7 @@ add_task(async function selected_result_rs_adm_sponsored() {
     assertEngagementTelemetry([
       {
         selected_result: "rs_adm_sponsored",
+        selected_result_subtype: "",
         selected_position: 2,
         provider: "UrlbarProviderQuickSuggest",
         results: "search_engine,rs_adm_sponsored",
@@ -494,6 +514,7 @@ add_task(async function selected_result_rs_adm_nonsponsored() {
     assertEngagementTelemetry([
       {
         selected_result: "rs_adm_nonsponsored",
+        selected_result_subtype: "",
         selected_position: 2,
         provider: "UrlbarProviderQuickSuggest",
         results: "search_engine,rs_adm_nonsponsored",
@@ -508,6 +529,7 @@ add_task(async function selected_result_input_field() {
   const expected = [
     {
       selected_result: "input_field",
+      selected_result_subtype: "",
       selected_position: 0,
       provider: null,
       results: "",
@@ -546,6 +568,7 @@ add_task(async function selected_result_weather() {
     assertEngagementTelemetry([
       {
         selected_result: "weather",
+        selected_result_subtype: "",
         selected_position: 2,
         provider,
         results: "search_engine,weather",
@@ -580,6 +603,7 @@ add_task(async function selected_result_navigational() {
     assertEngagementTelemetry([
       {
         selected_result: "merino_top_picks",
+        selected_result_subtype: "",
         selected_position: 2,
         provider: "UrlbarProviderQuickSuggest",
         results: "search_engine,merino_top_picks",
@@ -614,6 +638,7 @@ add_task(async function selected_result_dynamic_wikipedia() {
     assertEngagementTelemetry([
       {
         selected_result: "merino_wikipedia",
+        selected_result_subtype: "",
         selected_position: 2,
         provider: "UrlbarProviderQuickSuggest",
         results: "search_engine,merino_wikipedia",
@@ -652,6 +677,7 @@ add_task(async function selected_result_search_shortcut_button() {
     assertEngagementTelemetry([
       {
         selected_result: "search_shortcut_button",
+        selected_result_subtype: "",
         selected_position: 0,
         provider: null,
         results: "search_engine",
@@ -751,6 +777,7 @@ add_task(async function selected_result_trending() {
     assertEngagementTelemetry([
       {
         selected_result: "trending_search",
+        selected_result_subtype: "",
         selected_position: 1,
         provider: "SearchSuggestions",
         results: "trending_search",
@@ -876,6 +903,7 @@ add_task(async function selected_result_trending_rich() {
     assertEngagementTelemetry([
       {
         selected_result: "trending_search_rich",
+        selected_result_subtype: "",
         selected_position: 1,
         provider: "SearchSuggestions",
         results: "trending_search_rich",
@@ -939,6 +967,7 @@ add_task(async function selected_result_addons() {
     assertEngagementTelemetry([
       {
         selected_result: "merino_amo",
+        selected_result_subtype: "",
         selected_position: 2,
         provider: "UrlbarProviderQuickSuggest",
         results: "search_engine,merino_amo",
@@ -963,6 +992,7 @@ add_task(async function selected_result_rust_adm_sponsored() {
     assertEngagementTelemetry([
       {
         selected_result: "rust_adm_sponsored",
+        selected_result_subtype: "",
         selected_position: 2,
         provider: "UrlbarProviderQuickSuggest",
         results: "search_engine,rust_adm_sponsored",
@@ -986,6 +1016,7 @@ add_task(async function selected_result_rust_adm_nonsponsored() {
     assertEngagementTelemetry([
       {
         selected_result: "rust_adm_nonsponsored",
+        selected_result_subtype: "",
         selected_position: 2,
         provider: "UrlbarProviderQuickSuggest",
         results: "search_engine,rust_adm_nonsponsored",
@@ -994,31 +1025,4 @@ add_task(async function selected_result_rust_adm_nonsponsored() {
   });
 
   await cleanupQuickSuggest();
-});
-
-add_task(async function selected_result_action() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.scotchBonnet.enableOverride", true]],
-  });
-  await doTest(async () => {
-    await openPopup("settings");
-    EventUtils.synthesizeKey("KEY_Tab");
-    EventUtils.synthesizeKey("KEY_Enter");
-    await BrowserTestUtils.waitForCondition(
-      () =>
-        gBrowser.selectedTab.linkedBrowser.currentURI.spec ==
-        "about:preferences"
-    );
-
-    assertEngagementTelemetry([
-      {
-        selected_result: "action_settings",
-        selected_position: 1,
-        provider: "HeuristicFallback",
-        results: "search_engine",
-        actions: "settings",
-      },
-    ]);
-  });
-  await SpecialPowers.popPrefEnv();
 });

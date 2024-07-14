@@ -419,15 +419,10 @@ nsresult ExtensionProtocolHandler::GetFlagsForURI(nsIURI* aURI,
     // In general a moz-extension URI is only loadable by chrome, but an
     // allowlist subset are web-accessible (and cross-origin fetchable).
     // The allowlist is checked using EPS.SourceMayLoadExtensionURI in
-    // nsScriptSecurityManager, and WEPC.SourceMayAccessPath in BasePrincipal.
+    // BasePrincipal and nsScriptSecurityManager.
     if (policy->IsWebAccessiblePath(url.FilePath())) {
       if (policy->ManifestVersion() < 3) {
-        // We could also be `WEBEXT_URI_WEB_ACCESSIBLE` here, but this would
-        // just check `IsWebAccessiblePath` for Manifest V2.
-        // nsIPrincipal::CheckMayLoad (which is used for resources) already
-        // directly queries the WebExtensionPolicy, so we only need to set
-        // URI_LOADABLE_BY_ANYONE to allow navigation loads.
-        flags |= URI_LOADABLE_BY_ANYONE;
+        flags |= URI_LOADABLE_BY_ANYONE | URI_FETCHABLE_BY_ANYONE;
       } else {
         flags |= WEBEXT_URI_WEB_ACCESSIBLE;
       }

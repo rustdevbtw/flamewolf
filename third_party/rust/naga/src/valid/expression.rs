@@ -1,4 +1,7 @@
-use super::{compose::validate_compose, FunctionInfo, ModuleInfo, ShaderStages, TypeFlags};
+use super::{
+    compose::validate_compose, validate_atomic_compare_exchange_struct, FunctionInfo, ModuleInfo,
+    ShaderStages, TypeFlags,
+};
 use crate::arena::UniqueArena;
 
 use crate::{
@@ -9,6 +12,8 @@ use crate::{
 #[derive(Clone, Debug, thiserror::Error)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum ExpressionError {
+    #[error("Doesn't exist")]
+    DoesntExist,
     #[error("Used by a statement before it was introduced into the scope by any of the dominating blocks")]
     NotInScope,
     #[error("Base type {0:?} is not compatible with this expression")]
@@ -111,6 +116,8 @@ pub enum ExpressionError {
     WrongArgumentCount(crate::MathFunction),
     #[error("Argument [{1}] to {0:?} as expression {2:?} has an invalid type.")]
     InvalidArgumentType(crate::MathFunction, u32, Handle<crate::Expression>),
+    #[error("Atomic result type can't be {0:?}")]
+    InvalidAtomicResultType(Handle<crate::Type>),
     #[error(
         "workgroupUniformLoad result type can't be {0:?}. It can only be a constructible type."
     )]
@@ -1577,11 +1584,30 @@ impl super::Validator {
                 ShaderStages::all()
             }
             E::CallResult(function) => mod_info.functions[function.index()].available_stages,
-            E::AtomicResult { .. } => {
-                // These expressions are validated when we check the `Atomic` statement
-                // that refers to them, because we have all the information we need at
-                // that point. The checks driven by `Validator::needs_visit` ensure
-                // that this expression is indeed visited by one `Atomic` statement.
+            E::AtomicResult { ty, comparison } => {
+                let scalar_predicate = |ty: &crate::TypeInner| match ty {
+                    &crate::TypeInner::Scalar(
+                        scalar @ Sc {
+                            kind: crate::ScalarKind::Uint | crate::ScalarKind::Sint,
+                            ..
+                        },
+                    ) => self.check_width(scalar).is_ok(),
+                    _ => false,
+                };
+                let good = match &module.types[ty].inner {
+                    ty if !comparison => scalar_predicate(ty),
+                    &crate::TypeInner::Struct { ref members, .. } if comparison => {
+                        validate_atomic_compare_exchange_struct(
+                            &module.types,
+                            members,
+                            scalar_predicate,
+                        )
+                    }
+                    _ => false,
+                };
+                if !good {
+                    return Err(ExpressionError::InvalidAtomicResultType(ty));
+                }
                 ShaderStages::all()
             }
             E::WorkGroupUniformLoadResult { ty } => {

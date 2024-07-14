@@ -51,7 +51,7 @@
 //! [`CodePointMapData`]: crate::maps::CodePointMapData
 //! [`sets`]: crate::sets
 
-// https://github.com/unicode-org/icu4x/blob/main/documents/process/boilerplate.md#library-annotations
+// https://github.com/unicode-org/icu4x/blob/main/docs/process/boilerplate.md#library-annotations
 #![cfg_attr(not(any(test, feature = "std")), no_std)]
 #![cfg_attr(
     not(test),
@@ -92,8 +92,7 @@ mod trievalue;
 
 pub use props::{
     BidiClass, CanonicalCombiningClass, EastAsianWidth, GeneralCategory, GeneralCategoryGroup,
-    GraphemeClusterBreak, HangulSyllableType, IndicSyllabicCategory, JoiningType, LineBreak,
-    Script, SentenceBreak, WordBreak,
+    GraphemeClusterBreak, IndicSyllabicCategory, LineBreak, Script, SentenceBreak, WordBreak,
 };
 
 /// Module for working with the names of property values

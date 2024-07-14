@@ -19,10 +19,7 @@ import mozilla.telemetry.glean.config.Configuration as GleanCoreConfiguration
  * @property channel (optional )the release channel the application is on, if known. This will be
  *           sent along with all the pings, in the `client_info` section.
  * @property maxEvents (optional) the number of events to store before the events ping is sent
- * @property enableEventTimestamps Whether to add a wallclock timestamp to all events.
- * @property experimentationId An experimentation identifier derived by the application
- *           to be sent with all pings.
- * @property enableInternalPings Whether to enable internal pings.
+ * @property enableEventTimestamps (Experimental) Whether to add a wallclock timestamp to all events.
  * @property delayPingLifetimeIo Whether Glean should delay persistence of data from metrics with ping lifetime.
  *
  */
@@ -31,9 +28,7 @@ data class Configuration @JvmOverloads constructor(
     val serverEndpoint: String = DEFAULT_TELEMETRY_ENDPOINT,
     val channel: String? = null,
     val maxEvents: Int? = null,
-    val enableEventTimestamps: Boolean = true,
-    val experimentationId: String? = null,
-    val enableInternalPings: Boolean = true,
+    val enableEventTimestamps: Boolean = false,
     val delayPingLifetimeIo: Boolean = false,
 ) {
     // The following is required to support calling our API from Java.
@@ -54,8 +49,6 @@ data class Configuration @JvmOverloads constructor(
             maxEvents = maxEvents,
             httpClient = httpClient,
             enableEventTimestamps = enableEventTimestamps,
-            experimentationId = experimentationId,
-            enableInternalPings = enableInternalPings,
             delayPingLifetimeIo = delayPingLifetimeIo,
         )
     }

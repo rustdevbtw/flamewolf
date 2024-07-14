@@ -318,6 +318,7 @@ async function _useTailSuggestionsEngine() {
     search_url: `http://localhost:${httpServer.identity.primaryPort}/search`,
     suggest_url: `http://localhost:${httpServer.identity.primaryPort}/suggest`,
     suggest_url_get_params: "?q={searchTerms}",
+    search_form: `http://localhost:${httpServer.identity.primaryPort}/search?q={searchTerms}`,
   });
 
   const tailEngine = Services.search.getEngineByName(engineName);

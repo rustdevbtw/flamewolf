@@ -133,8 +133,7 @@ void CreateAndDispatchInitWorkerContextRunnable() {
   RefPtr<RequestInitWorkerRunnable> runnable =
       new RequestInitWorkerRunnable(std::move(workerPrivate), clientInfo);
   IgnoredErrorResult rv;
-  runnable->Dispatch(dom::GetCurrentThreadWorkerPrivate(),
-                     dom::WorkerStatus::Canceling, rv);
+  runnable->Dispatch(dom::WorkerStatus::Canceling, rv);
   if (rv.Failed()) {
     NS_WARNING("Failed to dispatch extensions::RequestInitWorkerRunnable");
   }

@@ -10,7 +10,6 @@
 // to be able to isolate sandbox/chromium from ipc/chromium.
 
 #include "SandboxInternal.h"
-
 #include "SandboxLogging.h"
 
 #include <unistd.h>

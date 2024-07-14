@@ -38,7 +38,6 @@ pub mod ffi {
     }
 
     #[diplomat::rust_link(icu::segmenter::LineBreakOptions, Struct)]
-    #[diplomat::attr(dart, rename = "LineBreakOptions")]
     pub struct ICU4XLineBreakOptionsV1 {
         pub strictness: ICU4XLineBreakStrictness,
         pub word_option: ICU4XLineBreakWordOption,
@@ -52,7 +51,6 @@ pub mod ffi {
         Typedef,
         compact
     )]
-    #[diplomat::rust_link(icu::segmenter::LineBreakIteratorUtf8, Typedef, hidden)]
     pub struct ICU4XLineBreakIteratorUtf8<'a>(LineBreakIteratorPotentiallyIllFormedUtf8<'a, 'a>);
 
     #[diplomat::opaque]
@@ -69,7 +67,6 @@ pub mod ffi {
         /// Construct a [`ICU4XLineSegmenter`] with default options. It automatically loads the best
         /// available payload data for Burmese, Khmer, Lao, and Thai.
         #[diplomat::rust_link(icu::segmenter::LineSegmenter::new_auto, FnInStruct)]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "auto")]
         pub fn create_auto(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XLineSegmenter>, ICU4XError> {
@@ -84,7 +81,6 @@ pub mod ffi {
         /// Construct a [`ICU4XLineSegmenter`] with default options and LSTM payload data for
         /// Burmese, Khmer, Lao, and Thai.
         #[diplomat::rust_link(icu::segmenter::LineSegmenter::new_lstm, FnInStruct)]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "lstm")]
         pub fn create_lstm(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XLineSegmenter>, ICU4XError> {
@@ -99,7 +95,6 @@ pub mod ffi {
         /// Construct a [`ICU4XLineSegmenter`] with default options and dictionary payload data for
         /// Burmese, Khmer, Lao, and Thai..
         #[diplomat::rust_link(icu::segmenter::LineSegmenter::new_dictionary, FnInStruct)]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "dictionary")]
         pub fn create_dictionary(
             provider: &ICU4XDataProvider,
         ) -> Result<Box<ICU4XLineSegmenter>, ICU4XError> {
@@ -114,8 +109,6 @@ pub mod ffi {
         /// Construct a [`ICU4XLineSegmenter`] with custom options. It automatically loads the best
         /// available payload data for Burmese, Khmer, Lao, and Thai.
         #[diplomat::rust_link(icu::segmenter::LineSegmenter::new_auto_with_options, FnInStruct)]
-        #[diplomat::attr(dart, rename = "auto_with_options")]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "auto_with_options_v1")]
         pub fn create_auto_with_options_v1(
             provider: &ICU4XDataProvider,
             options: ICU4XLineBreakOptionsV1,
@@ -132,8 +125,6 @@ pub mod ffi {
         /// Construct a [`ICU4XLineSegmenter`] with custom options and LSTM payload data for
         /// Burmese, Khmer, Lao, and Thai.
         #[diplomat::rust_link(icu::segmenter::LineSegmenter::new_lstm_with_options, FnInStruct)]
-        #[diplomat::attr(dart, rename = "lstm_with_options")]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "lstm_with_options_v1")]
         pub fn create_lstm_with_options_v1(
             provider: &ICU4XDataProvider,
             options: ICU4XLineBreakOptionsV1,
@@ -153,8 +144,6 @@ pub mod ffi {
             icu::segmenter::LineSegmenter::new_dictionary_with_options,
             FnInStruct
         )]
-        #[diplomat::attr(dart, rename = "dictionary_with_options")]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "dictionary_with_options_v1")]
         pub fn create_dictionary_with_options_v1(
             provider: &ICU4XDataProvider,
             options: ICU4XLineBreakOptionsV1,
@@ -168,36 +157,25 @@ pub mod ffi {
             )?)))
         }
 
-        /// Segments a string.
-        ///
-        /// Ill-formed input is treated as if errors had been replaced with REPLACEMENT CHARACTERs according
-        /// to the WHATWG Encoding Standard.
+        /// Segments a (potentially ill-formed) UTF-8 string.
         #[diplomat::rust_link(icu::segmenter::LineSegmenter::segment_utf8, FnInStruct)]
         #[diplomat::rust_link(icu::segmenter::LineSegmenter::segment_str, FnInStruct, hidden)]
-        #[diplomat::attr(dart, disable)]
-        pub fn segment_utf8<'a>(
-            &'a self,
-            input: &'a DiplomatStr,
-        ) -> Box<ICU4XLineBreakIteratorUtf8<'a>> {
+        pub fn segment_utf8<'a>(&'a self, input: &'a str) -> Box<ICU4XLineBreakIteratorUtf8<'a>> {
+            let input = input.as_bytes(); // #2520
             Box::new(ICU4XLineBreakIteratorUtf8(self.0.segment_utf8(input)))
         }
 
-        /// Segments a string.
-        ///
-        /// Ill-formed input is treated as if errors had been replaced with REPLACEMENT CHARACTERs according
-        /// to the WHATWG Encoding Standard.
+        /// Segments a UTF-16 string.
         #[diplomat::rust_link(icu::segmenter::LineSegmenter::segment_utf16, FnInStruct)]
-        #[diplomat::attr(dart, rename = "segment")]
         pub fn segment_utf16<'a>(
             &'a self,
-            input: &'a DiplomatStr16,
+            input: &'a [u16],
         ) -> Box<ICU4XLineBreakIteratorUtf16<'a>> {
             Box::new(ICU4XLineBreakIteratorUtf16(self.0.segment_utf16(input)))
         }
 
         /// Segments a Latin-1 string.
         #[diplomat::rust_link(icu::segmenter::LineSegmenter::segment_latin1, FnInStruct)]
-        #[diplomat::attr(dart, disable)]
         pub fn segment_latin1<'a>(
             &'a self,
             input: &'a [u8],
@@ -209,6 +187,7 @@ pub mod ffi {
     impl<'a> ICU4XLineBreakIteratorUtf8<'a> {
         /// Finds the next breakpoint. Returns -1 if at the end of the string or if the index is
         /// out of range of a 32-bit signed integer.
+        #[allow(clippy::should_implement_trait)]
         #[diplomat::rust_link(icu::segmenter::LineBreakIterator::next, FnInStruct)]
         #[diplomat::rust_link(
             icu::segmenter::LineBreakIterator::Item,
@@ -226,6 +205,7 @@ pub mod ffi {
     impl<'a> ICU4XLineBreakIteratorUtf16<'a> {
         /// Finds the next breakpoint. Returns -1 if at the end of the string or if the index is
         /// out of range of a 32-bit signed integer.
+        #[allow(clippy::should_implement_trait)]
         #[diplomat::rust_link(icu::segmenter::LineBreakIterator::next, FnInStruct)]
         #[diplomat::rust_link(
             icu::segmenter::LineBreakIterator::Item,
@@ -243,6 +223,7 @@ pub mod ffi {
     impl<'a> ICU4XLineBreakIteratorLatin1<'a> {
         /// Finds the next breakpoint. Returns -1 if at the end of the string or if the index is
         /// out of range of a 32-bit signed integer.
+        #[allow(clippy::should_implement_trait)]
         #[diplomat::rust_link(icu::segmenter::LineBreakIterator::next, FnInStruct)]
         #[diplomat::rust_link(
             icu::segmenter::LineBreakIterator::Item,

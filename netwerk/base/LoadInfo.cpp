@@ -378,7 +378,7 @@ LoadInfo::LoadInfo(nsPIDOMWindowOuter* aOuterWindow, nsIURI* aURI,
   // Let's take the current cookie behavior and current cookie permission
   // for the documents' loadInfo. Note that for any other loadInfos,
   // cookieBehavior will be BEHAVIOR_REJECT for security reasons.
-  bool isPrivate = mOriginAttributes.IsPrivateBrowsing();
+  bool isPrivate = mOriginAttributes.mPrivateBrowsingId > 0;
   bool shouldResistFingerprinting =
       nsContentUtils::ShouldResistFingerprinting_dangerous(
           aURI, mOriginAttributes,
@@ -467,7 +467,7 @@ LoadInfo::LoadInfo(dom::CanonicalBrowsingContext* aBrowsingContext,
     }
   }
 
-  const bool isPrivate = mOriginAttributes.IsPrivateBrowsing();
+  const bool isPrivate = mOriginAttributes.mPrivateBrowsingId > 0;
 
   // Let's take the current cookie behavior and current cookie permission
   // for the documents' loadInfo. Note that for any other loadInfos,
@@ -670,7 +670,6 @@ LoadInfo::LoadInfo(const LoadInfo& rhs)
       mHttpsOnlyStatus(rhs.mHttpsOnlyStatus),
       mHstsStatus(rhs.mHstsStatus),
       mHasValidUserGestureActivation(rhs.mHasValidUserGestureActivation),
-      mTextDirectiveUserActivation(rhs.mTextDirectiveUserActivation),
       mAllowDeprecatedSystemRequests(rhs.mAllowDeprecatedSystemRequests),
       mIsInDevToolsContext(rhs.mIsInDevToolsContext),
       mParserCreatedScript(rhs.mParserCreatedScript),
@@ -692,8 +691,7 @@ LoadInfo::LoadInfo(const LoadInfo& rhs)
       mInterceptionInfo(rhs.mInterceptionInfo),
       mHasInjectedCookieForCookieBannerHandling(
           rhs.mHasInjectedCookieForCookieBannerHandling),
-      mWasSchemelessInput(rhs.mWasSchemelessInput),
-      mHttpsUpgradeTelemetry(rhs.mHttpsUpgradeTelemetry) {
+      mWasSchemelessInput(rhs.mWasSchemelessInput) {
 }
 
 LoadInfo::LoadInfo(
@@ -731,8 +729,7 @@ LoadInfo::LoadInfo(
     bool aNeedForCheckingAntiTrackingHeuristic, const nsAString& aCspNonce,
     const nsAString& aIntegrityMetadata, bool aSkipContentSniffing,
     uint32_t aHttpsOnlyStatus, bool aHstsStatus,
-    bool aHasValidUserGestureActivation, bool aTextDirectiveUserActivation,
-    bool aIsSameDocumentNavigation, bool aAllowDeprecatedSystemRequests,
+    bool aHasValidUserGestureActivation, bool aAllowDeprecatedSystemRequests,
     bool aIsInDevToolsContext, bool aParserCreatedScript,
     nsILoadInfo::StoragePermissionState aStoragePermission,
     const Maybe<RFPTarget>& aOverriddenFingerprintingSettings,
@@ -741,8 +738,7 @@ LoadInfo::LoadInfo(
     nsILoadInfo::CrossOriginEmbedderPolicy aLoadingEmbedderPolicy,
     bool aIsOriginTrialCoepCredentiallessEnabledForTopLevel,
     nsIURI* aUnstrippedURI, nsIInterceptionInfo* aInterceptionInfo,
-    bool aHasInjectedCookieForCookieBannerHandling, bool aWasSchemelessInput,
-    nsILoadInfo::HTTPSUpgradeTelemetryType aHttpsUpgradeTelemetry)
+    bool aHasInjectedCookieForCookieBannerHandling, bool aWasSchemelessInput)
     : mLoadingPrincipal(aLoadingPrincipal),
       mTriggeringPrincipal(aTriggeringPrincipal),
       mPrincipalToInherit(aPrincipalToInherit),
@@ -807,8 +803,6 @@ LoadInfo::LoadInfo(
       mHttpsOnlyStatus(aHttpsOnlyStatus),
       mHstsStatus(aHstsStatus),
       mHasValidUserGestureActivation(aHasValidUserGestureActivation),
-      mTextDirectiveUserActivation(aTextDirectiveUserActivation),
-      mIsSameDocumentNavigation(aIsSameDocumentNavigation),
       mAllowDeprecatedSystemRequests(aAllowDeprecatedSystemRequests),
       mIsInDevToolsContext(aIsInDevToolsContext),
       mParserCreatedScript(aParserCreatedScript),
@@ -822,8 +816,7 @@ LoadInfo::LoadInfo(
       mInterceptionInfo(aInterceptionInfo),
       mHasInjectedCookieForCookieBannerHandling(
           aHasInjectedCookieForCookieBannerHandling),
-      mWasSchemelessInput(aWasSchemelessInput),
-      mHttpsUpgradeTelemetry(aHttpsUpgradeTelemetry) {
+      mWasSchemelessInput(aWasSchemelessInput) {
   // Only top level TYPE_DOCUMENT loads can have a null loadingPrincipal
   MOZ_ASSERT(mLoadingPrincipal ||
              aContentPolicyType == nsIContentPolicy::TYPE_DOCUMENT);
@@ -1153,7 +1146,7 @@ already_AddRefed<nsICookieJarSettings> CreateCookieJarSettings(
 NS_IMETHODIMP
 LoadInfo::GetCookieJarSettings(nsICookieJarSettings** aCookieJarSettings) {
   if (!mCookieJarSettings) {
-    bool isPrivate = mOriginAttributes.IsPrivateBrowsing();
+    bool isPrivate = mOriginAttributes.mPrivateBrowsingId > 0;
     nsCOMPtr<nsIPrincipal> loadingPrincipal;
     Unused << this->GetLoadingPrincipal(getter_AddRefs(loadingPrincipal));
     bool shouldResistFingerprinting =
@@ -1990,30 +1983,6 @@ LoadInfo::SetHasValidUserGestureActivation(
 }
 
 NS_IMETHODIMP
-LoadInfo::GetTextDirectiveUserActivation(bool* aTextDirectiveUserActivation) {
-  *aTextDirectiveUserActivation = mTextDirectiveUserActivation;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-LoadInfo::SetTextDirectiveUserActivation(bool aTextDirectiveUserActivation) {
-  mTextDirectiveUserActivation = aTextDirectiveUserActivation;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-LoadInfo::GetIsSameDocumentNavigation(bool* aIsSameDocumentNavigation) {
-  *aIsSameDocumentNavigation = mIsSameDocumentNavigation;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-LoadInfo::SetIsSameDocumentNavigation(bool aIsSameDocumentNavigation) {
-  mIsSameDocumentNavigation = aIsSameDocumentNavigation;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 LoadInfo::GetAllowDeprecatedSystemRequests(
     bool* aAllowDeprecatedSystemRequests) {
   *aAllowDeprecatedSystemRequests = mAllowDeprecatedSystemRequests;
@@ -2444,20 +2413,6 @@ LoadInfo::GetWasSchemelessInput(bool* aWasSchemelessInput) {
 NS_IMETHODIMP
 LoadInfo::SetWasSchemelessInput(bool aWasSchemelessInput) {
   mWasSchemelessInput = aWasSchemelessInput;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-LoadInfo::GetHttpsUpgradeTelemetry(
-    nsILoadInfo::HTTPSUpgradeTelemetryType* aOutHttpsUpgradeTelemetry) {
-  *aOutHttpsUpgradeTelemetry = mHttpsUpgradeTelemetry;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-LoadInfo::SetHttpsUpgradeTelemetry(
-    nsILoadInfo::HTTPSUpgradeTelemetryType aHttpsUpgradeTelemetry) {
-  mHttpsUpgradeTelemetry = aHttpsUpgradeTelemetry;
   return NS_OK;
 }
 

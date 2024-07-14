@@ -16,7 +16,6 @@ DIRS += [
     "object",
     "resources",
     "targets",
-    "tracer",
     "utils",
     "watcher",
     "webconsole",

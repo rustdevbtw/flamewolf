@@ -23,6 +23,7 @@ use stable_deref_trait::StableDeref;
 /// # Examples
 ///
 /// ```
+/// use std::borrow::Cow;
 /// use std::rc::Rc;
 /// use yoke::either::EitherCart;
 /// use yoke::Yoke;

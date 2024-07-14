@@ -268,7 +268,8 @@ interface nsISHistory: nsISupports
   [noscript, notxpcom]
   void RemoveFrameEntries(in nsISHEntry aEntry);
 
-  void reload(in unsigned long aReloadFlags);
+  [noscript]
+  void Reload(in unsigned long aReloadFlags);
 
   [notxpcom] void EnsureCorrectEntryAtCurrIndex(in nsISHEntry aEntry);
 

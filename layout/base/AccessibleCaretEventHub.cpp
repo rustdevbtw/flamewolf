@@ -396,11 +396,6 @@ nsEventStatus AccessibleCaretEventHub::HandleEvent(WidgetEvent* aEvent) {
   MOZ_ASSERT(mRefCnt.get() > 1, "Expect caller holds us as well!");
 
   switch (aEvent->mClass) {
-    case ePointerEventClass:
-      if (!IsPointerEventMessageOriginallyMouseEventMessage(aEvent->mMessage)) {
-        break;
-      }
-      [[fallthrough]];
     case eMouseEventClass:
       status = HandleMouseEvent(aEvent->AsMouseEvent());
       break;
@@ -435,7 +430,7 @@ nsEventStatus AccessibleCaretEventHub::HandleMouseEvent(
   nsPoint point = GetMouseEventPosition(aEvent);
 
   if (aEvent->mMessage == eMouseDown || aEvent->mMessage == eMouseUp ||
-      aEvent->mMessage == ePointerClick ||
+      aEvent->mMessage == eMouseClick ||
       aEvent->mMessage == eMouseDoubleClick ||
       aEvent->mMessage == eMouseLongTap) {
     // Don't reset the source on mouse movement since that can

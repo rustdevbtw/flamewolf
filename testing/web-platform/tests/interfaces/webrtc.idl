@@ -434,10 +434,9 @@ dictionary RTCIceParameters {
   DOMString password;
 };
 
-[Exposed=Window]
-interface RTCIceCandidatePair {
-  [SameObject] readonly attribute RTCIceCandidate local;
-  [SameObject] readonly attribute RTCIceCandidate remote;
+dictionary RTCIceCandidatePair {
+  required RTCIceCandidate local;
+  required RTCIceCandidate remote;
 };
 
 enum RTCIceGathererState {

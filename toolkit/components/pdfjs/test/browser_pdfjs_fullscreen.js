@@ -56,9 +56,9 @@ add_task(async function test() {
     { gBrowser, url: "about:blank" },
     async function (browser) {
       // check that PDF is opened with internal viewer
-      await waitForPdfJS(browser, `${TESTROOT}file_pdfjs_test.pdf`);
+      await waitForPdfJSCanvas(browser, `${TESTROOT}file_pdfjs_test.pdf`);
 
-      let fullscreenPromise = waitForFullScreenState(browser, true);
+      const fullscreenPromise = waitForFullScreenState(browser, true);
 
       await SpecialPowers.spawn(browser, [], async function () {
         const { ContentTaskUtils } = ChromeUtils.importESModule(
@@ -75,18 +75,10 @@ add_task(async function test() {
       await fullscreenPromise;
       ok(true, "Should be in fullscreen");
 
-      fullscreenPromise = waitForFullScreenState(browser, false);
       await SpecialPowers.spawn(browser, [], async function () {
-        const { ContentTaskUtils } = ChromeUtils.importESModule(
-          "resource://testing-common/ContentTaskUtils.sys.mjs"
-        );
-        const EventUtils = ContentTaskUtils.getEventUtils(content);
-        await EventUtils.synthesizeKey("KEY_Escape", null, content);
+        const viewer = content.wrappedJSObject.PDFViewerApplication;
+        await viewer.close();
       });
-      await fullscreenPromise;
-      ok(true, "Shouldn't be in fullscreen");
-
-      await waitForPdfJSClose(browser);
     }
   );
 });

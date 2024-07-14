@@ -174,12 +174,6 @@ struct ParamTraits<mozilla::layers::OverscrollBehavior>
           mozilla::layers::kHighestOverscrollBehavior> {};
 
 template <>
-struct ParamTraits<mozilla::StyleOverflow>
-    : public ContiguousEnumSerializerInclusive<mozilla::StyleOverflow,
-                                               mozilla::StyleOverflow::Visible,
-                                               mozilla::StyleOverflow::Clip> {};
-
-template <>
 struct ParamTraits<mozilla::layers::LayerHandle> {
   typedef mozilla::layers::LayerHandle paramType;
 
@@ -225,18 +219,6 @@ struct ParamTraits<mozilla::layers::RemoteTextureId> {
 template <>
 struct ParamTraits<mozilla::layers::RemoteTextureOwnerId> {
   typedef mozilla::layers::RemoteTextureOwnerId paramType;
-
-  static void Write(MessageWriter* writer, const paramType& param) {
-    WriteParam(writer, param.mId);
-  }
-  static bool Read(MessageReader* reader, paramType* result) {
-    return ReadParam(reader, &result->mId);
-  }
-};
-
-template <>
-struct ParamTraits<mozilla::layers::SurfaceDescriptorRemoteDecoderId> {
-  typedef mozilla::layers::SurfaceDescriptorRemoteDecoderId paramType;
 
   static void Write(MessageWriter* writer, const paramType& param) {
     WriteParam(writer, param.mId);
@@ -513,10 +495,6 @@ template <>
 struct ParamTraits<mozilla::layers::OverscrollBehaviorInfo>
     : public ParamTraits_TiedFields<mozilla::layers::OverscrollBehaviorInfo> {};
 
-template <>
-struct ParamTraits<mozilla::layers::OverflowInfo>
-    : public ParamTraits_TiedFields<mozilla::layers::OverflowInfo> {};
-
 template <typename T>
 struct ParamTraits<mozilla::ScrollGeneration<T>>
     : public ParamTraits_TiedFields<mozilla::ScrollGeneration<T>> {};
@@ -599,7 +577,6 @@ struct ParamTraits<mozilla::layers::ScrollMetadata>
     WriteParam(aWriter, aParam.mIsPaginatedPresentation);
     WriteParam(aWriter, aParam.mDisregardedDirection);
     WriteParam(aWriter, aParam.mOverscrollBehavior);
-    WriteParam(aWriter, aParam.mOverflow);
     WriteParam(aWriter, aParam.mScrollUpdates);
   }
 
@@ -643,7 +620,6 @@ struct ParamTraits<mozilla::layers::ScrollMetadata>
                                &paramType::SetIsPaginatedPresentation) &&
            ReadParam(aReader, &aResult->mDisregardedDirection) &&
            ReadParam(aReader, &aResult->mOverscrollBehavior) &&
-           ReadParam(aReader, &aResult->mOverflow) &&
            ReadParam(aReader, &aResult->mScrollUpdates);
   }
 };
@@ -1026,8 +1002,6 @@ struct ParamTraits<mozilla::layers::OverlayInfo> {
     WriteParam(aWriter, aParam.mYuy2Overlay);
     WriteParam(aWriter, aParam.mBgra8Overlay);
     WriteParam(aWriter, aParam.mRgb10a2Overlay);
-    WriteParam(aWriter, aParam.mSupportsVpSuperResolution);
-    WriteParam(aWriter, aParam.mSupportsVpAutoHDR);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
@@ -1035,9 +1009,7 @@ struct ParamTraits<mozilla::layers::OverlayInfo> {
            ReadParam(aReader, &aResult->mNv12Overlay) &&
            ReadParam(aReader, &aResult->mYuy2Overlay) &&
            ReadParam(aReader, &aResult->mBgra8Overlay) &&
-           ReadParam(aReader, &aResult->mRgb10a2Overlay) &&
-           ReadParam(aReader, &aResult->mSupportsVpSuperResolution) &&
-           ReadParam(aReader, &aResult->mSupportsVpAutoHDR);
+           ReadParam(aReader, &aResult->mRgb10a2Overlay);
   }
 };
 

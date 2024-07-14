@@ -32,7 +32,6 @@
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
 #  include "mozilla/Sandbox.h"
-#  include "mozilla/SandboxProfilerObserver.h"
 #endif
 
 #include "ChildProfilerController.h"
@@ -150,7 +149,6 @@ mozilla::ipc::IPCResult RDDParent::RecvInit(
   if (aBrokerFd.isSome()) {
     fd = aBrokerFd.value().ClonePlatformHandle().release();
   }
-  RegisterProfilerObserversForSandboxProfiler();
   SetRemoteDataDecoderSandbox(fd);
 #  endif  // XP_MACOSX/XP_LINUX
 #endif    // MOZ_SANDBOX
@@ -290,10 +288,6 @@ mozilla::ipc::IPCResult RDDParent::RecvTestTelemetryProbes() {
 }
 
 void RDDParent::ActorDestroy(ActorDestroyReason aWhy) {
-#if defined(XP_LINUX) && defined(MOZ_SANDBOX)
-  DestroySandboxProfiler();
-#endif
-
   if (AbnormalShutdown == aWhy) {
     NS_WARNING("Shutting down RDD process early due to a crash!");
     Telemetry::Accumulate(Telemetry::SUBPROCESS_ABNORMAL_ABORT, "rdd"_ns, 1);

@@ -9,8 +9,6 @@
 
 #include <dwrite.h>
 
-#include <vector>
-
 #include "2D.h"
 
 namespace mozilla {
@@ -53,7 +51,6 @@ class UnscaledFontDWrite final : public UnscaledFont {
   RefPtr<IDWriteFontFace> mFontFace;
   RefPtr<IDWriteFontFace> mFontFaceBold;
   RefPtr<IDWriteFont> mFont;
-  std::vector<WCHAR> mFontFileName;
 };
 
 }  // namespace gfx

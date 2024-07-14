@@ -7,6 +7,8 @@ const RELATIVE_DIR = "toolkit/components/pdfjs/test/";
 const TESTROOT = "https://example.com/browser/" + RELATIVE_DIR;
 
 var MockFilePicker = SpecialPowers.MockFilePicker;
+MockFilePicker.init(window.browsingContext);
+MockFilePicker.returnValue = MockFilePicker.returnOK;
 
 var tempDir;
 
@@ -41,8 +43,6 @@ function createPromiseForFilePicker() {
 
 add_setup(async function () {
   tempDir = createTemporarySaveDirectory();
-  MockFilePicker.init(window.browsingContext);
-  MockFilePicker.returnValue = MockFilePicker.returnOK;
   MockFilePicker.displayDirectory = tempDir;
 
   registerCleanupFunction(async function () {
@@ -113,8 +113,6 @@ add_task(async function test_downloading_pdf_nonprivate_window() {
         "InitialDownloadsLoaded",
         true
       );
-      await waitForPdfJSClose(browser);
-
       BrowserTestUtils.startLoadingURIString(browser, "about:downloads");
       await downloadsLoaded;
 
@@ -124,6 +122,4 @@ add_task(async function test_downloading_pdf_nonprivate_window() {
       });
     }
   );
-
-  await SpecialPowers.popPrefEnv();
 });

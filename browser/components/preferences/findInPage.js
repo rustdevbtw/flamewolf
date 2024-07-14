@@ -35,15 +35,6 @@ var gSearchResultsPane = {
 
   searchResultsHighlighted: false,
 
-  searchableNodes: new Set([
-    "button",
-    "label",
-    "description",
-    "menulist",
-    "menuitem",
-    "checkbox",
-  ]),
-
   init() {
     if (this.inited) {
       return;
@@ -423,9 +414,13 @@ var gSearchResultsPane = {
     let matchesFound = false;
     if (
       nodeObject.childElementCount == 0 ||
-      this.searchableNodes.has(nodeObject.localName) ||
-      (nodeObject.localName?.startsWith("moz-") &&
-        nodeObject.localName !== "moz-input-box")
+      nodeObject.localName == "button" ||
+      nodeObject.localName == "label" ||
+      nodeObject.localName == "description" ||
+      nodeObject.localName == "menulist" ||
+      nodeObject.localName == "menuitem" ||
+      nodeObject.localName == "checkbox" ||
+      nodeObject.localName == "moz-toggle"
     ) {
       let simpleTextNodes = this.textNodeDescendants(nodeObject);
       if (nodeObject.shadowRoot) {

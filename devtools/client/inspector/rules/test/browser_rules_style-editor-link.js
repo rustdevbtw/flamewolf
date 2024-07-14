@@ -215,7 +215,7 @@ async function testRuleViewLinkLabel(view) {
   );
   is(
     tooltipText,
-    `View source in Style Editor → ${STYLESHEET_DATA_URL}:1`,
+    STYLESHEET_DATA_URL + ":1",
     "Rule view data URL stylesheet tooltip text matches the full URI path"
   );
 
@@ -232,7 +232,7 @@ async function testRuleViewLinkLabel(view) {
   );
   is(
     tooltipText,
-    `View source in Style Editor → ${EXTERNAL_STYLESHEET_URL}:1`,
+    `${EXTERNAL_STYLESHEET_URL}:1`,
     "Rule view external stylesheet tooltip text matches the full URI path"
   );
 }

@@ -178,11 +178,11 @@ class CCGCScheduler {
   enum IsIdle { eNotIdle = false, eIdle = true };
   enum IsExtended { eNormalBudget = false, eExtendedBudget = true };
   enum IsInterruptible { eNonInterruptible = false, eInterruptible = true };
-  JS::SliceBudget CreateGCSliceBudget(mozilla::TimeDuration aDuration,
+  js::SliceBudget CreateGCSliceBudget(mozilla::TimeDuration aDuration,
                                       IsIdle aIsIdle, IsExtended aIsExtended,
                                       IsInterruptible aIsInterruptible) {
     mInterruptRequested = false;
-    auto budget = JS::SliceBudget(aDuration, aIsInterruptible == eInterruptible
+    auto budget = js::SliceBudget(aDuration, aIsInterruptible == eInterruptible
                                                  ? &mInterruptRequested
                                                  : nullptr);
     budget.idle = aIsIdle == eIdle;
@@ -283,13 +283,16 @@ class CCGCScheduler {
 
   // This is invoked when we reach the actual cycle collection portion of the
   // overall cycle collection.
-  void NoteCCBegin();
+  void NoteCCBegin(CCReason aReason, TimeStamp aWhen,
+                   uint32_t aNumForgetSkippables, uint32_t aSuspected,
+                   uint32_t aRemovedPurples);
 
   // This is invoked when the whole process of collection is done -- i.e., CC
   // preparation (eg ForgetSkippables) in addition to the CC itself. There
   // really ought to be a separate name for the overall CC as opposed to the
   // actual cycle collection portion.
-  void NoteCCEnd(const CycleCollectorResults& aResults, TimeStamp aWhen);
+  void NoteCCEnd(const CycleCollectorResults& aResults, TimeStamp aWhen,
+                 mozilla::TimeDuration aMaxSliceTime);
 
   // A single slice has completed.
   void NoteGCSliceEnd(TimeStamp aStart, TimeStamp aEnd);
@@ -321,11 +324,13 @@ class CCGCScheduler {
   void UnblockCC() { mCCBlockStart = TimeStamp(); }
 
   // Returns the number of purple buffer items that were processed and removed.
-  void NoteForgetSkippableComplete(TimeStamp aNow,
-                                   uint32_t aSuspectedCCObjects) {
+  uint32_t NoteForgetSkippableComplete(TimeStamp aNow,
+                                       uint32_t aSuspectedBeforeForgetSkippable,
+                                       uint32_t aSuspectedCCObjects) {
     mLastForgetSkippableEndTime = aNow;
     mPreviousSuspectedCount = aSuspectedCCObjects;
     mCleanupsSinceLastGC++;
+    return aSuspectedBeforeForgetSkippable - aSuspectedCCObjects;
   }
 
   // Test if we are in the NoteCCBegin .. NoteCCEnd interval.
@@ -347,13 +352,13 @@ class CCGCScheduler {
   // Return a budget along with a boolean saying whether to prefer to run short
   // slices and stop rather than continuing to the next phase of cycle
   // collection.
-  JS::SliceBudget ComputeCCSliceBudget(TimeStamp aDeadline,
+  js::SliceBudget ComputeCCSliceBudget(TimeStamp aDeadline,
                                        TimeStamp aCCBeginTime,
                                        TimeStamp aPrevSliceEndTime,
                                        TimeStamp aNow,
                                        bool* aPreferShorterSlices) const;
 
-  JS::SliceBudget ComputeInterSliceGCBudget(TimeStamp aDeadline,
+  js::SliceBudget ComputeInterSliceGCBudget(TimeStamp aDeadline,
                                             TimeStamp aNow);
 
   bool ShouldForgetSkippable(uint32_t aSuspectedCCObjects) const {
@@ -454,7 +459,7 @@ class CCGCScheduler {
 
   // aStartTimeStamp : when the ForgetSkippable timer fired. This may be some
   // time ago, if an incremental GC needed to be finished.
-  JS::SliceBudget ComputeForgetSkippableBudget(TimeStamp aStartTimeStamp,
+  js::SliceBudget ComputeForgetSkippableBudget(TimeStamp aStartTimeStamp,
                                                TimeStamp aDeadline);
 
  private:
@@ -477,7 +482,7 @@ class CCGCScheduler {
 
   // Set when the IdleTaskRunner requests the current task be interrupted.
   // Cleared when the GC slice budget has detected the interrupt request.
-  JS::SliceBudget::InterruptRequestFlag mInterruptRequested;
+  js::SliceBudget::InterruptRequestFlag mInterruptRequested;
 
   // When a shrinking GC has been requested but we back-out, if this is true
   // we run a non-shrinking GC.

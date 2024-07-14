@@ -63,7 +63,7 @@ add_task(async function test_fullscreen_closes_permissionui_prompt() {
     "popuphidden"
   );
 
-  await DOMFullscreenTestUtils.changeFullscreen(browser, true);
+  await changeFullscreen(browser, true);
 
   await popupHidden;
 
@@ -73,7 +73,7 @@ add_task(async function test_fullscreen_closes_permissionui_prompt() {
     "Expect permission request to be cancelled"
   );
 
-  await DOMFullscreenTestUtils.changeFullscreen(browser, false);
+  await changeFullscreen(browser, false);
 
   BrowserTestUtils.removeTab(tab);
   await SpecialPowers.popPrefEnv();
@@ -110,7 +110,7 @@ add_task(async function test_fullscreen_closes_webrtc_permission_prompt() {
     window.PopupNotifications.panel,
     "popuphidden"
   );
-  await DOMFullscreenTestUtils.changeFullscreen(browser, true);
+  await changeFullscreen(browser, true);
 
   await popupHidden;
 
@@ -120,7 +120,7 @@ add_task(async function test_fullscreen_closes_webrtc_permission_prompt() {
     "Expect webrtc permission request to be cancelled"
   );
 
-  await DOMFullscreenTestUtils.changeFullscreen(browser, false);
+  await changeFullscreen(browser, false);
 
   BrowserTestUtils.removeTab(tab);
   await SpecialPowers.popPrefEnv();
@@ -140,16 +140,13 @@ add_task(async function test_permission_prompt_closes_fullscreen() {
   );
   let browser = tab.linkedBrowser;
   info("Entering DOM full-screen");
-  await DOMFullscreenTestUtils.changeFullscreen(browser, true);
+  await changeFullscreen(browser, true);
 
   let popupShown = BrowserTestUtils.waitForEvent(
     window.PopupNotifications.panel,
     "popupshown"
   );
-  let fullScreenExit = DOMFullscreenTestUtils.waitForFullScreenState(
-    browser,
-    false
-  );
+  let fullScreenExit = waitForFullScreenState(browser, false);
 
   info("Requesting notification permission");
   requestNotificationPermission(browser).catch(() => {});
@@ -192,16 +189,13 @@ add_task(
     );
     let browser = tab.linkedBrowser;
     info("Entering DOM full-screen");
-    await DOMFullscreenTestUtils.changeFullscreen(browser, true);
+    await changeFullscreen(browser, true);
 
     let popupShown = BrowserTestUtils.waitForPopupEvent(
       window.PopupNotifications.panel,
       "shown"
     );
-    let fullScreenExit = DOMFullscreenTestUtils.waitForFullScreenState(
-      browser,
-      false
-    );
+    let fullScreenExit = waitForFullScreenState(browser, false);
 
     info("Requesting notification permission");
     requestNotificationPermission(browser).catch(() => {});

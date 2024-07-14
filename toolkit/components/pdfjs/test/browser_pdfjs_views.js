@@ -97,9 +97,10 @@ add_task(async function test() {
         );
 
         sidebar.click();
-      });
 
-      await waitForPdfJSClose(browser);
+        var viewer = content.wrappedJSObject.PDFViewerApplication;
+        await viewer.close();
+      });
     }
   );
 });

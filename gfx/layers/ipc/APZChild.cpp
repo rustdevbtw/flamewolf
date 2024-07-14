@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/layers/APZChild.h"
-#include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/layers/GeckoContentController.h"
 
 #include "mozilla/dom/BrowserChild.h"
@@ -59,14 +58,6 @@ mozilla::ipc::IPCResult APZChild::RecvUpdateOverscrollOffset(
     const ScrollableLayerGuid& aGuid, const float& aX, const float& aY,
     const bool& aIsRootContent) {
   mController->UpdateOverscrollOffset(aGuid, aX, aY, aIsRootContent);
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult APZChild::RecvHideDynamicToolbar() {
-  // Only the RemoteContentController implementation uses the
-  // ScrollableLayerGuid parameter. APZChild::mController is never a
-  // RemoteContentController, so it's fine to invent a value here.
-  mController->HideDynamicToolbar(ScrollableLayerGuid{});
   return IPC_OK();
 }
 

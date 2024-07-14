@@ -73,8 +73,6 @@ WMFVideoMFTManager::WMFVideoMFTManager(
       mZeroCopyNV12Texture(false),
       mFramerate(aFramerate),
       mLowLatency(aOptions.contains(CreateDecoderParams::Option::LowLatency)),
-      mKeepOriginalPts(
-          aOptions.contains(CreateDecoderParams::Option::KeepOriginalPts)),
       mTrackingId(std::move(aTrackingId))
 // mVideoStride, mVideoWidth, mVideoHeight, mUseHwAccel are initialized in
 // Init().
@@ -510,8 +508,6 @@ WMFVideoMFTManager::Input(MediaRawData* aSample) {
   }
   mLastDuration = aSample->mDuration;
 
-  mPTSQueue.InsertElementSorted(aSample->mTime.ToMicroseconds());
-
   // Forward sample data to the decoder.
   return mDecoder->Input(inputSample);
 }
@@ -670,10 +666,7 @@ WMFVideoMFTManager::CreateBasicVideoFrame(IMFSample* aSample,
   b.mColorRange = mColorRange;
 
   TimeUnit pts = GetSampleTime(aSample);
-  if (!pts.IsValid() && mKeepOriginalPts) {
-    LOG("Couldn't get pts from IMFSample, falling back on container pts");
-    pts = TimeUnit::Zero();
-  }
+  NS_ENSURE_TRUE(pts.IsValid(), E_FAIL);
   TimeUnit duration = GetSampleDurationOrLastKnownDuration(aSample);
   NS_ENSURE_TRUE(duration.IsValid(), E_FAIL);
   gfx::IntRect pictureRegion = mVideoInfo.ScaledImageRect(
@@ -754,10 +747,6 @@ WMFVideoMFTManager::CreateD3DVideoFrame(IMFSample* aSample,
   gfx::IntSize size = image->GetSize();
 
   TimeUnit pts = GetSampleTime(aSample);
-  if (!pts.IsValid() && mKeepOriginalPts) {
-    LOG("Couldn't get pts from IMFSample, falling back on container pts");
-    pts = TimeUnit::Zero();
-  }
   NS_ENSURE_TRUE(pts.IsValid(), E_FAIL);
   TimeUnit duration = GetSampleDurationOrLastKnownDuration(aSample);
   NS_ENSURE_TRUE(duration.IsValid(), E_FAIL);
@@ -890,10 +879,6 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset, RefPtr<MediaData>& aOutData) {
         continue;
       }
       TimeUnit pts = GetSampleTime(sample);
-      if (!pts.IsValid() && mKeepOriginalPts) {
-        LOG("Couldn't get pts from IMFSample, falling back on container pts");
-        pts = TimeUnit::Zero();
-      }
       TimeUnit duration = GetSampleDurationOrLastKnownDuration(sample);
 
       // AV1 MFT fix: Sample duration after seeking is always equal to the
@@ -940,15 +925,6 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset, RefPtr<MediaData>& aOutData) {
   MOZ_ASSERT((frame != nullptr) == SUCCEEDED(hr));
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
   NS_ENSURE_TRUE(frame, E_FAIL);
-
-  MOZ_ASSERT(!mPTSQueue.IsEmpty());
-  int64_t originalPts = mPTSQueue[0];
-  mPTSQueue.RemoveElementAt(0);
-  if (frame->mTime.ToMicroseconds() != originalPts && mKeepOriginalPts) {
-    LOG("Overriding decoded pts of %s with original pts of %" PRId64,
-        frame->mTime.ToString().get(), originalPts);
-    frame->mTime = TimeUnit::FromMicroseconds(originalPts);
-  }
 
   aOutData = frame;
 

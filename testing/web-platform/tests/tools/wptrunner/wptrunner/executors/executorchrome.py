@@ -215,10 +215,6 @@ class ChromeDriverProtocol(WebDriverProtocol):
     vendor_prefix = "goog"
 
 
-class ChromeDriverCrashTestExecutor(WebDriverCrashtestExecutor):
-    protocol_cls = ChromeDriverProtocol
-
-
 class ChromeDriverRefTestExecutor(WebDriverRefTestExecutor, _SanitizerMixin):  # type: ignore
     protocol_cls = ChromeDriverProtocol
 
@@ -230,8 +226,8 @@ class ChromeDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMi
         super().__init__(*args, **kwargs)
         self.protocol.reuse_window = reuse_window
 
-    def setup(self, runner, protocol=None):
-        super().setup(runner, protocol)
+    def setup(self, runner):
+        super().setup(runner)
         # Chromium requires the `background-sync` permission for reporting APIs
         # to work. Not all embedders (notably, `chrome --headless=old`) grant
         # `background-sync` by default, so this CDP call ensures the permission
@@ -252,8 +248,8 @@ class ChromeDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMi
 class ChromeDriverPrintRefTestExecutor(ChromeDriverRefTestExecutor):
     protocol_cls = ChromeDriverProtocol
 
-    def setup(self, runner, protocol=None):
-        super().setup(runner, protocol)
+    def setup(self, runner):
+        super().setup(runner)
         self.protocol.pdf_print.load_runner()
         self.has_window = False
         with open(os.path.join(here, "reftest.js")) as f:

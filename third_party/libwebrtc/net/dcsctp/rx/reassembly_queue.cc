@@ -51,7 +51,7 @@ std::unique_ptr<ReassemblyStreams> CreateStreams(
 }  // namespace
 
 ReassemblyQueue::ReassemblyQueue(absl::string_view log_prefix,
-                                 size_t max_size_bytes,
+                                 TSN peer_initial_tsn, size_t max_size_bytes,
                                  bool use_message_interleaving)
     : log_prefix_(log_prefix),
       max_size_bytes_(max_size_bytes),

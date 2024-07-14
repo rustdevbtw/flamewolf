@@ -47,7 +47,7 @@ bool IPDLParamTraits<mozilla::layers::DisplayListData>::Read(
 void WriteScrollUpdates(IPC::MessageWriter* aWriter, IProtocol* aActor,
                         layers::ScrollUpdatesMap& aParam) {
   // ICK: we need to manually serialize this map because
-  // nsTHashMap doesn't support it (and other maps cause other issues)
+  // nsDataHashTable doesn't support it (and other maps cause other issues)
   WriteIPDLParam(aWriter, aActor, aParam.Count());
   for (auto it = aParam.ConstIter(); !it.Done(); it.Next()) {
     WriteIPDLParam(aWriter, aActor, it.Key());

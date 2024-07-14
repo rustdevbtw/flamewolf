@@ -227,14 +227,12 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       idx = COLOR_BACKGROUND;
       break;
     case ColorID::Buttonface:
-    case ColorID::Field:
     case ColorID::MozButtonhoverface:
     case ColorID::MozButtonactiveface:
     case ColorID::MozButtondisabledface:
     case ColorID::MozColheader:
     case ColorID::MozColheaderhover:
     case ColorID::MozColheaderactive:
-    case ColorID::MozDisabledfield:
       idx = COLOR_BTNFACE;
       break;
     case ColorID::Buttonhighlight:
@@ -244,7 +242,6 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       idx = COLOR_BTNSHADOW;
       break;
     case ColorID::Buttontext:
-    case ColorID::Fieldtext:
     case ColorID::MozButtonhovertext:
     case ColorID::MozButtonactivetext:
       idx = COLOR_BTNTEXT;
@@ -320,6 +317,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       break;
     case ColorID::Threedlightshadow:
     case ColorID::Buttonborder:
+    case ColorID::MozDisabledfield:
     case ColorID::MozSidebarborder:
       idx = COLOR_3DLIGHT;
       break;
@@ -337,10 +335,12 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       break;
     case ColorID::MozEventreerow:
     case ColorID::MozOddtreerow:
+    case ColorID::Field:
     case ColorID::MozSidebar:
     case ColorID::MozCombobox:
       idx = COLOR_WINDOW;
       break;
+    case ColorID::Fieldtext:
     case ColorID::MozSidebartext:
     case ColorID::MozComboboxtext:
       idx = COLOR_WINDOWTEXT;

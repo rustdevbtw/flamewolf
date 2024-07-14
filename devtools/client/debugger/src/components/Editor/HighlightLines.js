@@ -11,7 +11,6 @@ import { Component } from "devtools/client/shared/vendor/react";
 import PropTypes from "devtools/client/shared/vendor/react-prop-types";
 import { fromEditorLine } from "../../utils/editor/index";
 import { features } from "../../utils/prefs";
-import { markerTypes } from "../../constants";
 
 class HighlightLines extends Component {
   static get propTypes() {
@@ -76,7 +75,7 @@ class HighlightLines extends Component {
       if (editor) {
         editor.scrollTo(range.start, 0);
         editor.setLineContentMarker({
-          id: markerTypes.MULTI_HIGHLIGHT_LINE_MARKER,
+          id: "multi-highlight-line-marker",
           lineClassName: "highlight-lines",
           condition(line) {
             const lineNumber = fromEditorLine(null, line);

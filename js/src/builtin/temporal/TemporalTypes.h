@@ -10,10 +10,8 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/CheckedInt.h"
 
-#include <cmath>
 #include <stdint.h>
 #include <type_traits>
-#include <utility>
 
 #include "builtin/temporal/Int128.h"
 #include "builtin/temporal/TemporalUnit.h"
@@ -129,38 +127,31 @@ struct SecondsAndNanoseconds {
 
  public:
   /**
-   * Denormalize the seconds and nanoseconds components.
-   *
-   * Negative nanoseconds are represented as the difference to 1'000'000'000.
-   * Convert these back to their absolute value and adjust the seconds part
-   * accordingly.
-   *
-   * For example the nanoseconds duration `-1n` is represented as the duration
-   * `{seconds: -1, nanoseconds: 999'999'999}`.
-   */
-  constexpr std::pair<int64_t, int32_t> denormalize() const {
-    int64_t sec = seconds;
-    int32_t nanos = nanoseconds;
-    if (sec < 0 && nanos > 0) {
-      sec += 1;
-      nanos -= 1'000'000'000;
-    }
-    return {sec, nanos};
-  }
-
-  /**
    * Return the absolute value.
    */
   constexpr Derived abs() const {
-    auto [sec, nanos] = denormalize();
-    return {std::abs(sec), std::abs(nanos)};
+    int64_t sec = seconds;
+    int32_t nanos = nanoseconds;
+    if (sec < 0) {
+      if (nanos > 0) {
+        sec += 1;
+        nanos -= 1'000'000'000;
+      }
+      sec = -sec;
+      nanos = -nanos;
+    }
+    return {sec, nanos};
   }
 
   /**
    * Return the seconds value, rounded towards zero.
    */
   constexpr int64_t toSeconds() const {
-    auto [sec, nanos] = denormalize();
+    int64_t sec = seconds;
+    int32_t nanos = nanoseconds;
+    if (sec < 0 && nanos > 0) {
+      sec += 1;
+    }
     return sec;
   }
 
@@ -168,7 +159,12 @@ struct SecondsAndNanoseconds {
    * Return the milliseconds value, rounded towards zero.
    */
   constexpr int64_t toMilliseconds() const {
-    auto [sec, nanos] = denormalize();
+    int64_t sec = seconds;
+    int32_t nanos = nanoseconds;
+    if (sec < 0 && nanos > 0) {
+      sec += 1;
+      nanos -= 1'000'000'000;
+    }
     return (sec * 1'000) + (nanos / 1'000'000);
   }
 
@@ -176,7 +172,12 @@ struct SecondsAndNanoseconds {
    * Return the microseconds value, rounded towards zero.
    */
   constexpr int64_t toMicroseconds() const {
-    auto [sec, nanos] = denormalize();
+    int64_t sec = seconds;
+    int32_t nanos = nanoseconds;
+    if (sec < 0 && nanos > 0) {
+      sec += 1;
+      nanos -= 1'000'000'000;
+    }
     return (sec * 1'000'000) + (nanos / 1'000);
   }
 

@@ -623,7 +623,7 @@ typedef struct VP8_COMP {
   double totalp_v;
   double totalp;
   double total_sq_error2;
-  uint64_t bytes;
+  int bytes;
   double summed_quality;
   double summed_weights;
   unsigned int tot_recode_hits;

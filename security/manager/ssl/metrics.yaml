@@ -114,7 +114,6 @@ cert_compression:
       labels:
         - zlib
         - brotli
-        - zstd
 
     failures:
       type: labeled_counter
@@ -132,7 +131,6 @@ cert_compression:
       labels:
         - zlib
         - brotli
-        - zstd
 
     zlib_saved_bytes:
       type: custom_distribution
@@ -158,26 +156,9 @@ cert_compression:
       data_sensitivity:
         - interaction
       bugs:
-        - https://bugzilla.mozilla.org/1885138
+        - https://bugzilla.mozilla.org/1881027
       data_reviews:
-        - https://bugzilla.mozilla.org/1885138
-      notification_emails:
-        - anna.weine@mozilla.com
-      histogram_type: exponential
-      range_max: 65536
-      bucket_count: 100
-      expires: 136
-
-    zstd_saved_bytes:
-      type: custom_distribution
-      description:
-        The difference between the length of encoded certificate vs the actual certificate.
-      data_sensitivity:
-        - interaction
-      bugs:
-        - https://bugzilla.mozilla.org/1904125
-      data_reviews:
-        - https://bugzilla.mozilla.org/1904125
+        - https://bugzilla.mozilla.org/1881027
       notification_emails:
         - anna.weine@mozilla.com
       histogram_type: exponential

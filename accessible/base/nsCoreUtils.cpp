@@ -127,8 +127,8 @@ void nsCoreUtils::DispatchMouseEvent(EventMessage aMessage, int32_t aX,
                                      int32_t aY, nsIContent* aContent,
                                      nsIFrame* aFrame, PresShell* aPresShell,
                                      nsIWidget* aRootWidget) {
-  MOZ_ASSERT(!IsPointerEventMessage(aMessage));
-  WidgetMouseEvent event(true, aMessage, aRootWidget, WidgetMouseEvent::eReal);
+  WidgetMouseEvent event(true, aMessage, aRootWidget, WidgetMouseEvent::eReal,
+                         WidgetMouseEvent::eNormal);
 
   event.mRefPoint = LayoutDeviceIntPoint(aX, aY);
 

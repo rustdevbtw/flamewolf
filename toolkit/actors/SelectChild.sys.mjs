@@ -199,21 +199,12 @@ SelectContentHelper.prototype = {
   },
 
   dispatchMouseEvent(win, target, eventName) {
-    let dict = {
+    let mouseEvent = new win.MouseEvent(eventName, {
       view: win,
       bubbles: true,
       cancelable: true,
       composed: true,
-    };
-    const ClickEventConstructor = Services.prefs.getBoolPref(
-      "dom.w3c_pointer_events.dispatch_click_as_pointer_event"
-    )
-      ? win.PointerEvent
-      : win.MouseEvent;
-    let mouseEvent =
-      eventName == "click"
-        ? new ClickEventConstructor(eventName, dict)
-        : new win.MouseEvent(eventName, dict);
+    });
     target.dispatchEvent(mouseEvent);
   },
 

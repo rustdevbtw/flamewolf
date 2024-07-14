@@ -92,11 +92,11 @@ class ContentBlockingLog final {
       const nsACString& aOrigin, uint32_t aType, bool aBlocked,
       const Maybe<
           ContentBlockingNotifier::StorageAccessPermissionGrantedReason>&
-          aReason = Nothing(),
-      const nsTArray<nsCString>& aTrackingFullHashes = nsTArray<nsCString>(),
+          aReason,
+      const nsTArray<nsCString>& aTrackingFullHashes,
       const Maybe<ContentBlockingNotifier::CanvasFingerprinter>&
-          aCanvasFingerprinter = Nothing(),
-      const Maybe<bool> aCanvasFingerprinterKnownText = Nothing());
+          aCanvasFingerprinter,
+      const Maybe<bool> aCanvasFingerprinterKnownText);
 
   void RecordLog(
       const nsACString& aOrigin, uint32_t aType, bool aBlocked,
@@ -107,7 +107,7 @@ class ContentBlockingLog final {
     RecordLogInternal(aOrigin, aType, aBlocked, aReason, aTrackingFullHashes);
   }
 
-  void ReportLog();
+  void ReportLog(nsIPrincipal* aFirstPartyPrincipal);
   void ReportCanvasFingerprintingLog(nsIPrincipal* aFirstPartyPrincipal);
   void ReportFontFingerprintingLog(nsIPrincipal* aFirstPartyPrincipal);
   void ReportEmailTrackingLog(nsIPrincipal* aFirstPartyPrincipal);

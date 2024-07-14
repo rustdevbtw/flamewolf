@@ -6,7 +6,6 @@
 #include "Cookie.h"
 #include "CookieCommons.h"
 #include "CookieLogging.h"
-#include "CookieParser.h"
 #include "CookieService.h"
 #include "mozilla/net/CookieServiceChild.h"
 #include "ErrorList.h"
@@ -15,7 +14,6 @@
 #include "mozilla/LoadInfo.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/ConsoleReportCollector.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/ipc/URIUtils.h"
@@ -35,6 +33,7 @@
 #include "nsIWebProgressListener.h"
 #include "nsQueryObject.h"
 #include "nsServiceManagerUtils.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "ThirdPartyUtil.h"
 #include "nsIConsoleReportCollector.h"
@@ -301,7 +300,9 @@ uint32_t CookieServiceChild::CountCookiesFromHashTable(
          cookieBehavior == nsICookieService::BEHAVIOR_LIMIT_FOREIGN ||
          cookieBehavior == nsICookieService::BEHAVIOR_REJECT_TRACKER ||
          cookieBehavior ==
-             nsICookieService::BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN;
+             nsICookieService::BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN ||
+         StaticPrefs::network_cookie_thirdparty_sessionOnly() ||
+         StaticPrefs::network_cookie_thirdparty_nonsecureSessionOnly();
 }
 
 void CookieServiceChild::RecordDocumentCookie(Cookie* aCookie,
@@ -501,24 +502,9 @@ CookieServiceChild::SetCookieStringFromDocument(
     return !!CountCookiesFromHashTable(aBaseDomain, aAttrs);
   };
 
-  auto* basePrincipal = BasePrincipal::Cast(aDocument->NodePrincipal());
-  basePrincipal->GetURI(getter_AddRefs(documentURI));
-  if (NS_WARN_IF(!documentURI)) {
-    // Document's principal is not a content or null (may be system), so
-    // can't set cookies
-    return NS_OK;
-  }
-
-  // Console report takes care of the correct reporting at the exit of this
-  // method.
-  RefPtr<ConsoleReportCollector> crc = new ConsoleReportCollector();
-  auto scopeExit = MakeScopeExit([&] { crc->FlushConsoleReports(aDocument); });
-
-  CookieParser cookieParser(crc, documentURI);
-
   RefPtr<Cookie> cookie = CookieCommons::CreateCookieFromDocument(
-      cookieParser, aDocument, aCookieString, PR_Now(), mTLDService,
-      mThirdPartyUtil, hasExistingCookiesLambda, baseDomain, attrs);
+      aDocument, aCookieString, PR_Now(), mTLDService, mThirdPartyUtil,
+      hasExistingCookiesLambda, getter_AddRefs(documentURI), baseDomain, attrs);
   if (!cookie) {
     return NS_OK;
   }
@@ -591,12 +577,11 @@ CookieServiceChild::SetCookieStringFromDocument(
 
     // If there is no WindowGlobalChild fall back to PCookieService SetCookies.
     if (NS_WARN_IF(!windowGlobalChild)) {
-      SendSetCookies(baseDomain, attrs, documentURI, false, thirdParty,
-                     cookiesToSend);
+      SendSetCookies(baseDomain, attrs, documentURI, false, cookiesToSend);
       return NS_OK;
     }
     windowGlobalChild->SendSetCookies(baseDomain, attrs, documentURI, false,
-                                      thirdParty, cookiesToSend);
+                                      cookiesToSend);
   }
 
   return NS_OK;
@@ -711,20 +696,29 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
   nsTArray<CookieStruct> cookiesToSend, partitionedCookiesToSend;
   bool moreCookies;
   do {
-    CookieParser parser(crc, aHostURI);
-    moreCookies =
-        parser.Parse(baseDomain, requireHostMatch, cookieStatus, cookieString,
-                     true, isForeignAndNotAddon, mustBePartitioned,
-                     storagePrincipalOriginAttributes.IsPrivateBrowsing());
-    if (!parser.ContainsCookie()) {
+    CookieStruct cookieData;
+    bool canSetCookie = false;
+    moreCookies = CookieService::CanSetCookie(
+        aHostURI, baseDomain, cookieData, requireHostMatch, cookieStatus,
+        cookieString, true, isForeignAndNotAddon, mustBePartitioned,
+        storagePrincipalOriginAttributes.mPrivateBrowsingId !=
+            nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID,
+        crc, canSetCookie);
+    if (!canSetCookie) {
       continue;
     }
 
     // check permissions from site permission list.
-    if (!CookieCommons::CheckCookiePermission(aChannel, parser.CookieData())) {
+    if (!CookieCommons::CheckCookiePermission(aChannel, cookieData)) {
       COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieString,
                         "cookie rejected by permission manager");
-      parser.RejectCookie(CookieParser::RejectedByPermissionManager);
+      constexpr auto CONSOLE_REJECTION_CATEGORY = "cookiesRejection"_ns;
+      CookieLogging::LogMessageToConsole(
+          crc, aHostURI, nsIScriptError::warningFlag,
+          CONSOLE_REJECTION_CATEGORY, "CookieRejectedByPermissionManager"_ns,
+          AutoTArray<nsString, 1>{
+              NS_ConvertUTF8toUTF16(cookieData.name()),
+          });
       CookieCommons::NotifyRejected(
           aHostURI, aChannel,
           nsIWebProgressListener::STATE_COOKIES_BLOCKED_BY_PERMISSION,
@@ -736,8 +730,8 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
     // cookie jar independent of context. If the cookies are stored in the
     // partitioned cookie jar anyway no special treatment of CHIPS cookies
     // necessary.
-    bool needPartitioned = isCHIPS && parser.CookieData().isPartitioned() &&
-                           !isPartitionedPrincipal;
+    bool needPartitioned =
+        isCHIPS && cookieData.isPartitioned() && !isPartitionedPrincipal;
     nsTArray<CookieStruct>& cookiesToSendRef =
         needPartitioned ? partitionedCookiesToSend : cookiesToSend;
     OriginAttributes& cookieOriginAttributes =
@@ -748,8 +742,7 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
         needPartitioned,
         !partitionedPrincipalOriginAttributes.mPartitionKey.IsEmpty());
 
-    RefPtr<Cookie> cookie =
-        Cookie::Create(parser.CookieData(), cookieOriginAttributes);
+    RefPtr<Cookie> cookie = Cookie::Create(cookieData, cookieOriginAttributes);
     MOZ_ASSERT(cookie);
 
     cookie->SetLastAccessed(currentTimeInUsec);
@@ -757,7 +750,7 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
         Cookie::GenerateUniqueCreationTime(currentTimeInUsec));
 
     RecordDocumentCookie(cookie, cookieOriginAttributes);
-    cookiesToSendRef.AppendElement(parser.CookieData());
+    cookiesToSendRef.AppendElement(cookieData);
   } while (moreCookies);
 
   // Asynchronously call the parent.
@@ -765,14 +758,14 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
     RefPtr<HttpChannelChild> httpChannelChild = do_QueryObject(aChannel);
     MOZ_ASSERT(httpChannelChild);
     if (!cookiesToSend.IsEmpty()) {
-      httpChannelChild->SendSetCookies(
-          baseDomain, storagePrincipalOriginAttributes, aHostURI, true,
-          isForeignAndNotAddon, cookiesToSend);
+      httpChannelChild->SendSetCookies(baseDomain,
+                                       storagePrincipalOriginAttributes,
+                                       aHostURI, true, cookiesToSend);
     }
     if (!partitionedCookiesToSend.IsEmpty()) {
       httpChannelChild->SendSetCookies(
           baseDomain, partitionedPrincipalOriginAttributes, aHostURI, true,
-          isForeignAndNotAddon, partitionedCookiesToSend);
+          partitionedCookiesToSend);
     }
   }
 

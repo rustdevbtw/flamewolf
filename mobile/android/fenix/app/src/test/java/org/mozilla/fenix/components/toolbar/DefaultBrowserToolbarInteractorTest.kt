@@ -101,11 +101,4 @@ class DefaultBrowserToolbarInteractorTest {
 
         verify { browserToolbarController.handleTranslationsButtonClick() }
     }
-
-    @Test
-    fun onNewTabButtonClicked() {
-        interactor.onNewTabButtonClicked()
-
-        verify { browserToolbarController.handleNewTabButtonClick() }
-    }
 }

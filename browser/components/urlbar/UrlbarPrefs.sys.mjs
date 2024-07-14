@@ -113,6 +113,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Whether the heuristic result is hidden.
   ["experimental.hideHeuristic", false],
 
+  // Whether the urlbar displays a permanent search button.
+  ["experimental.searchButton", false],
+
   // Comma-separated list of `source.providers` combinations, that are used to
   // determine if an exposure event should be fired. This can be set by a
   // Nimbus variable and is expected to be set via nimbus experiment
@@ -177,11 +180,6 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // The number of times the user has clicked the "Show less frequently" command
   // for Pocket suggestions.
   ["pocket.showLessFrequentlyCount", 0],
-
-  // The group-relative suggestedIndex of Pocket suggestions within the Firefox
-  // Suggest section. This is a fallback pref for the `pocketSuggestIndex` Nimbus
-  // variable.
-  ["pocket.suggestedIndex", 0],
 
   // If disabled, QuickActions will not be included in either the default search
   // mode or the QuickActions search mode.
@@ -453,6 +451,11 @@ const PREF_URLBAR_DEFAULTS = new Map([
 
   // Feature gate pref for trending suggestions in the urlbar.
   ["trending.featureGate", true],
+
+  // Only enable trending suggestions if the users browser locale is contained
+  // in this list; enable in all locales if empty.
+  // (if the value was "en-US", trending would only be enabled for en-US users).
+  ["trending.enabledLocales", ""],
 
   // The maximum number of trending results to show while not in search mode.
   ["trending.maxResultsNoSearchMode", 10],

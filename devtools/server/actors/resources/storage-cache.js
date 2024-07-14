@@ -4,6 +4,10 @@
 
 "use strict";
 
+const {
+  TYPES: { CACHE_STORAGE },
+} = require("resource://devtools/server/actors/resources/index.js");
+
 const ContentProcessStorage = require("resource://devtools/server/actors/resources/utils/content-process-storage.js");
 const {
   CacheStorageActor,
@@ -11,7 +15,7 @@ const {
 
 class CacheWatcher extends ContentProcessStorage {
   constructor() {
-    super(CacheStorageActor, "Cache");
+    super(CacheStorageActor, "Cache", CACHE_STORAGE);
   }
 }
 

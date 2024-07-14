@@ -47,7 +47,6 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.TextStyle
@@ -177,10 +176,7 @@ fun TabGridItem(
                     .padding(4.dp)
                     .then(tabBorderModifier)
                     .padding(4.dp)
-                    .then(clickableModifier)
-                    .semantics {
-                        selected = isSelected
-                    },
+                    .then(clickableModifier),
                 elevation = 0.dp,
                 shape = RoundedCornerShape(dimensionResource(id = R.dimen.tab_tray_grid_item_border_radius)),
                 border = BorderStroke(1.dp, FirefoxTheme.colors.borderPrimary),
@@ -240,10 +236,7 @@ fun TabGridItem(
                             ) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.mozac_ic_cross_20),
-                                    contentDescription = stringResource(
-                                        id = R.string.close_tab_title,
-                                        tab.content.title,
-                                    ),
+                                    contentDescription = stringResource(id = R.string.close_tab),
                                     tint = FirefoxTheme.colors.iconPrimary,
                                 )
                             }

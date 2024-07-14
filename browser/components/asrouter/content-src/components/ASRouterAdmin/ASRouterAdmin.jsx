@@ -2,12 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { ASRouterUtils } from "../../asrouter-utils.mjs";
+import { ASRouterUtils } from "../../asrouter-utils";
 import React from "react";
 import ReactDOM from "react-dom";
 import { SimpleHashRouter } from "./SimpleHashRouter";
 import { CopyButton } from "./CopyButton";
 import { ImpressionsSection } from "./ImpressionsSection";
+
+const Row = props => (
+  <tr className="message-item" {...props}>
+    {props.children}
+  </tr>
+);
 
 // Convert a UTF-8 string to a string in which only one byte of each
 // 16-bit unit is occupied. This is necessary to comply with `btoa` API constraints.
@@ -39,6 +45,21 @@ function relativeTime(timestamp) {
   return new Date(timestamp).toLocaleString();
 }
 
+export class ToggleStoryButton extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.handleClick = this.handleClick.bind(this);
+  }
+
+  handleClick() {
+    this.props.onClick(this.props.story);
+  }
+
+  render() {
+    return <button onClick={this.handleClick}>collapse/open</button>;
+  }
+}
+
 export class ToggleMessageJSON extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -50,11 +71,38 @@ export class ToggleMessageJSON extends React.PureComponent {
   }
 
   render() {
-    let direction = this.props.isCollapsed ? "forward" : "down";
+    let iconName = this.props.isCollapsed
+      ? "icon icon-arrowhead-forward-small"
+      : "icon icon-arrowhead-down-small";
     return (
       <button className="clearButton" onClick={this.handleClick}>
-        <span className={`icon small icon-arrowhead-${direction}`} />
+        <span className={iconName} />
       </button>
+    );
+  }
+}
+
+export class TogglePrefCheckbox extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.onChange = this.onChange.bind(this);
+  }
+
+  onChange(event) {
+    this.props.onChange(this.props.pref, event.target.checked);
+  }
+
+  render() {
+    return (
+      <>
+        <input
+          type="checkbox"
+          checked={this.props.checked}
+          onChange={this.onChange}
+          disabled={this.props.disabled}
+        />{" "}
+        {this.props.pref}{" "}
+      </>
     );
   }
 }
@@ -64,10 +112,12 @@ export class ASRouterAdminInner extends React.PureComponent {
     super(props);
     this.handleEnabledToggle = this.handleEnabledToggle.bind(this);
     this.handleUserPrefToggle = this.handleUserPrefToggle.bind(this);
-    this.onChangeFilters = this.onChangeFilters.bind(this);
-    this.onClearFilters = this.onClearFilters.bind(this);
+    this.onChangeMessageFilter = this.onChangeMessageFilter.bind(this);
+    this.onChangeMessageGroupsFilter =
+      this.onChangeMessageGroupsFilter.bind(this);
     this.unblockAll = this.unblockAll.bind(this);
-    this.resetAllJSON = this.resetAllJSON.bind(this);
+    this.handleClearAllImpressionsByProvider =
+      this.handleClearAllImpressionsByProvider.bind(this);
     this.handleExpressionEval = this.handleExpressionEval.bind(this);
     this.onChangeTargetingParameters =
       this.onChangeTargetingParameters.bind(this);
@@ -76,21 +126,22 @@ export class ASRouterAdminInner extends React.PureComponent {
     this.setAttribution = this.setAttribution.bind(this);
     this.onCopyTargetingParams = this.onCopyTargetingParams.bind(this);
     this.onNewTargetingParams = this.onNewTargetingParams.bind(this);
-    this.resetMessageState = this.resetMessageState.bind(this);
+    this.handleOpenPB = this.handleOpenPB.bind(this);
+    this.selectPBMessage = this.selectPBMessage.bind(this);
+    this.resetPBJSON = this.resetPBJSON.bind(this);
+    this.resetPBMessageState = this.resetPBMessageState.bind(this);
     this.toggleJSON = this.toggleJSON.bind(this);
     this.toggleAllMessages = this.toggleAllMessages.bind(this);
-    this.resetGroupImpressions = this.resetGroupImpressions.bind(this);
+    this.resetGroups = this.resetGroups.bind(this);
     this.onMessageFromParent = this.onMessageFromParent.bind(this);
     this.setStateFromParent = this.setStateFromParent.bind(this);
     this.setState = this.setState.bind(this);
     this.state = {
-      filterGroups: [],
-      filterProviders: [],
-      filterTemplates: [],
-      filtersCollapsed: true,
+      messageFilter: "all",
+      messageGroupsFilter: "all",
       collapsedMessages: [],
       modifiedMessages: [],
-      messageBlockList: [],
+      selectedPBMessage: "",
       evaluationStatus: {},
       stringTargetingParameters: null,
       newStringTargetingParameters: null,
@@ -118,8 +169,8 @@ export class ASRouterAdminInner extends React.PureComponent {
     }
   }
 
-  async setStateFromParent(data) {
-    await this.setState(data);
+  setStateFromParent(data) {
+    this.setState(data);
     if (!this.state.stringTargetingParameters) {
       const stringTargetingParameters = {};
       for (const param of Object.keys(data.targetingParameters)) {
@@ -129,7 +180,7 @@ export class ASRouterAdminInner extends React.PureComponent {
           2
         );
       }
-      await this.setState({ stringTargetingParameters });
+      this.setState({ stringTargetingParameters });
     }
   }
 
@@ -147,18 +198,20 @@ export class ASRouterAdminInner extends React.PureComponent {
   }
 
   handleBlock(msg) {
-    ASRouterUtils.blockById(msg.id);
+    return () => ASRouterUtils.blockById(msg.id);
   }
 
   handleUnblock(msg) {
-    ASRouterUtils.unblockById(msg.id);
+    return () => ASRouterUtils.unblockById(msg.id);
   }
 
   resetJSON(msg) {
     // reset the displayed JSON for the given message
-    let textarea = document.getElementById(`${msg.id}-textarea`);
-    textarea.value = JSON.stringify(msg, null, 2);
-    textarea.classList.remove("errorState");
+    document.getElementById(`${msg.id}-textarea`).value = JSON.stringify(
+      msg,
+      null,
+      2
+    );
     // remove the message from the list of modified IDs
     let index = this.state.modifiedMessages.indexOf(msg.id);
     this.setState(prevState => ({
@@ -169,41 +222,44 @@ export class ASRouterAdminInner extends React.PureComponent {
     }));
   }
 
-  resetAllJSON() {
-    // reset the displayed JSON for each modified message
-    for (const msgId of this.state.modifiedMessages) {
-      const msg = this.state.messages.find(m => m.id === msgId);
-      const textarea = document.getElementById(`${msgId}-textarea`);
-      if (textarea) {
-        textarea.value = JSON.stringify(msg, null, 2);
-        textarea.classList.remove("errorState");
+  handleOverride(id) {
+    return () =>
+      ASRouterUtils.overrideMessage(id).then(state => {
+        this.setStateFromParent(state);
+      });
+  }
+
+  resetPBMessageState() {
+    // Iterate over Private Browsing messages and block/unblock each one to clear impressions
+    const PBMessages = this.state.messages.filter(
+      message => message.template === "pb_newtab"
+    ); // messages from state go here
+
+    PBMessages.forEach(message => {
+      if (message?.id) {
+        ASRouterUtils.blockById(message.id);
+        ASRouterUtils.unblockById(message.id);
       }
-    }
-    this.setState({ modifiedMessages: [] });
-  }
-
-  showMessage(msg) {
-    if (msg.template === "pb_newtab") {
-      ASRouterUtils.openPBWindow(msg.content);
-    } else {
-      ASRouterUtils.overrideMessage(msg.id).then(state =>
-        this.setStateFromParent(state)
-      );
-    }
-  }
-
-  async resetMessageState() {
-    await Promise.all([
-      ASRouterUtils.resetMessageImpressions(),
-      ASRouterUtils.resetGroupImpressions(),
-      ASRouterUtils.resetScreenImpressions(),
-      ASRouterUtils.unblockAll(),
-    ]);
-    let data = await ASRouterUtils.sendMessage({
-      type: "ADMIN_CONNECT_STATE",
-      data: { endpoint: ASRouterUtils.getPreviewEndpoint() },
     });
-    await this.setStateFromParent(data);
+    // Clear the selected messages & radio buttons
+    document.getElementById("clear radio").checked = true;
+    this.selectPBMessage("clear");
+  }
+
+  resetPBJSON(msg) {
+    // reset the displayed JSON for the given message
+    document.getElementById(`${msg.id}-textarea`).value = JSON.stringify(
+      msg,
+      null,
+      2
+    );
+  }
+
+  handleOpenPB() {
+    ASRouterUtils.sendMessage({
+      type: "FORCE_PRIVATE_BROWSING_WINDOW",
+      data: { message: { content: this.state.selectedPBMessage } },
+    });
   }
 
   expireCache() {
@@ -214,12 +270,10 @@ export class ASRouterAdminInner extends React.PureComponent {
     ASRouterUtils.sendMessage({ type: "RESET_PROVIDER_PREF" });
   }
 
-  resetGroupImpressions() {
-    ASRouterUtils.resetGroupImpressions().then(this.setStateFromParent);
-  }
-
-  resetMessageImpressions() {
-    ASRouterUtils.resetMessageImpressions().then(this.setStateFromParent);
+  resetGroups() {
+    ASRouterUtils.sendMessage({
+      type: "RESET_GROUPS_STATE",
+    }).then(this.setStateFromParent);
   }
 
   handleExpressionEval() {
@@ -231,7 +285,7 @@ export class ASRouterAdminInner extends React.PureComponent {
     ASRouterUtils.sendMessage({
       type: "EVALUATE_JEXL_EXPRESSION",
       data: {
-        expression: this.refs.expressionInput.value || "undefined",
+        expression: this.refs.expressionInput.value,
         context,
       },
     }).then(this.setStateFromParent);
@@ -241,19 +295,16 @@ export class ASRouterAdminInner extends React.PureComponent {
     const { name } = event.target;
     const { value } = event.target;
 
-    let targetingParametersError = null;
-    try {
-      JSON.parse(value);
-      event.target.classList.remove("errorState");
-    } catch (e) {
-      console.error(`Error parsing value of parameter ${name}`);
-      event.target.classList.add("errorState");
-      targetingParametersError = { id: name };
-    }
-
     this.setState(({ stringTargetingParameters }) => {
+      let targetingParametersError = null;
       const updatedParameters = { ...stringTargetingParameters };
       updatedParameters[name] = value;
+      try {
+        JSON.parse(value);
+      } catch (e) {
+        console.error(`Error parsing value of parameter ${name}`);
+        targetingParametersError = { id: name };
+      }
 
       return {
         copiedToClipboard: false,
@@ -265,10 +316,38 @@ export class ASRouterAdminInner extends React.PureComponent {
   }
 
   unblockAll() {
-    return ASRouterUtils.unblockAll().then(this.setStateFromParent);
+    return ASRouterUtils.sendMessage({
+      type: "UNBLOCK_ALL",
+    }).then(this.setStateFromParent);
   }
 
-  async handleEnabledToggle(event) {
+  handleClearAllImpressionsByProvider() {
+    const providerId = this.state.messageFilter;
+    if (!providerId) {
+      return;
+    }
+    const userPrefInfo = this.state.userPrefs;
+
+    const isUserEnabled =
+      providerId in userPrefInfo ? userPrefInfo[providerId] : true;
+
+    ASRouterUtils.sendMessage({
+      type: "DISABLE_PROVIDER",
+      data: providerId,
+    });
+    if (!isUserEnabled) {
+      ASRouterUtils.sendMessage({
+        type: "SET_PROVIDER_USER_PREF",
+        data: { id: providerId, value: true },
+      });
+    }
+    ASRouterUtils.sendMessage({
+      type: "ENABLE_PROVIDER",
+      data: providerId,
+    });
+  }
+
+  handleEnabledToggle(event) {
     const provider = this.state.providerPrefs.find(
       p => p.id === event.target.dataset.provider
     );
@@ -281,25 +360,25 @@ export class ASRouterAdminInner extends React.PureComponent {
 
     if (isEnabling) {
       if (!isUserEnabled) {
-        await ASRouterUtils.sendMessage({
+        ASRouterUtils.sendMessage({
           type: "SET_PROVIDER_USER_PREF",
           data: { id: provider.id, value: true },
         });
       }
       if (!isSystemEnabled) {
-        await ASRouterUtils.sendMessage({
+        ASRouterUtils.sendMessage({
           type: "ENABLE_PROVIDER",
           data: provider.id,
         });
       }
     } else {
-      await ASRouterUtils.sendMessage({
+      ASRouterUtils.sendMessage({
         type: "DISABLE_PROVIDER",
         data: provider.id,
       });
     }
 
-    this.setState({ filterProviders: [] });
+    this.setState({ messageFilter: "all" });
   }
 
   handleUserPrefToggle(event) {
@@ -308,47 +387,15 @@ export class ASRouterAdminInner extends React.PureComponent {
       data: { id: event.target.dataset.provider, value: event.target.checked },
     };
     ASRouterUtils.sendMessage(action);
-    this.setState({ filterProviders: [] });
+    this.setState({ messageFilter: "all" });
   }
 
-  onChangeFilters(event) {
-    // this function handles both provider filter and group filter. the checkbox
-    // will have dataset.provider if it's a provider checkbox, and dataset.group
-    // if it's a group checkbox.
-    let stateKey;
-    let itemValue;
-    let { checked } = event.target;
-    if (event.target.dataset.provider) {
-      stateKey = "filterProviders";
-      itemValue = event.target.dataset.provider;
-    } else if (event.target.dataset.group) {
-      stateKey = "filterGroups";
-      itemValue = event.target.dataset.group;
-    } else if (event.target.dataset.template) {
-      stateKey = "filterTemplates";
-      itemValue = event.target.dataset.template;
-    } else {
-      return;
-    }
-    this.setState(prevState => {
-      let newValue;
-      if (checked) {
-        newValue = prevState[stateKey].includes(itemValue)
-          ? prevState[stateKey]
-          : prevState[stateKey].concat(itemValue);
-      } else {
-        newValue = prevState[stateKey].filter(item => item !== itemValue);
-      }
-      return { [stateKey]: newValue };
-    });
+  onChangeMessageFilter(event) {
+    this.setState({ messageFilter: event.target.value });
   }
 
-  onClearFilters() {
-    this.setState({
-      filterProviders: [],
-      filterGroups: [],
-      filterTemplates: [],
-    });
+  onChangeMessageGroupsFilter(event) {
+    this.setState({ messageGroupsFilter: event.target.value });
   }
 
   // Simulate a copy event that sets to clipboard all targeting paramters and values
@@ -407,7 +454,7 @@ export class ASRouterAdminInner extends React.PureComponent {
     }
   }
 
-  onMessageChanged(msgId) {
+  handleChange(msgId) {
     if (!this.state.modifiedMessages.includes(msgId)) {
       this.setState(prevState => ({
         modifiedMessages: prevState.modifiedMessages.concat(msgId),
@@ -437,7 +484,6 @@ export class ASRouterAdminInner extends React.PureComponent {
       "infobar",
       "spotlight",
       "cfr_doorhanger",
-      "feature_callout",
     ].includes(msg.template);
 
     let itemClassName = "message-item";
@@ -445,52 +491,50 @@ export class ASRouterAdminInner extends React.PureComponent {
       itemClassName += " blocked";
     }
 
-    let messageStats = [];
-    let messageStatsString;
-    if (impressions) {
-      messageStats.push(`${impressions} impressions`);
-    }
-    if (isMessageBlocked) {
-      messageStats.push("message blocked");
-    } else if (isBlockedByGroup) {
-      messageStats.push("message group blocked");
-    } else if (isProviderExcluded) {
-      messageStats.push("excluded by provider");
-    }
-    if (messageStats.length) {
-      messageStatsString = `(${messageStats.join(", ")})`;
-    }
-
     return (
-      <div className={itemClassName} key={`${msg.id}-${msg.provider}`}>
-        <div className="button-box baseline">
-          <span className="message-id monospace">{msg.id}</span>{" "}
-          <span className="message-stats small-text">{messageStatsString}</span>
-        </div>
-        <div className="button-box">
+      <tr className={itemClassName} key={`${msg.id}-${msg.provider}`}>
+        <td className="message-id">
+          <span>
+            {msg.id} <br />
+          </span>
+        </td>
+        <td>
           <ToggleMessageJSON
             msgId={`${msg.id}`}
             toggleJSON={this.toggleJSON}
             isCollapsed={isCollapsed}
           />
+        </td>
+        <td className="button-column">
+          <button
+            className={`button ${isBlocked ? "" : " primary"}`}
+            onClick={
+              isBlocked ? this.handleUnblock(msg) : this.handleBlock(msg)
+            }
+          >
+            {isBlocked ? "Unblock" : "Block"}
+          </button>
           {
             // eslint-disable-next-line no-nested-ternary
             isBlocked ? null : isModified ? (
-              <button className="restore" onClick={() => this.resetJSON(msg)}>
+              <button
+                className="button restore"
+                onClick={() => this.resetJSON(msg)}
+              >
                 Reset
               </button>
             ) : (
               <button
-                className="primary show"
-                onClick={() => this.showMessage(msg)}
+                className="button show"
+                onClick={this.handleOverride(msg.id)}
               >
                 Show
               </button>
             )
           }
-          {isBlocked || !isModified ? null : (
+          {isBlocked ? null : (
             <button
-              className="primary modify"
+              className="button modify"
               onClick={() => this.modifyJson(msg)}
             >
               Modify
@@ -506,54 +550,135 @@ export class ASRouterAdminInner extends React.PureComponent {
               label="Share"
               copiedLabel="Copied!"
               inputSelector={`#${msg.id}-textarea`}
-              className={"share"}
+              className={"button share"}
             />
           ) : null}
-          <button
-            className={`button${isBlocked ? " primary" : ""}`}
-            onClick={() =>
-              isBlocked ? this.handleUnblock(msg) : this.handleBlock(msg)
-            }
-          >
-            {isBlocked ? "Unblock" : "Block"}
-          </button>
-        </div>
-        <pre className={isCollapsed ? "collapsed" : "expanded"}>
-          <textarea
-            id={`${msg.id}-textarea`}
-            name={msg.id}
-            className="message-textarea"
-            disabled={isBlocked}
-            rows="30"
-            onChange={event => {
-              try {
-                JSON.parse(event.target.value);
-                event.target.classList.remove("errorState");
-              } catch (e) {
-                event.target.classList.add("errorState");
-              }
-              this.onMessageChanged(msg.id);
-            }}
-            spellCheck="false"
-          >
-            {JSON.stringify(msg, null, 2)}
-          </textarea>
-        </pre>
-      </div>
+          <br />({impressions} impressions)
+        </td>
+        <td className="message-summary">
+          {isBlocked && (
+            <tr>
+              Block reason:
+              {isBlockedByGroup && " Blocked by group"}
+              {isProviderExcluded && " Excluded by provider"}
+              {isMessageBlocked && " Message blocked"}
+            </tr>
+          )}
+          <tr>
+            <pre className={isCollapsed ? "collapsed" : "expanded"}>
+              <textarea
+                id={`${msg.id}-textarea`}
+                name={msg.id}
+                className="general-textarea"
+                disabled={isBlocked}
+                onChange={() => this.handleChange(msg.id)}
+              >
+                {JSON.stringify(msg, null, 2)}
+              </textarea>
+            </pre>
+          </tr>
+        </td>
+      </tr>
     );
+  }
+
+  selectPBMessage(msgId) {
+    if (msgId === "clear") {
+      this.setState({
+        selectedPBMessage: "",
+      });
+    } else {
+      let selected = document.getElementById(`${msgId} radio`);
+      let msg = JSON.parse(document.getElementById(`${msgId}-textarea`).value);
+
+      if (selected.checked) {
+        this.setState({
+          selectedPBMessage: msg?.content,
+        });
+      } else {
+        this.setState({
+          selectedPBMessage: "",
+        });
+      }
+    }
   }
 
   modifyJson(content) {
     const message = JSON.parse(
       document.getElementById(`${content.id}-textarea`).value
     );
-    if (message.template === "pb_newtab") {
-      ASRouterUtils.openPBWindow(message.content);
-    } else {
-      ASRouterUtils.modifyMessageJson(message).then(state => {
-        this.setStateFromParent(state);
-      });
+    return ASRouterUtils.modifyMessageJson(message).then(state => {
+      this.setStateFromParent(state);
+    });
+  }
+
+  renderPBMessageItem(msg) {
+    const isBlocked =
+      this.state.messageBlockList.includes(msg.id) ||
+      this.state.messageBlockList.includes(msg.campaign);
+    const impressions = this.state.messageImpressions[msg.id]
+      ? this.state.messageImpressions[msg.id].length
+      : 0;
+
+    const isCollapsed = this.state.collapsedMessages.includes(msg.id);
+
+    let itemClassName = "message-item";
+    if (isBlocked) {
+      itemClassName += " blocked";
     }
+
+    return (
+      <tr className={itemClassName} key={`${msg.id}-${msg.provider}`}>
+        <td className="message-id">
+          <span>
+            {msg.id} <br />
+            <br />({impressions} impressions)
+          </span>
+        </td>
+        <td>
+          <ToggleMessageJSON
+            msgId={`${msg.id}`}
+            toggleJSON={this.toggleJSON}
+            isCollapsed={isCollapsed}
+          />
+        </td>
+        <td>
+          <input
+            type="radio"
+            id={`${msg.id} radio`}
+            name="PB_message_radio"
+            style={{ marginBottom: 20 }}
+            onClick={() => this.selectPBMessage(msg.id)}
+            disabled={isBlocked}
+          />
+          <button
+            className={`button ${isBlocked ? "" : " primary"}`}
+            onClick={
+              isBlocked ? this.handleUnblock(msg) : this.handleBlock(msg)
+            }
+          >
+            {isBlocked ? "Unblock" : "Block"}
+          </button>
+          <button
+            className="ASRouterButton slim button"
+            onClick={() => this.resetPBJSON(msg)}
+          >
+            Reset JSON
+          </button>
+        </td>
+        <td className={`message-summary`}>
+          <pre className={isCollapsed ? "collapsed" : "expanded"}>
+            <textarea
+              id={`${msg.id}-textarea`}
+              className="wnp-textarea"
+              name={msg.id}
+            >
+              {JSON.stringify(msg, null, 2)}
+            </textarea>
+          </pre>
+        </td>
+      </tr>
+    );
   }
 
   toggleAllMessages(messagesToShow) {
@@ -570,187 +695,151 @@ export class ASRouterAdminInner extends React.PureComponent {
     }
   }
 
-  filterMessages() {
-    let messages = [...this.state.messages];
-    if (this.state.filterProviders.length) {
-      messages = messages.filter(msg =>
-        this.state.filterProviders.includes(msg.provider)
-      );
-    }
-    if (this.state.filterGroups.length) {
-      messages = messages.filter(
-        msg =>
-          msg.groups?.some(group => this.state.filterGroups.includes(group)) ||
-          (!msg.groups?.length && this.state.filterGroups.includes("none"))
-      );
-    }
-    if (this.state.filterTemplates.length) {
-      messages = messages.filter(msg =>
-        this.state.filterTemplates.includes(msg.template)
-      );
-    }
-    return messages;
-  }
-
   renderMessages() {
     if (!this.state.messages) {
       return null;
     }
-    const messagesToShow = this.filterMessages();
+    const messagesToShow =
+      this.state.messageFilter === "all"
+        ? this.state.messages
+        : this.state.messages.filter(
+            message =>
+              message.provider === this.state.messageFilter &&
+              message.template !== "pb_newtab"
+          );
+
     return (
       <div>
+        <button
+          className="ASRouterButton slim"
+          onClick={() => this.toggleAllMessages(messagesToShow)}
+        >
+          Collapse/Expand All
+        </button>
         <p className="helpLink">
-          <span className="icon icon-small-spacer icon-info" />
-          <ul>
-            <li>
-              To modify a message, change the JSON and click 'Modify' to see
-              your changes.
-            </li>
-            <li>Click "Reset" to restore the JSON to the original.</li>
-            <li>
-              Click "Share" to copy a link to the clipboard that can be used to
-              preview the message by opening the link in Nightly/local builds.
-            </li>
-          </ul>
+          <span className="icon icon-small-spacer icon-info" />{" "}
+          <span>
+            To modify a message, change the JSON and click 'Modify' to see your
+            changes. Click 'Reset' to restore the JSON to the original. Click
+            'Share' to copy a link to the clipboard that can be used to preview
+            the message by opening the link in Nightly/local builds.
+          </span>
         </p>
-        <div className="button-box">
-          <button
-            className="small no-margins"
-            onClick={() => this.toggleAllMessages(messagesToShow)}
-          >
-            <span
-              className={`icon small icon-small-spacer icon-arrowhead-${
-                this.state.collapsedMessages.length ? "forward" : "down"
-              }`}
-            />
-            {this.state.collapsedMessages.length
-              ? "Expand all"
-              : "Collapse all"}
-          </button>
-          {this.state.modifiedMessages.length ? (
-            <button
-              className="small no-margins messages-reset"
-              onClick={this.resetAllJSON}
-            >
-              <span className="icon small icon-small-spacer icon-undo" />
-              <span>Reset all JSON</span>
-            </button>
-          ) : null}
-          {this.state.messageBlockList.length ? (
-            <button
-              className="small no-margins unblock-all"
-              onClick={this.unblockAll}
-            >
-              <span>Unblock all</span>
-            </button>
-          ) : null}
-          <button className="small no-margins" onClick={this.resetMessageState}>
-            Reset FxMS state
-          </button>
-        </div>
-        <div className="messages-list">
-          {messagesToShow.map(msg => this.renderMessageItem(msg))}
-        </div>
+        <table>
+          <tbody>
+            {messagesToShow.map(msg => this.renderMessageItem(msg))}
+          </tbody>
+        </table>
       </div>
     );
   }
 
-  renderFilters() {
+  renderMessagesByGroup() {
+    if (!this.state.messages) {
+      return null;
+    }
+    const messagesToShow =
+      this.state.messageGroupsFilter === "all"
+        ? this.state.messages.filter(m => m.groups.length)
+        : this.state.messages.filter(message =>
+            message.groups.includes(this.state.messageGroupsFilter)
+          );
+
     return (
-      <div className="filters">
-        <div className="button-box">
+      <table>
+        <tbody>{messagesToShow.map(msg => this.renderMessageItem(msg))}</tbody>
+      </table>
+    );
+  }
+
+  renderPBMessages() {
+    if (!this.state.messages) {
+      return null;
+    }
+    const messagesToShow = this.state.messages.filter(
+      message => message.template === "pb_newtab"
+    );
+    return (
+      <table>
+        <tbody>
+          {messagesToShow.map(msg => this.renderPBMessageItem(msg))}
+        </tbody>
+      </table>
+    );
+  }
+
+  renderMessageFilter() {
+    if (!this.state.providers) {
+      return null;
+    }
+
+    return (
+      <p>
+        <button
+          className="unblock-all ASRouterButton test-only"
+          onClick={this.unblockAll}
+        >
+          Unblock All Snippets
+        </button>
+        Show messages from{" "}
+        <select
+          value={this.state.messageFilter}
+          onChange={this.onChangeMessageFilter}
+        >
+          <option value="all">all providers</option>
+          {this.state.providers.map(provider => (
+            <option key={provider.id} value={provider.id}>
+              {provider.id}
+            </option>
+          ))}
+        </select>
+        {this.state.messageFilter !== "all" &&
+        !this.state.messageFilter.includes("_local_testing") ? (
           <button
-            className="small no-margins"
-            onClick={() =>
-              this.setState(prevState => ({
-                filtersCollapsed: !prevState.filtersCollapsed,
-              }))
-            }
+            className="button messages-reset"
+            onClick={this.handleClearAllImpressionsByProvider}
           >
-            <span
-              className={`icon small icon-small-spacer icon-arrowhead-${
-                this.state.filtersCollapsed ? "forward" : "down"
-              }`}
-            />
-            <span>Filters</span>
+            Reset All
           </button>
-          {this.state.filterProviders.length ||
-          this.state.filterGroups.length ||
-          this.state.filterTemplates.length ? (
-            <button className="small no-margins" onClick={this.onClearFilters}>
-              <span className="icon small icon-small-spacer icon-dismiss" />
-              <span>Clear</span>
-            </button>
-          ) : null}
-        </div>
-        {this.state.filtersCollapsed ? null : (
-          <div className="row">
-            {this.state.messages ? (
-              <div>
-                <h3>Templates</h3>
-                <div className="col">
-                  {this.state.messages
-                    .map(message => message.template)
-                    .filter(
-                      (value, index, self) => self.indexOf(value) === index
-                    )
-                    .map(template => (
-                      <label key={template}>
-                        <input
-                          type="checkbox"
-                          data-template={template}
-                          checked={this.state.filterTemplates.includes(
-                            template
-                          )}
-                          onChange={this.onChangeFilters}
-                        />
-                        {template}
-                      </label>
-                    ))}
-                </div>
-              </div>
-            ) : null}
-            {this.state.groups ? (
-              <div>
-                <h3>Groups</h3>
-                <div className="col">
-                  {this.state.groups.map(group => (
-                    <label key={group.id}>
-                      <input
-                        type="checkbox"
-                        data-group={group.id}
-                        checked={this.state.filterGroups.includes(group.id)}
-                        onChange={this.onChangeFilters}
-                      />
-                      {group.id}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            {this.state.providers ? (
-              <div>
-                <h3>Providers</h3>
-                <div className="col">
-                  {this.state.providers.map(provider => (
-                    <label key={provider.id}>
-                      <input
-                        type="checkbox"
-                        data-provider={provider.id}
-                        checked={this.state.filterProviders.includes(
-                          provider.id
-                        )}
-                        onChange={this.onChangeFilters}
-                      />
-                      {provider.id}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        )}
-      </div>
+        ) : null}
+      </p>
+    );
+  }
+
+  renderMessageGroupsFilter() {
+    if (!this.state.groups) {
+      return null;
+    }
+
+    return (
+      <p>
+        Show messages from {/* eslint-disable-next-line jsx-a11y/no-onchange */}
+        <select
+          value={this.state.messageGroupsFilter}
+          onChange={this.onChangeMessageGroupsFilter}
+        >
+          <option value="all">all groups</option>
+          {this.state.groups.map(group => (
+            <option key={group.id} value={group.id}>
+              {group.id}
+            </option>
+          ))}
+        </select>
+      </p>
+    );
+  }
+
+  renderTableHead() {
+    return (
+      <thead>
+        <tr className="message-item">
+          <td className="min" />
+          <td className="min">Provider ID</td>
+          <td>Source</td>
+          <td className="min">Cohort</td>
+          <td className="min">Last Updated</td>
+        </tr>
+      </thead>
     );
   }
 
@@ -760,15 +849,8 @@ export class ASRouterAdminInner extends React.PureComponent {
     const userPrefInfo = this.state.userPrefs;
 
     return (
-      <table className="bordered-table" id="providers-table">
-        <thead>
-          <tr>
-            <td className="fixed-width" />
-            <td className="no-wrap">Provider</td>
-            <td>Source</td>
-            <td className="no-wrap">Last Updated</td>
-          </tr>
-        </thead>
+      <table>
+        {this.renderTableHead()}
         <tbody>
           {providersConfig.map((provider, i) => {
             const isTestProvider = provider.id.includes("_local_testing");
@@ -783,7 +865,7 @@ export class ASRouterAdminInner extends React.PureComponent {
                 <span>
                   endpoint (
                   <a
-                    className="small-text"
+                    className="providerUrl"
                     target="_blank"
                     href={info.url}
                     rel="noopener noreferrer"
@@ -794,26 +876,13 @@ export class ASRouterAdminInner extends React.PureComponent {
                 </span>
               );
             } else if (provider.type === "remote-settings") {
-              label = (
-                <span>
-                  remote settings (
-                  <a
-                    className="small-text"
-                    target="_blank"
-                    href={`https://firefox.settings.services.mozilla.com/v1/buckets/main/collections/${provider.collection}/records`}
-                    rel="noopener noreferrer"
-                  >
-                    {provider.collection}
-                  </a>
-                  )
-                </span>
-              );
+              label = `remote settings (${provider.collection})`;
             } else if (provider.type === "remote-experiments") {
               label = (
                 <span>
                   remote settings (
                   <a
-                    className="small-text"
+                    className="providerUrl"
                     target="_blank"
                     href="https://firefox.settings.services.mozilla.com/v1/buckets/main/collections/nimbus-desktop-experiments/records"
                     rel="noopener noreferrer"
@@ -837,7 +906,7 @@ export class ASRouterAdminInner extends React.PureComponent {
             }
 
             return (
-              <tr key={i}>
+              <tr className="message-item" key={i}>
                 <td>
                   {isTestProvider ? (
                     <input
@@ -865,96 +934,15 @@ export class ASRouterAdminInner extends React.PureComponent {
                     {label}
                   </span>
                 </td>
-                <td className="no-wrap">
-                  {info.lastUpdated ? relativeTime(info.lastUpdated) : ""}
+                <td>{provider.cohort}</td>
+                <td style={{ whiteSpace: "nowrap" }}>
+                  {info.lastUpdated
+                    ? new Date(info.lastUpdated).toLocaleString()
+                    : ""}
                 </td>
               </tr>
             );
           })}
-        </tbody>
-      </table>
-    );
-  }
-
-  renderMessageGroups() {
-    return (
-      <table className="bordered-table" id="groups-table">
-        <thead>
-          <tr>
-            <td className="fixed-width" />
-            <td className="no-wrap">Group</td>
-            <td className="no-wrap">Impressions</td>
-            <td>Frequency caps</td>
-            <td>User preferences</td>
-          </tr>
-        </thead>
-        <tbody>
-          {this.state.groups &&
-            this.state.groups.map(
-              ({ id, enabled, frequency, userPreferences = [] }) => {
-                let frequencyCaps = [];
-                if (!frequency) {
-                  frequencyCaps.push("n/a");
-                } else {
-                  if (frequency.custom) {
-                    for (let f of frequency.custom) {
-                      let { period } = f;
-                      let periodString = "";
-                      if (
-                        period >= 2419200000 &&
-                        period % 2419200000 < 604800000
-                      ) {
-                        let months = Math.round(period / 2419200000);
-                        periodString =
-                          months === 1 ? "/month" : ` in ${months}mos`;
-                      } else if (
-                        period >= 604800000 &&
-                        period % 604800000 < 86400000
-                      ) {
-                        let weeks = Math.round(period / 604800000);
-                        periodString =
-                          weeks === 1 ? "/week" : ` in ${weeks}wks`;
-                      } else if (
-                        period >= 86400000 &&
-                        period % 86400000 < 3600000
-                      ) {
-                        let days = Math.round(period / 86400000);
-                        periodString = days === 1 ? "/day" : ` in ${days}d`;
-                      } else {
-                        periodString = ` in ${period}ms`;
-                      }
-                      frequencyCaps.push(`${f.cap}${periodString}`);
-                    }
-                  }
-                  if ("lifetime" in frequency) {
-                    frequencyCaps.push(`${frequency.lifetime}/lifetime`);
-                  }
-                }
-                return (
-                  <tr key={id}>
-                    <td className="fixed-width">
-                      <input
-                        type="checkbox"
-                        checked={enabled}
-                        disabled={true}
-                      />
-                    </td>
-                    <td className="no-wrap">{id}</td>
-                    <td className="no-wrap">
-                      {this._getGroupImpressionsCount(id, frequency)}
-                    </td>
-                    <td>
-                      <span>{frequencyCaps.join(", ")}</span>
-                    </td>
-                    <td>
-                      <span className="monospace small-text">
-                        {userPreferences.join(", ")}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              }
-            )}
         </tbody>
       </table>
     );
@@ -966,63 +954,52 @@ export class ASRouterAdminInner extends React.PureComponent {
       this.state.evaluationStatus.success &&
       !!this.state.evaluationStatus.result;
     const result =
-      JSON.stringify(this.state.evaluationStatus.result, null, 2) || "";
+      JSON.stringify(this.state.evaluationStatus.result, null, 2) ||
+      "(Empty result)";
 
     return (
-      <table className="targeting-table">
+      <table>
         <tbody>
           <tr>
-            <td colSpan="2">
+            <td>
               <h2>Evaluate JEXL expression</h2>
             </td>
           </tr>
-          <tr className="jexl-evaluator-row">
-            <td colSpan="2">
-              <div className="jexl-evaluator">
-                <div className="jexl-evaluator-textareas">
-                  <div className="jexl-evaluator-input">
-                    <textarea
-                      className="monospace no-margins"
-                      ref="expressionInput"
-                      rows="10"
-                      cols="60"
-                      placeholder="Evaluate JEXL expressions and mock parameters by changing their values below"
-                      spellCheck="false"
-                    />
-                    <button
-                      className="primary no-margins"
-                      onClick={this.handleExpressionEval}
-                    >
-                      Evaluate
-                    </button>
-                  </div>
-                  <div className="jexl-evaluator-output">
-                    <textarea
-                      className="monospace no-margins"
-                      readOnly={true}
-                      rows="10"
-                      cols="40"
-                      placeholder="<evaluation result>"
-                      value={result}
-                      spellCheck="false"
-                    />
-                    <span className="jexl-status">
-                      Status: {success ? "✅" : "❌"}
-                    </span>
-                  </div>
-                </div>
-              </div>
+          <tr>
+            <td>
+              <p>
+                <textarea
+                  ref="expressionInput"
+                  rows="10"
+                  cols="60"
+                  placeholder="Evaluate JEXL expressions and mock parameters by changing their values below"
+                />
+              </p>
+              <p>
+                Status:{" "}
+                <span ref="evaluationStatus">
+                  {success ? "✅" : "❌"}, Result: {result}
+                </span>
+              </p>
+            </td>
+            <td>
+              <button
+                className="ASRouterButton secondary"
+                onClick={this.handleExpressionEval}
+              >
+                Evaluate
+              </button>
             </td>
           </tr>
           <tr>
-            <td colSpan="2">
+            <td>
               <h2>Modify targeting parameters</h2>
             </td>
           </tr>
           <tr>
             <td>
               <button
-                className="no-margins"
+                className="ASRouterButton secondary"
                 onClick={this.onCopyTargetingParams}
                 disabled={this.state.copiedToClipboard}
               >
@@ -1039,9 +1016,7 @@ export class ASRouterAdminInner extends React.PureComponent {
                 const errorState =
                   this.state.targetingParametersError &&
                   this.state.targetingParametersError.id === param;
-                const className = `monospace no-margins${
-                  errorState ? " errorState" : ""
-                }`;
+                const className = errorState ? "errorState" : "";
                 const inputComp =
                   (value && value.length) > 30 ? (
                     <textarea
@@ -1051,12 +1026,9 @@ export class ASRouterAdminInner extends React.PureComponent {
                       rows="10"
                       cols="60"
                       onChange={this.onChangeTargetingParameters}
-                      spellCheck="false"
                     />
                   ) : (
                     <input
-                      type="text"
-                      size="30"
                       name={param}
                       className={className}
                       value={value}
@@ -1072,152 +1044,6 @@ export class ASRouterAdminInner extends React.PureComponent {
                 );
               }
             )}
-
-          <tr>
-            <td colSpan="2">
-              <h2>Attribution parameters</h2>
-            </td>
-          </tr>
-          <tr>
-            <td colSpan="2">
-              <p>
-                This forces the browser to set some attribution parameters,
-                useful for testing the Return To AMO feature. Clicking on 'Force
-                Attribution', with the default values in each field, will demo
-                the Return To AMO flow with the addon called 'uBlock Origin'. If
-                you wish to try different attribution parameters, enter them in
-                the text boxes. If you wish to try a different addon with the
-                Return To AMO flow, make sure the 'content' text box has a
-                string that is 'rta:base64(addonID)', the base64 string of the
-                addonID prefixed with 'rta:'. The addon must currently be a
-                recommended addon on AMO. Then click 'Force Attribution'.
-                Clicking on 'Force Attribution' with blank text boxes reset
-                attribution data.
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td>Source</td>
-            <td>
-              <input
-                className="monospace no-margins"
-                type="text"
-                size="36"
-                name="source"
-                placeholder="addons.mozilla.org"
-                value={this.state.attributionParameters.source}
-                onChange={this.onChangeAttributionParameters}
-              />
-            </td>
-          </tr>
-          <tr>
-            <td>Medium</td>
-            <td>
-              <input
-                className="monospace no-margins"
-                type="text"
-                size="36"
-                name="medium"
-                placeholder="referral"
-                value={this.state.attributionParameters.medium}
-                onChange={this.onChangeAttributionParameters}
-              />
-            </td>
-          </tr>
-          <tr>
-            <td>Campaign</td>
-            <td>
-              <input
-                className="monospace no-margins"
-                type="text"
-                size="36"
-                name="campaign"
-                placeholder="non-fx-button"
-                value={this.state.attributionParameters.campaign}
-                onChange={this.onChangeAttributionParameters}
-              />
-            </td>
-          </tr>
-          <tr>
-            <td>Content</td>
-            <td>
-              <input
-                className="monospace no-margins"
-                type="text"
-                size="36"
-                name="content"
-                placeholder={`rta:${btoa("uBlock0@raymondhill.net")}`}
-                value={this.state.attributionParameters.content}
-                onChange={this.onChangeAttributionParameters}
-              />
-            </td>
-          </tr>
-          <tr>
-            <td>Experiment</td>
-            <td>
-              <input
-                className="monospace no-margins"
-                type="text"
-                size="36"
-                name="experiment"
-                placeholder="ua-onboarding"
-                value={this.state.attributionParameters.experiment}
-                onChange={this.onChangeAttributionParameters}
-              />
-            </td>
-          </tr>
-          <tr>
-            <td>Variation</td>
-            <td>
-              <input
-                className="monospace no-margins"
-                type="text"
-                size="36"
-                name="variation"
-                placeholder="chrome"
-                value={this.state.attributionParameters.variation}
-                onChange={this.onChangeAttributionParameters}
-              />
-            </td>
-          </tr>
-          <tr>
-            <td>User Agent</td>
-            <td>
-              <input
-                className="monospace no-margins"
-                type="text"
-                size="36"
-                name="ua"
-                placeholder="Google Chrome 123"
-                value={this.state.attributionParameters.ua}
-                onChange={this.onChangeAttributionParameters}
-              />
-            </td>
-          </tr>
-          <tr>
-            <td>Download Token</td>
-            <td>
-              <input
-                className="monospace no-margins"
-                type="text"
-                size="36"
-                name="dltoken"
-                placeholder="00000000-0000-0000-0000-000000000000"
-                value={this.state.attributionParameters.dltoken}
-                onChange={this.onChangeAttributionParameters}
-              />
-            </td>
-          </tr>
-          <tr>
-            <td colSpan="2">
-              <button
-                className="primary no-margins"
-                onClick={this.setAttribution}
-              >
-                Force attribution
-              </button>
-            </td>
-          </tr>
         </tbody>
       </table>
     );
@@ -1251,6 +1077,162 @@ export class ASRouterAdminInner extends React.PureComponent {
     return "n/a";
   }
 
+  renderAttributionParamers() {
+    return (
+      <div>
+        <h2> Attribution Parameters </h2>
+        <p>
+          {" "}
+          This forces the browser to set some attribution parameters, useful for
+          testing the Return To AMO feature. Clicking on 'Force Attribution',
+          with the default values in each field, will demo the Return To AMO
+          flow with the addon called 'uBlock Origin'. If you wish to try
+          different attribution parameters, enter them in the text boxes. If you
+          wish to try a different addon with the Return To AMO flow, make sure
+          the 'content' text box has a string that is 'rta:base64(addonID)', the
+          base64 string of the addonID prefixed with 'rta:'. The addon must
+          currently be a recommended addon on AMO. Then click 'Force
+          Attribution'. Clicking on 'Force Attribution' with blank text boxes
+          reset attribution data.
+        </p>
+        <table>
+          <tr>
+            <td>
+              <b> Source </b>
+            </td>
+            <td>
+              {" "}
+              <input
+                type="text"
+                name="source"
+                placeholder="addons.mozilla.org"
+                value={this.state.attributionParameters.source}
+                onChange={this.onChangeAttributionParameters}
+              />{" "}
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <b> Medium </b>
+            </td>
+            <td>
+              {" "}
+              <input
+                type="text"
+                name="medium"
+                placeholder="referral"
+                value={this.state.attributionParameters.medium}
+                onChange={this.onChangeAttributionParameters}
+              />{" "}
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <b> Campaign </b>
+            </td>
+            <td>
+              {" "}
+              <input
+                type="text"
+                name="campaign"
+                placeholder="non-fx-button"
+                value={this.state.attributionParameters.campaign}
+                onChange={this.onChangeAttributionParameters}
+              />{" "}
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <b> Content </b>
+            </td>
+            <td>
+              {" "}
+              <input
+                type="text"
+                name="content"
+                placeholder={`rta:${btoa("uBlock0@raymondhill.net")}`}
+                value={this.state.attributionParameters.content}
+                onChange={this.onChangeAttributionParameters}
+              />{" "}
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <b> Experiment </b>
+            </td>
+            <td>
+              {" "}
+              <input
+                type="text"
+                name="experiment"
+                placeholder="ua-onboarding"
+                value={this.state.attributionParameters.experiment}
+                onChange={this.onChangeAttributionParameters}
+              />{" "}
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <b> Variation </b>
+            </td>
+            <td>
+              {" "}
+              <input
+                type="text"
+                name="variation"
+                placeholder="chrome"
+                value={this.state.attributionParameters.variation}
+                onChange={this.onChangeAttributionParameters}
+              />{" "}
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <b> User Agent </b>
+            </td>
+            <td>
+              {" "}
+              <input
+                type="text"
+                name="ua"
+                placeholder="Google Chrome 123"
+                value={this.state.attributionParameters.ua}
+                onChange={this.onChangeAttributionParameters}
+              />{" "}
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <b> Download Token </b>
+            </td>
+            <td>
+              {" "}
+              <input
+                type="text"
+                name="dltoken"
+                placeholder="00000000-0000-0000-0000-000000000000"
+                value={this.state.attributionParameters.dltoken}
+                onChange={this.onChangeAttributionParameters}
+              />{" "}
+            </td>
+          </tr>
+          <tr>
+            <td>
+              {" "}
+              <button
+                className="ASRouterButton primary button"
+                onClick={this.setAttribution}
+              >
+                {" "}
+                Force Attribution{" "}
+              </button>{" "}
+            </td>
+          </tr>
+        </table>
+      </div>
+    );
+  }
+
   renderErrorMessage({ id, errors }) {
     const providerId = <td rowSpan={errors.length}>{id}</td>;
     // .reverse() so that the last error (most recent) is first
@@ -1275,7 +1257,7 @@ export class ASRouterAdminInner extends React.PureComponent {
         <table className="errorReporting">
           <thead>
             <tr>
-              <th>Provider</th>
+              <th>Provider ID</th>
               <th>Message</th>
               <th>Timestamp</th>
             </tr>
@@ -1288,23 +1270,128 @@ export class ASRouterAdminInner extends React.PureComponent {
     return <p>No errors</p>;
   }
 
-  renderSection() {
+  renderPBTab() {
+    if (!this.state.messages) {
+      return null;
+    }
+    let messagesToShow = this.state.messages.filter(
+      message => message.template === "pb_newtab"
+    );
+
+    return (
+      <div>
+        <p className="helpLink">
+          <span className="icon icon-small-spacer icon-info" />{" "}
+          <span>
+            To view an available message, select its radio button and click
+            "Open a Private Browsing Window".
+            <br />
+            To modify a message, make changes to the JSON first, then select the
+            radio button. (To make new changes, click "Reset Message State",
+            make your changes, and reselect the radio button.)
+            <br />
+            Click "Reset Message State" to clear all message impressions and
+            view messages in a clean state.
+            <br />
+            Note that ContentSearch functions do not work in debug mode.
+          </span>
+        </p>
+        <div>
+          <button
+            className="ASRouterButton primary button"
+            onClick={this.handleOpenPB}
+          >
+            Open a Private Browsing Window
+          </button>
+          <button
+            className="ASRouterButton primary button"
+            style={{ marginInlineStart: 12 }}
+            onClick={this.resetPBMessageState}
+          >
+            Reset Message State
+          </button>
+          <br />
+          <input
+            type="radio"
+            id={`clear radio`}
+            name="PB_message_radio"
+            value="clearPBMessage"
+            style={{ display: "none" }}
+          />
+          <h2>Messages</h2>
+          <button
+            className="ASRouterButton slim button"
+            onClick={() => this.toggleAllMessages(messagesToShow)}
+          >
+            Collapse/Expand All
+          </button>
+          {this.renderPBMessages()}
+        </div>
+      </div>
+    );
+  }
+
+  getSection() {
     const [section] = this.props.location.routes;
     switch (section) {
+      case "private":
+        return (
+          <React.Fragment>
+            <h2>Private Browsing Messages</h2>
+            {this.renderPBTab()}
+          </React.Fragment>
+        );
       case "targeting":
         return (
           <React.Fragment>
-            <h2>Targeting utilities</h2>
-            <div className="button-box">
-              <button
-                className="no-margins"
-                onClick={this.expireCache}
-                title="Values are cached for some targeting attributes (see ASRouterTargeting). This expires the query cache."
-              >
-                Expire cache
-              </button>
-            </div>
+            <h2>Targeting Utilities</h2>
+            <button className="button" onClick={this.expireCache}>
+              Expire Cache
+            </button>{" "}
+            (This expires the cache in ASR Targeting for bookmarks and top
+            sites)
             {this.renderTargetingParameters()}
+            {this.renderAttributionParamers()}
+          </React.Fragment>
+        );
+      case "groups":
+        return (
+          <React.Fragment>
+            <h2>Message Groups</h2>
+            <button className="button" onClick={this.resetGroups}>
+              Reset group impressions
+            </button>
+            <table>
+              <thead>
+                <tr className="message-item">
+                  <td>Enabled</td>
+                  <td>Impressions count</td>
+                  <td>Custom frequency</td>
+                  <td>User preferences</td>
+                </tr>
+              </thead>
+              <tbody>
+                {this.state.groups &&
+                  this.state.groups.map(
+                    ({ id, enabled, frequency, userPreferences = [] }) => (
+                      <Row key={id}>
+                        <td>
+                          <TogglePrefCheckbox
+                            checked={enabled}
+                            pref={id}
+                            disabled={true}
+                          />
+                        </td>
+                        <td>{this._getGroupImpressionsCount(id, frequency)}</td>
+                        <td>{JSON.stringify(frequency, null, 2)}</td>
+                        <td>{userPreferences.join(", ")}</td>
+                      </Row>
+                    )
+                  )}
+              </tbody>
+            </table>
+            {this.renderMessageGroupsFilter()}
+            {this.renderMessagesByGroup()}
           </React.Fragment>
         );
       case "impressions":
@@ -1321,7 +1408,7 @@ export class ASRouterAdminInner extends React.PureComponent {
       case "errors":
         return (
           <React.Fragment>
-            <h2>ASRouter errors</h2>
+            <h2>ASRouter Errors</h2>
             {this.renderErrors()}
           </React.Fragment>
         );
@@ -1329,30 +1416,18 @@ export class ASRouterAdminInner extends React.PureComponent {
         return (
           <React.Fragment>
             <h2>
-              Message providers
+              Message Providers{" "}
               <button
-                className="small"
                 title="Restore all provider settings that ship with Firefox"
+                className="button"
                 onClick={this.resetPref}
               >
                 Restore default prefs
               </button>
             </h2>
             {this.state.providers ? this.renderProviders() : null}
-            <h2>
-              Message groups
-              <button className="small" onClick={this.resetGroupImpressions}>
-                Reset group impressions
-              </button>
-            </h2>
-            {this.state.groups ? this.renderMessageGroups() : null}
-            <h2>
-              Messages
-              <button className="small" onClick={this.resetMessageImpressions}>
-                Reset message impressions
-              </button>
-            </h2>
-            {this.renderFilters()}
+            <h2>Messages</h2>
+            {this.renderMessageFilter()}
             {this.renderMessages()}
           </React.Fragment>
         );
@@ -1372,55 +1447,39 @@ export class ASRouterAdminInner extends React.PureComponent {
       );
     }
 
-    const [section] = this.props.location.routes;
-
     return (
-      <div className="asrouter-admin">
+      <div
+        className={`asrouter-admin ${
+          this.props.collapsed ? "collapsed" : "expanded"
+        }`}
+      >
         <aside className="sidebar">
           <ul>
             <li>
-              <a
-                href="#devtools"
-                className="category"
-                data-selected={section ? null : ""}
-              >
-                General
-              </a>
+              <a href="#devtools">General</a>
             </li>
             <li>
-              <a
-                href="#devtools-targeting"
-                className="category"
-                data-selected={section === "targeting" ? "" : null}
-              >
-                Targeting
-              </a>
+              <a href="#devtools-private">Private Browsing</a>
             </li>
             <li>
-              <a
-                href="#devtools-impressions"
-                className="category"
-                data-selected={section === "impressions" ? "" : null}
-              >
-                Impressions
-              </a>
+              <a href="#devtools-targeting">Targeting</a>
             </li>
             <li>
-              <a
-                href="#devtools-errors"
-                className="category"
-                data-selected={section === "errors" ? "" : null}
-              >
-                Errors
-              </a>
+              <a href="#devtools-groups">Message Groups</a>
+            </li>
+            <li>
+              <a href="#devtools-impressions">Impressions</a>
+            </li>
+            <li>
+              <a href="#devtools-errors">Errors</a>
             </li>
           </ul>
         </aside>
         <main className="main-panel">
-          <h1>ASRouter Admin</h1>
+          <h1>AS Router Admin</h1>
 
           <p className="helpLink">
-            <span className="icon icon-small-spacer icon-info" />
+            <span className="icon icon-small-spacer icon-info" />{" "}
             <span>
               Need help using these tools? Check out our{" "}
               <a
@@ -1432,7 +1491,7 @@ export class ASRouterAdminInner extends React.PureComponent {
             </span>
           </p>
 
-          {this.renderSection()}
+          {this.getSection()}
         </main>
       </div>
     );

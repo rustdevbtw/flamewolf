@@ -6,8 +6,6 @@ import { html } from "../vendor/lit.all.mjs";
 import { MozLitElement } from "../lit-utils.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-label.mjs";
-// eslint-disable-next-line import/no-unassigned-import
-import "chrome://global/content/elements/moz-fieldset.mjs";
 
 const NAVIGATION_FORWARD = "forward";
 const NAVIGATION_BACKWARD = "backward";
@@ -51,13 +49,14 @@ export class MozRadioGroup extends MozLitElement {
 
   static properties = {
     disabled: { type: Boolean, reflect: true },
-    label: { type: String, fluent: true },
+    label: { type: String },
     name: { type: String },
   };
 
   static queries = {
     defaultSlot: "slot:not([name])",
-    fieldset: "moz-fieldset",
+    fieldset: "fieldset",
+    legend: "legend",
   };
 
   set value(newValue) {
@@ -85,6 +84,11 @@ export class MozRadioGroup extends MozLitElement {
     super();
     this.disabled = false;
     this.addEventListener("keydown", e => this.handleKeydown(e));
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.dataset.l10nAttrs = "label";
   }
 
   firstUpdated() {
@@ -194,16 +198,17 @@ export class MozRadioGroup extends MozLitElement {
 
   render() {
     return html`
-      <moz-fieldset
-        role="radiogroup"
-        ?disabled=${this.disabled}
-        label=${this.label}
-      >
+      <link
+        rel="stylesheet"
+        href="chrome://global/content/elements/moz-radio-group.css"
+      />
+      <fieldset role="radiogroup" ?disabled=${this.disabled}>
+        <legend class="heading-medium">${this.label}</legend>
         <slot
           @slotchange=${this.syncStateToRadioButtons}
           @change=${this.handleChange}
         ></slot>
-      </moz-fieldset>
+      </fieldset>
     `;
   }
 }
@@ -228,7 +233,7 @@ export class MozRadio extends MozLitElement {
     checked: { type: Boolean, reflect: true },
     disabled: { type: Boolean, reflect: true },
     iconSrc: { type: String },
-    label: { type: String, fluent: true },
+    label: { type: String },
     name: { type: String, attribute: false },
     inputTabIndex: { type: Number, state: true },
     value: { type: String },
@@ -248,6 +253,7 @@ export class MozRadio extends MozLitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    this.dataset.l10nAttrs = "label";
 
     let hostRadioGroup = this.parentElement || this.getRootNode().host;
     if (!(hostRadioGroup instanceof MozRadioGroup)) {
@@ -317,35 +323,30 @@ export class MozRadio extends MozLitElement {
     return "";
   }
 
-  inputTemplate() {
-    return html`<input
-      type="radio"
-      id="radio-button"
-      value=${this.value}
-      name=${this.name}
-      .checked=${this.checked}
-      aria-checked=${this.checked}
-      tabindex=${this.inputTabIndex}
-      ?disabled=${this.disabled || this.#controller.disabled}
-      @click=${this.handleClick}
-      @change=${this.handleChange}
-    />`;
-  }
-
-  labelTemplate() {
-    return html`<span class="label-content">
-      ${this.iconTemplate()}
-      <span class="text">${this.label}</span>
-    </span>`;
-  }
-
   render() {
     return html`
       <link
         rel="stylesheet"
         href="chrome://global/content/elements/moz-radio.css"
       />
-      <label>${this.inputTemplate()}${this.labelTemplate()}</label>
+      <label is="moz-label" for="radio-button">
+        <input
+          type="radio"
+          id="radio-button"
+          value=${this.value}
+          name=${this.name}
+          .checked=${this.checked}
+          aria-checked=${this.checked}
+          tabindex=${this.inputTabIndex}
+          ?disabled=${this.disabled || this.#controller.disabled}
+          @click=${this.handleClick}
+          @change=${this.handleChange}
+        />
+        <span class="label-content">
+          ${this.iconTemplate()}
+          <span class="text"> ${this.label || html`<slot></slot>`} </span>
+        </span>
+      </label>
     `;
   }
 }

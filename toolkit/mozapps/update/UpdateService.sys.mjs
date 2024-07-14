@@ -457,12 +457,6 @@ function waitForOtherInstances() {
     PREF_APP_UPDATE_CHECK_ONLY_INSTANCE_TIMEOUT,
     ONLY_INSTANCE_CHECK_DEFAULT_TIMEOUT_MS
   );
-
-  // return immediately if timeout value is invalid.
-  if (timeout <= 0) {
-    return Promise.resolve(isOtherInstanceRunning());
-  }
-
   // Don't allow the pref to set a super high timeout and break this feature.
   if (timeout > ONLY_INSTANCE_CHECK_MAX_TIMEOUT_MS) {
     timeout = ONLY_INSTANCE_CHECK_MAX_TIMEOUT_MS;
@@ -472,11 +466,6 @@ function waitForOtherInstances() {
     PREF_APP_UPDATE_CHECK_ONLY_INSTANCE_INTERVAL,
     ONLY_INSTANCE_CHECK_DEFAULT_POLL_INTERVAL_MS
   );
-
-  if (interval <= 0) {
-    interval = ONLY_INSTANCE_CHECK_DEFAULT_POLL_INTERVAL_MS;
-  }
-
   // Don't allow an interval longer than the timeout.
   interval = Math.min(interval, timeout);
 
@@ -2308,7 +2297,6 @@ class Update {
     "statusText",
     "type",
     "unsupported",
-    "platformVersion",
   ];
 
   /**
@@ -2405,7 +2393,6 @@ class Update {
           case "serviceURL":
           case "statusText":
           case "type":
-          case "platformVersion":
             this[attr.name] = attr.value;
             break;
           default:
@@ -4360,13 +4347,6 @@ export class UpdateManager {
         this._readyUpdate = null;
       } else if (status == STATE_SUCCEEDED && this._readyUpdate) {
         this.#updateInstalledAtStartup = this._readyUpdate;
-        // Bug 1889785 - When deciding whether or not to show a What's New Page, we
-        // rely on both `Services.appinfo.platformVersion` and this value. But Balrog
-        // doesn't guarantee that the value that it sends will match appinfo.
-        // We synchronize the values here so they are consistent.
-        this.#updateInstalledAtStartup.platformVersion =
-          Services.appinfo.platformVersion;
-        this.saveUpdates();
       }
     }
 
@@ -4462,9 +4442,6 @@ export class UpdateManager {
         }
         if (status == STATE_SUCCEEDED && this._readyUpdate) {
           this.#updateInstalledAtStartup = this._readyUpdate;
-          this.#updateInstalledAtStartup.platformVersion =
-            Services.appinfo.platformVersion;
-          this.saveUpdates();
         }
       }
       updates = this._loadXMLFileIntoArray(FILE_UPDATES_XML);
@@ -4635,16 +4612,6 @@ export class UpdateManager {
    */
   get updateInstalledAtStartup() {
     return this.#updateInstalledAtStartup;
-  }
-
-  /**
-   * See nsIUpdateService.idl
-   */
-  get lastUpdateInstalled() {
-    if (this.updateInstalledAtStartup) {
-      return this.updateInstalledAtStartup;
-    }
-    return this._getUpdates().find(u => u.state == STATE_SUCCEEDED) ?? null;
   }
 
   #addUpdateToHistory(aUpdate) {
@@ -5424,11 +5391,7 @@ export class CheckerService {
       // Set MitM pref.
       try {
         let secInfo = request.channel.securityInfo;
-        if (
-          secInfo.errorCodeString == "SEC_ERROR_UNKNOWN_ISSUER" &&
-          secInfo.serverCert &&
-          secInfo.serverCert.issuerName
-        ) {
+        if (secInfo.serverCert && secInfo.serverCert.issuerName) {
           Services.prefs.setStringPref(
             "security.pki.mitm_canary_issuer",
             secInfo.serverCert.issuerName

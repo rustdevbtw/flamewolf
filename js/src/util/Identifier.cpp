@@ -17,7 +17,7 @@
 
 using namespace js;
 
-bool js::IsIdentifier(const JSLinearString* str) {
+bool js::IsIdentifier(JSLinearString* str) {
   JS::AutoCheckCannotGC nogc;
   MOZ_ASSERT(str);
   if (str->hasLatin1Chars()) {
@@ -26,7 +26,7 @@ bool js::IsIdentifier(const JSLinearString* str) {
   return IsIdentifier(str->twoByteChars(nogc), str->length());
 }
 
-bool js::IsIdentifierNameOrPrivateName(const JSLinearString* str) {
+bool js::IsIdentifierNameOrPrivateName(JSLinearString* str) {
   JS::AutoCheckCannotGC nogc;
   MOZ_ASSERT(str);
   if (str->hasLatin1Chars()) {

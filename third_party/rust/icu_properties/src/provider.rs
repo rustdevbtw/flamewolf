@@ -47,7 +47,6 @@ const _: () = {
     pub mod icu {
         pub use crate as properties;
         pub use icu_collections as collections;
-        #[allow(unused_imports)] // baked data may or may not need this
         pub use icu_locid_transform as locid_transform;
     }
     icu_properties_data::make_provider!(Baked);
@@ -57,9 +56,7 @@ const _: () = {
     icu_properties_data::impl_propnames_from_ea_v1!(Baked);
     icu_properties_data::impl_propnames_from_gc_v1!(Baked);
     icu_properties_data::impl_propnames_from_gcm_v1!(Baked);
-    icu_properties_data::impl_propnames_from_hst_v1!(Baked);
     icu_properties_data::impl_propnames_from_insc_v1!(Baked);
-    icu_properties_data::impl_propnames_from_jt_v1!(Baked);
     icu_properties_data::impl_propnames_from_lb_v1!(Baked);
     icu_properties_data::impl_propnames_from_sb_v1!(Baked);
     icu_properties_data::impl_propnames_from_sc_v1!(Baked);
@@ -68,9 +65,7 @@ const _: () = {
     icu_properties_data::impl_propnames_to_long_linear_ea_v1!(Baked);
     icu_properties_data::impl_propnames_to_long_linear_gc_v1!(Baked);
     icu_properties_data::impl_propnames_to_long_linear_gcb_v1!(Baked);
-    icu_properties_data::impl_propnames_to_long_linear_hst_v1!(Baked);
     icu_properties_data::impl_propnames_to_long_linear_insc_v1!(Baked);
-    icu_properties_data::impl_propnames_to_long_linear_jt_v1!(Baked);
     icu_properties_data::impl_propnames_to_long_linear_lb_v1!(Baked);
     icu_properties_data::impl_propnames_to_long_linear_sb_v1!(Baked);
     icu_properties_data::impl_propnames_to_long_linear_sc_v1!(Baked);
@@ -80,9 +75,7 @@ const _: () = {
     icu_properties_data::impl_propnames_to_short_linear_ea_v1!(Baked);
     icu_properties_data::impl_propnames_to_short_linear_gc_v1!(Baked);
     icu_properties_data::impl_propnames_to_short_linear_gcb_v1!(Baked);
-    icu_properties_data::impl_propnames_to_short_linear_hst_v1!(Baked);
     icu_properties_data::impl_propnames_to_short_linear_insc_v1!(Baked);
-    icu_properties_data::impl_propnames_to_short_linear_jt_v1!(Baked);
     icu_properties_data::impl_propnames_to_short_linear_lb_v1!(Baked);
     icu_properties_data::impl_propnames_to_short_linear_sb_v1!(Baked);
     icu_properties_data::impl_propnames_to_short_linear_wb_v1!(Baked);
@@ -131,7 +124,6 @@ const _: () = {
     icu_properties_data::impl_props_gr_link_v1!(Baked);
     icu_properties_data::impl_props_graph_v1!(Baked);
     icu_properties_data::impl_props_hex_v1!(Baked);
-    icu_properties_data::impl_props_hst_v1!(Baked);
     icu_properties_data::impl_props_hyphen_v1!(Baked);
     icu_properties_data::impl_props_idc_v1!(Baked);
     icu_properties_data::impl_props_ideo_v1!(Baked);
@@ -140,7 +132,6 @@ const _: () = {
     icu_properties_data::impl_props_idst_v1!(Baked);
     icu_properties_data::impl_props_insc_v1!(Baked);
     icu_properties_data::impl_props_join_c_v1!(Baked);
-    icu_properties_data::impl_props_jt_v1!(Baked);
     icu_properties_data::impl_props_lb_v1!(Baked);
     icu_properties_data::impl_props_loe_v1!(Baked);
     icu_properties_data::impl_props_lower_v1!(Baked);
@@ -845,16 +836,6 @@ expand!(
             Script
         ),
         (
-            HangulSyllableTypeV1Marker,
-            HangulSyllableTypeNameToValueV1Marker,
-            (
-                linear: HangulSyllableTypeValueToShortNameV1Marker,
-                HangulSyllableTypeValueToLongNameV1Marker
-            ),
-            "hst",
-            HangulSyllableType
-        ),
-        (
             EastAsianWidthV1Marker,
             EastAsianWidthNameToValueV1Marker,
             (
@@ -913,16 +894,6 @@ expand!(
             ),
             "InSC",
             IndicSyllabicCategory
-        ),
-        (
-            JoiningTypeV1Marker,
-            JoiningTypeNameToValueV1Marker,
-            (
-                linear: JoiningTypeValueToShortNameV1Marker,
-                JoiningTypeValueToLongNameV1Marker
-            ),
-            "jt",
-            JoiningType
         ),
         // note: the names key for the GCM mask is handled above
     )

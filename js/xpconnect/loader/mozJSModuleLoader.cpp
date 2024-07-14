@@ -74,7 +74,6 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/WorkerCommon.h"  // dom::GetWorkerPrivateFromContext
 #include "mozilla/dom/WorkerPrivate.h"  // dom::WorkerPrivate, dom::AutoSyncLoopHolder
-#include "mozilla/dom/WorkerRef.h"  // dom::StrongWorkerRef, dom::ThreadSafeWorkerRef
 #include "mozilla/dom/WorkerRunnable.h"  // dom::MainThreadStopSyncLoopRunnable
 #include "mozilla/Unused.h"
 
@@ -716,12 +715,12 @@ class ScriptReaderRunnable final : public nsIRunnable,
                                    public nsINamed,
                                    public nsIStreamListener {
  public:
-  ScriptReaderRunnable(RefPtr<dom::ThreadSafeWorkerRef>&& aWorkerRef,
+  ScriptReaderRunnable(dom::WorkerPrivate* aWorkerPrivate,
                        nsIEventTarget* aSyncLoopTarget,
                        const nsCString& aLocation)
       : mLocation(aLocation),
         mRv(NS_ERROR_FAILURE),
-        mWorkerRef(std::move(aWorkerRef)),
+        mWorkerPrivate(aWorkerPrivate),
         mSyncLoopTarget(aSyncLoopTarget) {}
 
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -785,16 +784,15 @@ class ScriptReaderRunnable final : public nsIRunnable,
 
   void OnComplete(nsresult aRv) {
     MOZ_ASSERT(NS_IsMainThread());
-    MOZ_ASSERT(mWorkerRef);
 
     mRv = aRv;
 
     RefPtr<dom::MainThreadStopSyncLoopRunnable> runnable =
         new dom::MainThreadStopSyncLoopRunnable(std::move(mSyncLoopTarget),
                                                 mRv);
-    MOZ_ALWAYS_TRUE(runnable->Dispatch(mWorkerRef->Private()));
+    MOZ_ALWAYS_TRUE(runnable->Dispatch(mWorkerPrivate));
 
-    mWorkerRef = nullptr;
+    mWorkerPrivate = nullptr;
     mSyncLoopTarget = nullptr;
   }
 
@@ -813,7 +811,11 @@ class ScriptReaderRunnable final : public nsIRunnable,
   nsCString mData;
   nsresult mRv;
 
-  RefPtr<dom::ThreadSafeWorkerRef> mWorkerRef;
+  // This pointer is guaranteed to be alive until OnComplete, given
+  // the worker thread is synchronously waiting with AutoSyncLoopHolder::Run
+  // until the corresponding WorkerPrivate::StopSyncLoop is called by
+  // MainThreadStopSyncLoopRunnable, which is dispatched from OnComplete.
+  dom::WorkerPrivate* mWorkerPrivate;
 
   nsCOMPtr<nsIEventTarget> mSyncLoopTarget;
 };
@@ -835,16 +837,8 @@ nsresult mozJSModuleLoader::ReadScriptOnMainThread(JSContext* aCx,
     return NS_ERROR_DOM_INVALID_STATE_ERR;
   }
 
-  RefPtr<dom::StrongWorkerRef> workerRef = dom::StrongWorkerRef::Create(
-      workerPrivate, "mozJSModuleLoader::ScriptReaderRunnable", nullptr);
-  if (!workerRef) {
-    return NS_ERROR_DOM_INVALID_STATE_ERR;
-  }
-  RefPtr<dom::ThreadSafeWorkerRef> tsWorkerRef =
-      MakeRefPtr<dom::ThreadSafeWorkerRef>(workerRef);
-
-  RefPtr<ScriptReaderRunnable> runnable = new ScriptReaderRunnable(
-      std::move(tsWorkerRef), syncLoopTarget, aLocation);
+  RefPtr<ScriptReaderRunnable> runnable =
+      new ScriptReaderRunnable(workerPrivate, syncLoopTarget, aLocation);
 
   if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
     return NS_ERROR_FAILURE;

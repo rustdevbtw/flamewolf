@@ -31,7 +31,6 @@ add_setup(async function () {
       ["extensions.formautofill.addresses.capture.enabled", true],
       ["extensions.formautofill.addresses.supported", "on"],
       ["extensions.formautofill.heuristics.captureOnPageNavigation", true],
-      ["extensions.formautofill.addresses.capture.requiredFields", ""],
     ],
   });
 });

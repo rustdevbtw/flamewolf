@@ -244,9 +244,7 @@ impl StatementGraph {
                     value,
                     result,
                 } => {
-                    if let Some(result) = result {
-                        self.emits.push((id, result));
-                    }
+                    self.emits.push((id, result));
                     self.dependencies.push((id, pointer, "pointer"));
                     self.dependencies.push((id, value, "value"));
                     if let crate::AtomicFunction::Exchange { compare: Some(cmp) } = *fun {
@@ -392,32 +390,6 @@ const COLORS: &[&str] = &[
     "#d9d9d9",
 ];
 
-struct Prefixed<T>(Handle<T>);
-
-impl std::fmt::Display for Prefixed<crate::Expression> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.write_prefixed(f, "e")
-    }
-}
-
-impl std::fmt::Display for Prefixed<crate::LocalVariable> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.write_prefixed(f, "l")
-    }
-}
-
-impl std::fmt::Display for Prefixed<crate::GlobalVariable> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.write_prefixed(f, "g")
-    }
-}
-
-impl std::fmt::Display for Prefixed<crate::Function> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.write_prefixed(f, "f")
-    }
-}
-
 fn write_fun(
     output: &mut String,
     prefix: String,
@@ -431,9 +403,9 @@ fn write_fun(
         for (handle, var) in fun.local_variables.iter() {
             writeln!(
                 output,
-                "\t\t{}_{} [ shape=hexagon label=\"{:?} '{}'\" ]",
+                "\t\t{}_l{} [ shape=hexagon label=\"{:?} '{}'\" ]",
                 prefix,
-                Prefixed(handle),
+                handle.index(),
                 handle,
                 name(&var.name),
             )?;
@@ -468,9 +440,9 @@ fn write_fun(
         for (to, expr, label) in sg.dependencies {
             writeln!(
                 output,
-                "\t\t{}_{} -> {}_s{} [ label=\"{}\" ]",
+                "\t\t{}_e{} -> {}_s{} [ label=\"{}\" ]",
                 prefix,
-                Prefixed(expr),
+                expr.index(),
                 prefix,
                 to,
                 label,
@@ -479,23 +451,22 @@ fn write_fun(
         for (from, to) in sg.emits {
             writeln!(
                 output,
-                "\t\t{}_s{} -> {}_{} [ style=dotted ]",
+                "\t\t{}_s{} -> {}_e{} [ style=dotted ]",
                 prefix,
                 from,
                 prefix,
-                Prefixed(to),
+                to.index(),
             )?;
         }
     }
 
-    assert!(sg.calls.is_empty());
     for (from, function) in sg.calls {
         writeln!(
             output,
-            "\t\t{}_s{} -> {}_s0",
+            "\t\t{}_s{} -> f{}_s0",
             prefix,
             from,
-            Prefixed(function),
+            function.index(),
         )?;
     }
 
@@ -715,9 +686,9 @@ fn write_function_expressions(
         };
         writeln!(
             output,
-            "\t\t{}_{} [ {}=\"{}\" label=\"{:?} {}\" ]",
+            "\t\t{}_e{} [ {}=\"{}\" label=\"{:?} {}\" ]",
             prefix,
-            Prefixed(handle),
+            handle.index(),
             color_attr,
             COLORS[color_id],
             handle,
@@ -727,11 +698,11 @@ fn write_function_expressions(
         for (key, edge) in edges.drain() {
             writeln!(
                 output,
-                "\t\t{}_{} -> {}_{} [ label=\"{}\" ]",
+                "\t\t{}_e{} -> {}_e{} [ label=\"{}\" ]",
                 prefix,
-                Prefixed(edge),
+                edge.index(),
                 prefix,
-                Prefixed(handle),
+                handle.index(),
                 key,
             )?;
         }
@@ -739,27 +710,27 @@ fn write_function_expressions(
             Some(Payload::Arguments(list)) => {
                 write!(output, "\t\t{{")?;
                 for &comp in list {
-                    write!(output, " {}_{}", prefix, Prefixed(comp))?;
+                    write!(output, " {}_e{}", prefix, comp.index())?;
                 }
-                writeln!(output, " }} -> {}_{}", prefix, Prefixed(handle))?;
+                writeln!(output, " }} -> {}_e{}", prefix, handle.index())?;
             }
             Some(Payload::Local(h)) => {
                 writeln!(
                     output,
-                    "\t\t{}_{} -> {}_{}",
+                    "\t\t{}_l{} -> {}_e{}",
                     prefix,
-                    Prefixed(h),
+                    h.index(),
                     prefix,
-                    Prefixed(handle),
+                    handle.index(),
                 )?;
             }
             Some(Payload::Global(h)) => {
                 writeln!(
                     output,
-                    "\t\t{} -> {}_{} [fillcolor=gray]",
-                    Prefixed(h),
+                    "\t\tg{} -> {}_e{} [fillcolor=gray]",
+                    h.index(),
                     prefix,
-                    Prefixed(handle),
+                    handle.index(),
                 )?;
             }
             None => {}
@@ -786,8 +757,8 @@ pub fn write(
         for (handle, var) in module.global_variables.iter() {
             writeln!(
                 output,
-                "\t\t{} [ shape=hexagon label=\"{:?} {:?}/'{}'\" ]",
-                Prefixed(handle),
+                "\t\tg{} [ shape=hexagon label=\"{:?} {:?}/'{}'\" ]",
+                handle.index(),
                 handle,
                 var.space,
                 name(&var.name),
@@ -797,7 +768,7 @@ pub fn write(
     }
 
     for (handle, fun) in module.functions.iter() {
-        let prefix = Prefixed(handle).to_string();
+        let prefix = format!("f{}", handle.index());
         writeln!(output, "\tsubgraph cluster_{prefix} {{")?;
         writeln!(
             output,

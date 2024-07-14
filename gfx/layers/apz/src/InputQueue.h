@@ -49,24 +49,6 @@ struct InputBlockCallbackInfo {
   InputBlockCallback mCallback;
 };
 
-class InputQueueIterator {
-  using Iterator = nsTArray<UniquePtr<QueuedInput>>::iterator;
-
- public:
-  InputQueueIterator() : mCurrent(), mEnd() {}  // "null" iterator
-  InputQueueIterator(Iterator aCurrent, Iterator aEnd)
-      : mCurrent(aCurrent), mEnd(aEnd) {}
-
-  explicit operator bool() const { return mCurrent != mEnd; }
-  QueuedInput* operator*() const { return mCurrent->get(); }
-  QueuedInput* operator->() const { return mCurrent->get(); }
-  void operator++() { ++mCurrent; }
-
- private:
-  Iterator mCurrent;
-  Iterator mEnd;
-};
-
 /**
  * This class stores incoming input events, associated with "input blocks",
  * until they are ready for handling.
@@ -175,7 +157,7 @@ class InputQueue {
   InputBlockState* GetBlockForId(uint64_t aInputBlockId);
 
   void AddInputBlockCallback(uint64_t aInputBlockId,
-                             InputBlockCallback&& aCallback);
+                             InputBlockCallbackInfo&& aCallback);
 
   void SetBrowserGestureResponse(uint64_t aInputBlockId,
                                  BrowserGestureResponse aResponse);
@@ -246,7 +228,7 @@ class InputQueue {
    * active blocks (mActiveTouchBlock, mActiveWheelBlock, etc.).
    */
   InputBlockState* FindBlockForId(uint64_t aInputBlockId,
-                                  InputQueueIterator* aOutFirstInput);
+                                  InputData** aOutFirstInput);
   void ScheduleMainThreadTimeout(const RefPtr<AsyncPanZoomController>& aTarget,
                                  CancelableBlockState* aBlock);
   void MainThreadTimeout(uint64_t aInputBlockId);
@@ -298,7 +280,7 @@ class InputQueue {
   // Maps input block ids to callbacks that will be invoked when the input block
   // is ready for handling.
   using InputBlockCallbackMap =
-      std::unordered_map<uint64_t, InputBlockCallback>;
+      std::unordered_map<uint64_t, InputBlockCallbackInfo>;
   InputBlockCallbackMap mInputBlockCallbacks;
 };
 

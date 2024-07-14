@@ -255,12 +255,17 @@ void VideoStreamBufferController::OnFrameReady(
                                        superframe_size);
     }
 
-    static constexpr float kRttMult = 0.9f;
-    static constexpr TimeDelta kRttMultAddCap = TimeDelta::Millis(200);
+    float rtt_mult = protection_mode_ == kProtectionNackFEC ? 0.0 : 1.0;
+    absl::optional<TimeDelta> rtt_mult_add_cap_ms = absl::nullopt;
+    if (rtt_mult_settings_.has_value()) {
+      rtt_mult = rtt_mult_settings_->rtt_mult_setting;
+      rtt_mult_add_cap_ms =
+          TimeDelta::Millis(rtt_mult_settings_->rtt_mult_add_cap_ms);
+    }
     timing_->SetJitterDelay(
-        jitter_estimator_.GetJitterEstimate(kRttMult, kRttMultAddCap));
+        jitter_estimator_.GetJitterEstimate(rtt_mult, rtt_mult_add_cap_ms));
     timing_->UpdateCurrentDelay(render_time, now);
-  } else {
+  } else if (RttMultExperiment::RttMultEnabled()) {
     jitter_estimator_.FrameNacked();
   }
 

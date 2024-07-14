@@ -7,6 +7,7 @@ const RELATIVE_DIR = "toolkit/components/pdfjs/test/";
 const TESTROOT = "http://example.com/browser/" + RELATIVE_DIR;
 
 var MockFilePicker = SpecialPowers.MockFilePicker;
+MockFilePicker.init(window.browsingContext);
 
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/toolkit/content/tests/browser/common/mockTransfer.js",
@@ -37,7 +38,6 @@ function createPromiseForTransferComplete(expectedFileName, destFile) {
 let tempDir = createTemporarySaveDirectory();
 
 add_setup(async function () {
-  MockFilePicker.init(window.browsingContext);
   mockTransferRegisterer.register();
   registerCleanupFunction(function () {
     mockTransferRegisterer.unregister();
@@ -63,7 +63,6 @@ add_task(async function test_pdf_saveas() {
       );
       saveBrowser(browser);
       await fileSavedPromise;
-      await waitForPdfJSClose(browser);
     }
   );
 });
@@ -76,6 +75,9 @@ add_task(async function test_pdf_saveas() {
  * 3) the new file contains the new form data
  */
 add_task(async function test_pdf_saveas_forms() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["pdfjs.renderInteractiveForms", true]],
+  });
   let destFile = tempDir.clone();
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:blank" },
@@ -102,7 +104,6 @@ add_task(async function test_pdf_saveas_forms() {
       );
       saveBrowser(browser);
       await fileSavedPromise;
-      await waitForPdfJSClose(browser);
     }
   );
 
@@ -119,7 +120,6 @@ add_task(async function test_pdf_saveas_forms() {
         ok(formInput, "PDF contains text field.");
         is(formInput.value, "test", "Text field is filled in.");
       });
-      await waitForPdfJSClose(browser);
     }
   );
 });
@@ -147,7 +147,7 @@ add_task(async function test_pdf_saveas_customname() {
       info("tab created");
 
       // Wait for the PDF's metadata to be fully loaded before downloading, as
-      // otherwise it won't be aware of the content disposition filfename yet.
+      // otherwise it won't be aware of the content disposition filename yet.
       await BrowserTestUtils.waitForContentEvent(
         tab.linkedBrowser,
         "metadataloaded",
@@ -165,7 +165,7 @@ add_task(async function test_pdf_saveas_customname() {
       );
       saveBrowser(tab.linkedBrowser);
       await fileSavedPromise;
-      await waitForPdfJSClose(tab.linkedBrowser, /* closeTab = */ true);
+      BrowserTestUtils.removeTab(tab);
     }
   );
   await SpecialPowers.popPrefEnv();
@@ -211,7 +211,6 @@ add_task(async function () {
         destDirs[0].path,
         "Proposed directory must be based on the domain"
       );
-      await waitForPdfJSClose(browser);
     }
   );
 });

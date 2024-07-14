@@ -29,9 +29,6 @@ parent:
                          int64_t fileId)
     returns (int32_t refCnt, int32_t dBRefCnt, bool result);
 
-  async DoMaintenance()
-    returns (nsresult rv);
-
 child:
   async __delete__();
 };

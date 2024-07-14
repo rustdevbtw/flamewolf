@@ -1,3 +1,5 @@
+#[cfg(feature = "trace")]
+use crate::device::trace;
 pub use crate::pipeline_cache::PipelineCacheValidationError;
 use crate::{
     binding_model::{CreateBindGroupLayoutError, CreatePipelineLayoutError, PipelineLayout},
@@ -5,7 +7,7 @@ use crate::{
     device::{Device, DeviceError, MissingDownlevelFlags, MissingFeatures, RenderPassContext},
     hal_api::HalApi,
     id::{PipelineCacheId, PipelineLayoutId, ShaderModuleId},
-    resource::{ParentDevice, Resource, ResourceInfo, ResourceType},
+    resource::{Resource, ResourceInfo, ResourceType},
     resource_log, validation, Label,
 };
 use arrayvec::ArrayVec;
@@ -51,12 +53,17 @@ pub struct ShaderModule<A: HalApi> {
     pub(crate) device: Arc<Device<A>>,
     pub(crate) interface: Option<validation::Interface>,
     pub(crate) info: ResourceInfo<ShaderModule<A>>,
+    pub(crate) label: String,
 }
 
 impl<A: HalApi> Drop for ShaderModule<A> {
     fn drop(&mut self) {
         if let Some(raw) = self.raw.take() {
-            resource_log!("Destroy raw {}", self.error_ident());
+            resource_log!("Destroy raw ShaderModule {:?}", self.info.label());
+            #[cfg(feature = "trace")]
+            if let Some(t) = self.device.trace.lock().as_mut() {
+                t.add(trace::Action::DestroyShaderModule(self.info.id()));
+            }
             unsafe {
                 use hal::Device;
                 self.device.raw().destroy_shader_module(raw);
@@ -77,11 +84,9 @@ impl<A: HalApi> Resource for ShaderModule<A> {
     fn as_info_mut(&mut self) -> &mut ResourceInfo<Self> {
         &mut self.info
     }
-}
 
-impl<A: HalApi> ParentDevice<A> for ShaderModule<A> {
-    fn device(&self) -> &Arc<Device<A>> {
-        &self.device
+    fn label(&self) -> &str {
+        &self.label
     }
 }
 
@@ -224,7 +229,13 @@ pub struct ComputePipeline<A: HalApi> {
 impl<A: HalApi> Drop for ComputePipeline<A> {
     fn drop(&mut self) {
         if let Some(raw) = self.raw.take() {
-            resource_log!("Destroy raw {}", self.error_ident());
+            resource_log!("Destroy raw ComputePipeline {:?}", self.info.label());
+
+            #[cfg(feature = "trace")]
+            if let Some(t) = self.device.trace.lock().as_mut() {
+                t.add(trace::Action::DestroyComputePipeline(self.info.id()));
+            }
+
             unsafe {
                 use hal::Device;
                 self.device.raw().destroy_compute_pipeline(raw);
@@ -244,12 +255,6 @@ impl<A: HalApi> Resource for ComputePipeline<A> {
 
     fn as_info_mut(&mut self) -> &mut ResourceInfo<Self> {
         &mut self.info
-    }
-}
-
-impl<A: HalApi> ParentDevice<A> for ComputePipeline<A> {
-    fn device(&self) -> &Arc<Device<A>> {
-        &self.device
     }
 }
 
@@ -292,7 +297,13 @@ pub struct PipelineCache<A: HalApi> {
 impl<A: HalApi> Drop for PipelineCache<A> {
     fn drop(&mut self) {
         if let Some(raw) = self.raw.take() {
-            resource_log!("Destroy raw {}", self.error_ident());
+            resource_log!("Destroy raw PipelineCache {:?}", self.info.label());
+
+            #[cfg(feature = "trace")]
+            if let Some(t) = self.device.trace.lock().as_mut() {
+                t.add(trace::Action::DestroyPipelineCache(self.info.id()));
+            }
+
             unsafe {
                 use hal::Device;
                 self.device.raw().destroy_pipeline_cache(raw);
@@ -312,12 +323,6 @@ impl<A: HalApi> Resource for PipelineCache<A> {
 
     fn as_info_mut(&mut self) -> &mut ResourceInfo<Self> {
         &mut self.info
-    }
-}
-
-impl<A: HalApi> ParentDevice<A> for PipelineCache<A> {
-    fn device(&self) -> &Arc<Device<A>> {
-        &self.device
     }
 }
 
@@ -551,7 +556,13 @@ pub struct RenderPipeline<A: HalApi> {
 impl<A: HalApi> Drop for RenderPipeline<A> {
     fn drop(&mut self) {
         if let Some(raw) = self.raw.take() {
-            resource_log!("Destroy raw {}", self.error_ident());
+            resource_log!("Destroy raw RenderPipeline {:?}", self.info.label());
+
+            #[cfg(feature = "trace")]
+            if let Some(t) = self.device.trace.lock().as_mut() {
+                t.add(trace::Action::DestroyRenderPipeline(self.info.id()));
+            }
+
             unsafe {
                 use hal::Device;
                 self.device.raw().destroy_render_pipeline(raw);
@@ -571,12 +582,6 @@ impl<A: HalApi> Resource for RenderPipeline<A> {
 
     fn as_info_mut(&mut self) -> &mut ResourceInfo<Self> {
         &mut self.info
-    }
-}
-
-impl<A: HalApi> ParentDevice<A> for RenderPipeline<A> {
-    fn device(&self) -> &Arc<Device<A>> {
-        &self.device
     }
 }
 

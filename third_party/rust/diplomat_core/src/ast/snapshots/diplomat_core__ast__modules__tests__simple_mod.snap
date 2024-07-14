@@ -44,7 +44,8 @@ declared_types:
                   - NonOpaqueStruct
               lifetimes: []
           lifetime_env: {}
-          attrs: {}
+          attrs:
+            cfg: []
         - name: set_a
           docs:
             - ""
@@ -65,9 +66,11 @@ declared_types:
                 Primitive: i32
           return_type: ~
           lifetime_env: {}
-          attrs: {}
+          attrs:
+            cfg: []
       output_only: false
-      attrs: {}
+      attrs:
+        cfg: []
   OpaqueStruct:
     Opaque:
       name: OpaqueStruct
@@ -91,7 +94,8 @@ declared_types:
                     - OpaqueStruct
                 lifetimes: []
           lifetime_env: {}
-          attrs: {}
+          attrs:
+            cfg: []
         - name: get_string
           docs:
             - ""
@@ -114,9 +118,10 @@ declared_types:
                   - String
               lifetimes: []
           lifetime_env: {}
-          attrs: {}
+          attrs:
+            cfg: []
       mutability: Immutable
-      attrs: {}
+      attrs:
+        cfg: []
 sub_modules: []
-attrs: {}
 

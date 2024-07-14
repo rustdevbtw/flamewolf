@@ -145,6 +145,7 @@ class NetworkEventContentWatcher {
       browsingContextID: resource.browsingContextID,
       innerWindowId: resource.innerWindowId,
       resourceId: resource.resourceId,
+      resourceType: resource.resourceType,
       receivedUpdates: [],
       resourceUpdates: {
         // Requests already come with request cookies and headers, so those
@@ -245,6 +246,7 @@ class NetworkEventContentWatcher {
   _emitUpdate(networkEvent) {
     this.onUpdated([
       {
+        resourceType: networkEvent.resourceType,
         resourceId: networkEvent.resourceId,
         resourceUpdates: networkEvent.resourceUpdates,
         browsingContextID: networkEvent.browsingContextID,

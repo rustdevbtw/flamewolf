@@ -54,7 +54,10 @@ DirectoryLockImpl::DirectoryLockImpl(
 
 DirectoryLockImpl::~DirectoryLockImpl() {
   AssertIsOnOwningThread();
-  MOZ_DIAGNOSTIC_ASSERT(!mRegistered);
+
+  if (!mDropped) {
+    Drop();
+  }
 }
 
 #ifdef DEBUG
@@ -295,20 +298,15 @@ void DirectoryLockImpl::AssertIsAcquiredExclusively() {
 }
 #endif
 
-RefPtr<BoolPromise> DirectoryLockImpl::Drop() {
+void DirectoryLockImpl::Drop() {
   AssertIsOnOwningThread();
   MOZ_ASSERT_IF(!mRegistered, mBlocking.IsEmpty());
 
   mDropped.Flip();
 
-  return InvokeAsync(GetCurrentSerialEventTarget(), __func__,
-                     [self = RefPtr(this)]() {
-                       if (self->mRegistered) {
-                         self->Unregister();
-                       }
-
-                       return BoolPromise::CreateAndResolve(true, __func__);
-                     });
+  if (mRegistered) {
+    Unregister();
+  }
 }
 
 void DirectoryLockImpl::OnInvalidate(std::function<void()>&& aCallback) {

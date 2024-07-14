@@ -404,14 +404,14 @@ nsresult HTMLEditorEventListener::MouseDown(MouseEvent* aMouseEvent) {
   return rv;
 }
 
-nsresult HTMLEditorEventListener::PointerClick(
-    WidgetMouseEvent* aPointerClickEvent) {
+nsresult HTMLEditorEventListener::MouseClick(
+    WidgetMouseEvent* aMouseClickEvent) {
   if (NS_WARN_IF(DetachedFromEditor())) {
     return NS_OK;
   }
 
   RefPtr<Element> element = Element::FromEventTargetOrNull(
-      aPointerClickEvent->GetOriginalDOMEventTarget());
+      aMouseClickEvent->GetOriginalDOMEventTarget());
   if (NS_WARN_IF(!element)) {
     return NS_ERROR_FAILURE;
   }
@@ -428,9 +428,9 @@ nsresult HTMLEditorEventListener::PointerClick(
     return NS_OK;
   }
 
-  nsresult rv = EditorEventListener::PointerClick(aPointerClickEvent);
+  nsresult rv = EditorEventListener::MouseClick(aMouseClickEvent);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                       "EditorEventListener::PointerClick() failed");
+                       "EditorEventListener::MouseClick() failed");
   return rv;
 }
 

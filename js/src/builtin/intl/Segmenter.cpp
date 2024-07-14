@@ -432,6 +432,7 @@ struct SentenceSegmenter {
   static constexpr auto& create = capi::ICU4XSentenceSegmenter_create;
   static constexpr auto& destroy = capi::ICU4XSentenceSegmenter_destroy;
 };
+#endif
 
 /**
  * Create a new ICU4X segmenter instance.
@@ -445,7 +446,6 @@ static typename Interface::Segmenter* CreateSegmenter(JSContext* cx) {
   }
   return result.ok;
 }
-#endif
 
 static bool EnsureInternalsResolved(JSContext* cx,
                                     Handle<SegmenterObject*> segmenter) {
@@ -749,8 +749,11 @@ static auto* CreateBreakIterator(Handle<T*> segments) {
 
   size_t length = segments->getString()->length();
 
+  using Unsigned = typename mozilla::UnsignedStdintTypeForSize<sizeof(
+      typename Interface::Char)>::Type;
+
   auto* seg = static_cast<const typename Interface::Segmenter*>(segmenter);
-  auto* ch = static_cast<const typename Interface::Char*>(chars);
+  auto* ch = static_cast<const Unsigned*>(chars);
   return Interface::create(seg, ch, length);
 }
 

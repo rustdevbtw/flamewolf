@@ -60,7 +60,6 @@ class HomeActivityTestRule(
         etpPolicy: ETPPolicy = getETPPolicy(settings),
         composeTopSitesEnabled: Boolean = false,
         isLocationPermissionEnabled: SitePermissionsRules.Action = getFeaturePermission(PhoneFeature.LOCATION, settings),
-        isNavigationToolbarEnabled: Boolean = settings.navigationToolbarEnabled,
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
@@ -75,7 +74,6 @@ class HomeActivityTestRule(
         this.etpPolicy = etpPolicy
         this.composeTopSitesEnabled = composeTopSitesEnabled
         this.isLocationPermissionEnabled = isLocationPermissionEnabled
-        this.isNavigationToolbarEnabled = isNavigationToolbarEnabled
     }
 
     /**
@@ -175,7 +173,6 @@ class HomeActivityIntentTestRule internal constructor(
         etpPolicy: ETPPolicy = getETPPolicy(settings),
         composeTopSitesEnabled: Boolean = false,
         isLocationPermissionEnabled: SitePermissionsRules.Action = getFeaturePermission(PhoneFeature.LOCATION, settings),
-        isNavigationToolbarEnabled: Boolean = settings.navigationToolbarEnabled,
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
@@ -190,7 +187,6 @@ class HomeActivityIntentTestRule internal constructor(
         this.etpPolicy = etpPolicy
         this.composeTopSitesEnabled = composeTopSitesEnabled
         this.isLocationPermissionEnabled = isLocationPermissionEnabled
-        this.isNavigationToolbarEnabled = isNavigationToolbarEnabled
     }
 
     private val longTapUserPreference = getLongPressTimeout()
@@ -260,7 +256,6 @@ class HomeActivityIntentTestRule internal constructor(
         isOpenInAppBannerEnabled = settings.shouldShowOpenInAppBanner
         etpPolicy = getETPPolicy(settings)
         isLocationPermissionEnabled = getFeaturePermission(PhoneFeature.LOCATION, settings)
-        isNavigationToolbarEnabled = settings.navigationToolbarEnabled
     }
 
     companion object {

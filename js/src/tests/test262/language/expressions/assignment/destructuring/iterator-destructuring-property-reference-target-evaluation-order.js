@@ -74,9 +74,9 @@ function targetKey() {
 
 assert.compareArray(log, [
     "source", "iterator",
-    "target", "target-key",
+    "target", "target-key", "target-key-tostring",
     "iterator-step", "iterator-done",
-    "target-key-tostring", "set",
+    "set",
 ]);
 
 reportCompare(0, 0);

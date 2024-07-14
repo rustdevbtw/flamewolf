@@ -84,47 +84,28 @@ class AnalysisExplainer extends MozLitElement {
     `;
   }
 
+  // It turns out we must always return a non-empty string: if not, the fluent
+  // resolver will complain that the variable value is missing. We use the
+  // placeholder "retailer", which should never be visible to users.
   getRetailerDisplayName() {
+    let defaultName = "retailer";
     if (!this.productUrl) {
-      return null;
+      return defaultName;
     }
     let url = new URL(this.productUrl);
     let hostname = url.hostname;
     let displayNames = {
       "www.amazon.com": "Amazon",
-      "www.amazon.de": "Amazon",
-      "www.amazon.fr": "Amazon",
-      // only other regional domain is bestbuy.ca
       "www.bestbuy.com": "Best Buy",
-      // regional urls redirect to walmart.com
       "www.walmart.com": "Walmart",
     };
-    return displayNames[hostname];
+    return displayNames[hostname] ?? defaultName;
   }
 
   handleReviewQualityUrlClicked(e) {
     if (e.target.localName == "a" && e.button == 0) {
       Glean.shopping.surfaceShowQualityExplainerUrlClicked.record();
     }
-  }
-
-  createReviewsExplainer() {
-    const retailer = this.getRetailerDisplayName();
-
-    if (retailer) {
-      return html`
-        <p
-          data-l10n-id="shopping-analysis-explainer-highlights-description"
-          data-l10n-args="${JSON.stringify({ retailer })}"
-        ></p>
-      `;
-    }
-
-    return html`
-      <p
-        data-l10n-id="shopping-analysis-explainer-highlights-description-unknown-retailer"
-      ></p>
-    `;
   }
 
   // Bug 1857620: rather than manually set the utm parameters on the SUMO link,
@@ -148,7 +129,12 @@ class AnalysisExplainer extends MozLitElement {
             <p
               data-l10n-id="shopping-analysis-explainer-adjusted-rating-description"
             ></p>
-            ${this.createReviewsExplainer()}
+            <p
+              data-l10n-id="shopping-analysis-explainer-highlights-description"
+              data-l10n-args="${JSON.stringify({
+                retailer: this.getRetailerDisplayName(),
+              })}"
+            ></p>
             <p
               data-l10n-id="shopping-analysis-explainer-learn-more2"
               @click=${this.handleReviewQualityUrlClicked}

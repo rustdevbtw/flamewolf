@@ -98,11 +98,6 @@ add_task(async function otherSuggestedIndex_noSuggestions() {
     { heuristic: true },
     // TestProvider result
     { suggestedIndex: 1, resultSpan: 2 },
-    // quick suggest
-    {
-      type: UrlbarUtils.RESULT_TYPE.URL,
-      providerName: UrlbarProviderQuickSuggest.name,
-    },
     // history
     { type: UrlbarUtils.RESULT_TYPE.URL },
     { type: UrlbarUtils.RESULT_TYPE.URL },
@@ -110,6 +105,11 @@ add_task(async function otherSuggestedIndex_noSuggestions() {
     { type: UrlbarUtils.RESULT_TYPE.URL },
     { type: UrlbarUtils.RESULT_TYPE.URL },
     { type: UrlbarUtils.RESULT_TYPE.URL },
+    // quick suggest
+    {
+      type: UrlbarUtils.RESULT_TYPE.URL,
+      providerName: UrlbarProviderQuickSuggest.name,
+    },
   ]);
 });
 
@@ -134,16 +134,16 @@ add_task(async function otherSuggestedIndex_suggestionsFirst() {
         type: UrlbarUtils.RESULT_TYPE.SEARCH,
         payload: { suggestion: SPONSORED_SEARCH_STRING + "bar" },
       },
-      // quick suggest
-      {
-        type: UrlbarUtils.RESULT_TYPE.URL,
-        providerName: UrlbarProviderQuickSuggest.name,
-      },
       // history
       { type: UrlbarUtils.RESULT_TYPE.URL },
       { type: UrlbarUtils.RESULT_TYPE.URL },
       { type: UrlbarUtils.RESULT_TYPE.URL },
       { type: UrlbarUtils.RESULT_TYPE.URL },
+      // quick suggest
+      {
+        type: UrlbarUtils.RESULT_TYPE.URL,
+        providerName: UrlbarProviderQuickSuggest.name,
+      },
     ]);
   });
   await SpecialPowers.popPrefEnv();
@@ -161,16 +161,16 @@ add_task(async function otherSuggestedIndex_suggestionsLast() {
       { heuristic: true },
       // TestProvider result
       { suggestedIndex: 1, resultSpan: 2 },
-      // quick suggest
-      {
-        type: UrlbarUtils.RESULT_TYPE.URL,
-        providerName: UrlbarProviderQuickSuggest.name,
-      },
       // history
       { type: UrlbarUtils.RESULT_TYPE.URL },
       { type: UrlbarUtils.RESULT_TYPE.URL },
       { type: UrlbarUtils.RESULT_TYPE.URL },
       { type: UrlbarUtils.RESULT_TYPE.URL },
+      // quick suggest
+      {
+        type: UrlbarUtils.RESULT_TYPE.URL,
+        providerName: UrlbarProviderQuickSuggest.name,
+      },
       // search suggestions
       {
         type: UrlbarUtils.RESULT_TYPE.SEARCH,

@@ -154,7 +154,7 @@ already_AddRefed<ConnectionWorker> ConnectionWorker::Create(
   RefPtr<InitializeRunnable> runnable =
       new InitializeRunnable(aWorkerPrivate, c->mProxy, networkInfo);
 
-  runnable->Dispatch(aWorkerPrivate, Canceling, aRv);
+  runnable->Dispatch(Canceling, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -201,7 +201,7 @@ void ConnectionProxy::Shutdown() {
 
   ErrorResult rv;
   // This runnable _must_ be executed.
-  runnable->Dispatch(mWorkerRef->Private(), Killing, rv);
+  runnable->Dispatch(Killing, rv);
   if (NS_WARN_IF(rv.Failed())) {
     rv.SuppressException();
   }

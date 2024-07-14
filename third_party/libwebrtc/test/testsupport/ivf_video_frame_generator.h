@@ -14,9 +14,7 @@
 #include <memory>
 #include <string>
 
-#include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
-#include "api/environment/environment.h"
 #include "api/sequence_checker.h"
 #include "api/test/frame_generator_interface.h"
 #include "api/video/video_codec_type.h"
@@ -32,7 +30,7 @@ namespace test {
 // All methods except constructor must be used from the same thread.
 class IvfVideoFrameGenerator : public FrameGeneratorInterface {
  public:
-  IvfVideoFrameGenerator(const Environment& env, absl::string_view file_name);
+  explicit IvfVideoFrameGenerator(const std::string& file_name);
   ~IvfVideoFrameGenerator() override;
 
   VideoFrameData NextFrame() override;
@@ -58,6 +56,8 @@ class IvfVideoFrameGenerator : public FrameGeneratorInterface {
   };
 
   void OnFrameDecoded(const VideoFrame& decoded_frame);
+  static std::unique_ptr<VideoDecoder> CreateVideoDecoder(
+      VideoCodecType codec_type);
 
   DecodedCallback callback_;
   std::unique_ptr<IvfFileReader> file_reader_;

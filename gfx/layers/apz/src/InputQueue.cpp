@@ -141,9 +141,7 @@ APZEventResult InputQueue::ReceiveTouchInput(
       block->SetDuringFastFling();
       block->SetConfirmedTargetApzc(
           aTarget, InputBlockState::TargetConfirmationState::eConfirmed,
-          InputQueueIterator() /* the block was just created so it has no events
-                                */
-          ,
+          nullptr /* the block was just created so it has no events */,
           false /* not a scrollbar drag */);
       block->SetAllowedTouchBehaviors(currentBehaviors);
       INPQ_LOG("block %p tagged as fast-motion\n", block.get());
@@ -785,20 +783,19 @@ InputBlockState* InputQueue::GetBlockForId(uint64_t aInputBlockId) {
 }
 
 void InputQueue::AddInputBlockCallback(uint64_t aInputBlockId,
-                                       InputBlockCallback&& aCallbackInfo) {
+                                       InputBlockCallbackInfo&& aCallbackInfo) {
   mInputBlockCallbacks.insert(InputBlockCallbackMap::value_type(
       aInputBlockId, std::move(aCallbackInfo)));
 }
 
-InputBlockState* InputQueue::FindBlockForId(
-    uint64_t aInputBlockId, InputQueueIterator* aOutFirstInput) {
-  for (auto it = mQueuedInputs.begin(), end = mQueuedInputs.end(); it != end;
-       ++it) {
-    if ((*it)->Block()->GetBlockId() == aInputBlockId) {
+InputBlockState* InputQueue::FindBlockForId(uint64_t aInputBlockId,
+                                            InputData** aOutFirstInput) {
+  for (const auto& queuedInput : mQueuedInputs) {
+    if (queuedInput->Block()->GetBlockId() == aInputBlockId) {
       if (aOutFirstInput) {
-        *aOutFirstInput = InputQueueIterator(it, end);
+        *aOutFirstInput = queuedInput->Input();
       }
-      return (*it)->Block();
+      return queuedInput->Block();
     }
   }
 
@@ -827,7 +824,7 @@ InputBlockState* InputQueue::FindBlockForId(
   // Since we didn't encounter this block while iterating through mQueuedInputs,
   // it must have no events associated with it at the moment.
   if (aOutFirstInput) {
-    *aOutFirstInput = InputQueueIterator();
+    *aOutFirstInput = nullptr;
   }
   return block;
 }
@@ -842,7 +839,7 @@ void InputQueue::MainThreadTimeout(uint64_t aInputBlockId) {
 
   INPQ_LOG("got a main thread timeout; block=%" PRIu64 "\n", aInputBlockId);
   bool success = false;
-  InputQueueIterator firstInput;
+  InputData* firstInput = nullptr;
   InputBlockState* inputBlock = FindBlockForId(aInputBlockId, &firstInput);
   if (inputBlock && inputBlock->AsCancelableBlock()) {
     CancelableBlockState* block = inputBlock->AsCancelableBlock();
@@ -929,7 +926,7 @@ void InputQueue::SetConfirmedTargetApzc(
   INPQ_LOG("got a target apzc; block=%" PRIu64 " guid=%s\n", aInputBlockId,
            aTargetApzc ? ToString(aTargetApzc->GetGuid()).c_str() : "");
   bool success = false;
-  InputQueueIterator firstInput;
+  InputData* firstInput = nullptr;
   InputBlockState* inputBlock = FindBlockForId(aInputBlockId, &firstInput);
   if (inputBlock && inputBlock->AsCancelableBlock()) {
     CancelableBlockState* block = inputBlock->AsCancelableBlock();
@@ -960,7 +957,7 @@ void InputQueue::ConfirmDragBlock(
            aTargetApzc ? ToString(aTargetApzc->GetGuid()).c_str() : "",
            aDragMetrics.mViewId);
   bool success = false;
-  InputQueueIterator firstInput;
+  InputData* firstInput = nullptr;
   InputBlockState* inputBlock = FindBlockForId(aInputBlockId, &firstInput);
   if (inputBlock && inputBlock->AsDragBlock()) {
     DragBlockState* block = inputBlock->AsDragBlock();
@@ -1010,35 +1007,64 @@ void InputQueue::SetBrowserGestureResponse(uint64_t aInputBlockId,
   ProcessQueue();
 }
 
-static APZHandledResult GetHandledResultFor(
-    const AsyncPanZoomController* aApzc,
-    const InputBlockState* aCurrentInputBlock, const InputData& aEvent) {
+static APZHandledResult GetHandledResultFor(const AsyncPanZoomController* aApzc,
+                                            InputBlockState* aCurrentInputBlock,
+                                            nsEventStatus aEagerStatus,
+                                            const InputData& aEvent) {
   if (aCurrentInputBlock->ShouldDropEvents()) {
     return APZHandledResult{APZHandledPlace::HandledByContent, aApzc};
   }
-
-  // For the remainder of the function, we know the event was *not*
-  // preventDefault()-ed, so we can pass DispatchToContent::No to helpers.
 
   if (!aApzc) {
     return APZHandledResult{APZHandledPlace::HandledByContent, aApzc};
   }
 
-  Maybe<APZHandledResult> result =
-      APZHandledResult::Initialize(aApzc, DispatchToContent::No);
-
   if (aEvent.mInputType == MULTITOUCH_INPUT) {
+    // If the event is a multi touch event and is disallowed by touch-action,
+    // treat it as if a touch event listener had preventDefault()-ed it.
     PointerEventsConsumableFlags consumableFlags =
         aApzc->ArePointerEventsConsumable(aCurrentInputBlock->AsTouchBlock(),
                                           aEvent.AsMultiTouchInput());
-    APZHandledResult::UpdateForTouchEvent(result, *aCurrentInputBlock,
-                                          consumableFlags, aApzc,
-                                          DispatchToContent::No);
+    if (!consumableFlags.mAllowedByTouchAction) {
+      APZHandledResult result =
+          APZHandledResult{APZHandledPlace::HandledByContent, aApzc};
+      result.mOverscrollDirections = ScrollDirections();
+      return result;
+    }
   }
-  // Initialize() and UpdateForTouchEvent() can only produce Nothing() in
-  // case of aDispatchToContent=true.
-  MOZ_RELEASE_ASSERT(result.isSome());
-  return *result;
+
+  if (aApzc->IsRootContent()) {
+    // If the eager status was eIgnore, we would have returned an eager result
+    // of Unhandled if there had been no event handler. Now that we know the
+    // event handler did not preventDefault() the input block, return Unhandled
+    // as the delayed result.
+    // FIXME: A more accurate implementation would be to re-do the entire
+    // computation that determines the status (i.e. calling
+    // ArePointerEventsConsumable()) with the confirmed target APZC.
+    return (aEagerStatus == nsEventStatus_eConsumeDoDefault &&
+            aApzc->CanVerticalScrollWithDynamicToolbar())
+               ? APZHandledResult{APZHandledPlace::HandledByRoot, aApzc}
+               : APZHandledResult{APZHandledPlace::Unhandled, aApzc, true};
+  }
+
+  bool mayTriggerPullToRefresh =
+      aCurrentInputBlock->GetOverscrollHandoffChain()
+          ->ScrollingUpWillTriggerPullToRefresh(aApzc);
+  if (mayTriggerPullToRefresh) {
+    return APZHandledResult{APZHandledPlace::Unhandled, aApzc, true};
+  }
+
+  auto [willMoveDynamicToolbar, rootApzc] =
+      aCurrentInputBlock->GetOverscrollHandoffChain()
+          ->ScrollingDownWillMoveDynamicToolbar(aApzc);
+  if (!willMoveDynamicToolbar) {
+    return APZHandledResult{APZHandledPlace::HandledByContent, aApzc};
+  }
+
+  // Return `HandledByRoot` if scroll positions in all relevant APZC are at the
+  // bottom edge and if there are contents covered by the dynamic toolbar.
+  MOZ_ASSERT(rootApzc && rootApzc->IsRootContent());
+  return APZHandledResult{APZHandledPlace::HandledByRoot, rootApzc};
 }
 
 bool InputQueue::ProcessQueue() {
@@ -1102,8 +1128,9 @@ bool InputQueue::ProcessQueue() {
                  "\n",
                  curBlock, curBlock->GetBlockId());
         APZHandledResult handledResult =
-            GetHandledResultFor(target, curBlock, *(mQueuedInputs[0]->Input()));
-        it->second(curBlock->GetBlockId(), handledResult);
+            GetHandledResultFor(target, curBlock, it->second.mEagerStatus,
+                                *(mQueuedInputs[0]->Input()));
+        it->second.mCallback(curBlock->GetBlockId(), handledResult);
         // The callback is one-shot; discard it after calling it.
         mInputBlockCallbacks.erase(it);
       }
@@ -1185,7 +1212,7 @@ bool InputQueue::CanDiscardBlock(InputBlockState* aBlock) {
       aBlock->MustStayActive()) {
     return false;
   }
-  InputQueueIterator firstInput;
+  InputData* firstInput = nullptr;
   FindBlockForId(aBlock->GetBlockId(), &firstInput);
   if (firstInput) {
     // The block has at least one input event still in the queue, so it's

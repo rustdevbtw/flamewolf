@@ -15,9 +15,6 @@
  * they can manipulate the selection further, and check the results again.
  * We want to ensure the final selection is the expected one, even if in the
  * future we change our trimming strategy for the input field value.
- *
- * Note: there's a few +-1 adjustments to text lengths that are apparently
- * necessary in --headless mode.
  */
 
 const tests = [
@@ -30,55 +27,18 @@ const tests = [
       return [0, gURLBar.value.length];
     },
     manipulate() {
-      EventUtils.synthesizeKey("KEY_Home");
-    },
-    get modifiedSelection() {
-      // Cursor must move to zero, regardless of any untrimming.
-      return [0, 0];
-    },
-  },
-  {
-    description: "Test CTRL/META LEFT starting from full selection",
-    openPanel() {
-      EventUtils.synthesizeKey("l", { accelKey: true });
-    },
-    get selection() {
-      return [0, gURLBar.value.length];
-    },
-    manipulate() {
+      // Cursor must move to the first visible character, regardless of any
+      // "untrimming" we could be doing.
+      this._visibleValue = gURLBar.value;
       if (AppConstants.platform == "macosx") {
-        // Synthesized key events work differently from native ones, here
-        // we simulate the native behavior.
-        EventUtils.synthesizeKey("KEY_ArrowLeft", {
-          type: "keydown",
-          metaKey: true,
-        });
-        EventUtils.synthesizeKey("KEY_ArrowLeft", { type: "keyup" });
-        EventUtils.synthesizeKey("KEY_Meta", { type: "keyup" });
+        EventUtils.synthesizeKey("KEY_ArrowLeft", { metaKey: true });
       } else {
-        EventUtils.synthesizeKey("KEY_ArrowLeft", { ctrlKey: true });
+        EventUtils.synthesizeKey("KEY_Home");
       }
     },
     get modifiedSelection() {
-      return [0, 0];
-    },
-  },
-  {
-    description: "Test CTRL A starting from full selection",
-    skipIf() {
-      return AppConstants.platform != "macosx";
-    },
-    openPanel() {
-      EventUtils.synthesizeKey("l", { accelKey: true });
-    },
-    get selection() {
-      return [0, gURLBar.value.length];
-    },
-    manipulate() {
-      EventUtils.synthesizeKey("A", { ctrlKey: true });
-    },
-    get modifiedSelection() {
-      return [0, 0];
+      let start = gURLBar.value.indexOf(this._visibleValue);
+      return [start, start];
     },
   },
   {
@@ -137,7 +97,7 @@ const tests = [
       this._expectedSelectedText = gURLBar.value.substring(0, 5);
       await selectWithMouseDrag(
         getTextWidth(gURLBar.value[0]) / 2 - 1,
-        getTextWidth(gURLBar.value.substring(0, 5)) + 1
+        getTextWidth(gURLBar.value.substring(0, 5))
       );
     },
     get selection() {
@@ -191,8 +151,8 @@ const tests = [
     async openPanel() {
       this._expectedSelectedText = gURLBar.value.substring(5, 10);
       await selectWithMouseDrag(
-        getTextWidth(gURLBar.value.substring(0, 5)) + 1,
-        getTextWidth(gURLBar.value.substring(0, 10)) + 1
+        getTextWidth(gURLBar.value.substring(0, 5)),
+        getTextWidth(gURLBar.value.substring(0, 10))
       );
     },
     get selection() {
@@ -256,9 +216,6 @@ add_task(async function http() {
 async function doTest(url) {
   await BrowserTestUtils.withNewTab(url, async () => {
     for (let test of tests) {
-      if (test.skipIf?.()) {
-        continue;
-      }
       gURLBar.blur();
       info(test.description);
       await UrlbarTestUtils.promisePopupOpen(window, async () => {

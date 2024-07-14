@@ -209,7 +209,7 @@ void FileBlobImpl::GetTypeInternal(nsAString& aType,
           new GetTypeRunnable(workerPrivate, this, aProofOfLock);
 
       ErrorResult rv;
-      runnable->Dispatch(workerPrivate, Canceling, rv);
+      runnable->Dispatch(Canceling, rv);
       if (NS_WARN_IF(rv.Failed())) {
         rv.SuppressException();
         return;

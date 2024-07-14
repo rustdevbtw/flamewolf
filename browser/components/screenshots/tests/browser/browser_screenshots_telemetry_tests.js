@@ -427,8 +427,6 @@ add_task(async function test_extra_telemetry() {
       let retryButton = helper.getDialogButton("retry");
       retryButton.click();
 
-      await helper.waitForOverlay();
-
       info("waiting for panel");
       panel = await helper.waitForPanel();
 

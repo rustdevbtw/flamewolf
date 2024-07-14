@@ -15,7 +15,6 @@
 #include "nsServiceManagerUtils.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "mozilla/gfx/Logging.h"
-#include "mozilla/LookAndFeel.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/Sprintf.h"
@@ -929,14 +928,16 @@ FontFamily gfxDWriteFontList::GetDefaultFontForPlatform(
   }
 
   // otherwise, use local default
-  gfxFontStyle fontStyle;
-  nsAutoString systemFontName;
-  if (!mozilla::LookAndFeel::GetFont(mozilla::StyleSystemFont::MessageBox,
-                                     systemFontName, fontStyle)) {
-    return ff;
+  NONCLIENTMETRICSW ncm;
+  ncm.cbSize = sizeof(ncm);
+  BOOL status =
+      ::SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0);
+
+  if (status) {
+    ff = FindFamily(aPresContext,
+                    NS_ConvertUTF16toUTF8(ncm.lfMessageFont.lfFaceName));
   }
 
-  ff = FindFamily(aPresContext, NS_ConvertUTF16toUTF8(systemFontName));
   return ff;
 }
 

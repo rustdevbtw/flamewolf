@@ -17,9 +17,6 @@ add_setup(async () => {
   Services.prefs.setCharPref("browser.protocolhandler.loglevel", "debug");
   registerCleanupFunction(() => {
     Services.prefs.clearUserPref("browser.protocolhandler.loglevel");
-    // remove all permissions in the permission manager, where we stored
-    // a timeout after clicking the 'x' and 'not now' buttons.
-    Services.perms.removeAll();
   });
 
   Services.prefs.clearUserPref("browser.mailto.dualPrompt");
@@ -34,12 +31,94 @@ add_setup(async () => {
   );
 });
 
+/* helper function to delete site specific settings needed to clean up
+ * the testing setup after some of these tests.
+ *
+ * @see: nsIContentPrefService2.idl
+ */
+function _deleteSiteSpecificSetting(domain, setting, context = null) {
+  const contentPrefs = Cc["@mozilla.org/content-pref/service;1"].getService(
+    Ci.nsIContentPrefService2
+  );
+
+  return contentPrefs.removeByDomainAndName(domain, setting, context, {
+    handleResult(_) {},
+    handleCompletion() {
+      Assert.ok(true, "setting successfully deleted.");
+    },
+    handleError(_) {
+      Assert.ok(false, "could not delete site specific setting.");
+    },
+  });
+}
+
+// site specific settings
 const protocol = "mailto";
-const test_domain = "example.com";
+const subdomain = (Math.random() + 1).toString(36).substring(7);
+const sss_domain = "example.com";
+const ss_setting = "system.under.test";
 
 const selector_mailto_prompt =
   'notification-message[message-bar-type="infobar"]' +
   '[value="OS Protocol Registration: mailto"]';
+
+add_task(async function check_null_value() {
+  Assert.equal(
+    null,
+    await WebProtocolHandlerRegistrar._getSiteSpecificSetting(
+      `${subdomain}.${sss_domain}`,
+      ss_setting
+    ),
+    "site specific setting should initially not exist and return null."
+  );
+});
+
+add_task(async function check_default_value() {
+  Assert.equal(
+    true,
+    await WebProtocolHandlerRegistrar._getSiteSpecificSetting(
+      `${subdomain}.${sss_domain}`,
+      ss_setting,
+      null,
+      true
+    ),
+    "site specific setting with a fallback/default value set to true."
+  );
+});
+
+add_task(async function check_save_value() {
+  WebProtocolHandlerRegistrar._saveSiteSpecificSetting(
+    `${subdomain}.${sss_domain}`,
+    ss_setting,
+    ss_setting
+  );
+
+  let fetchedSiteSpecificSetting;
+  try {
+    fetchedSiteSpecificSetting =
+      await WebProtocolHandlerRegistrar._getSiteSpecificSetting(
+        `${subdomain}.${sss_domain}`,
+        ss_setting
+      );
+  } finally {
+    // make sure the cleanup happens, no matter what
+    _deleteSiteSpecificSetting(`${subdomain}.${sss_domain}`, ss_setting);
+  }
+  Assert.equal(
+    ss_setting,
+    fetchedSiteSpecificSetting,
+    "site specific setting save and retrieve test."
+  );
+
+  Assert.equal(
+    null,
+    await WebProtocolHandlerRegistrar._getSiteSpecificSetting(
+      `${subdomain}.${sss_domain}`,
+      ss_setting
+    ),
+    "site specific setting should not exist after delete."
+  );
+});
 
 add_task(async function check_installHash() {
   Assert.notEqual(
@@ -52,17 +131,17 @@ add_task(async function check_installHash() {
 add_task(async function check_addWebProtocolHandler() {
   let currentHandler = WebProtocolHandlerRegistrar._addWebProtocolHandler(
     protocol,
-    test_domain,
-    "https://" + test_domain
+    sss_domain,
+    "https://" + sss_domain
   );
 
   Assert.equal(
-    test_domain,
+    sss_domain,
     currentHandler.name,
     "does the handler have the right name?"
   );
   Assert.equal(
-    "https://" + test_domain,
+    "https://" + sss_domain,
     currentHandler.uriTemplate,
     "does the handler have the right uri?"
   );
@@ -127,12 +206,8 @@ function test_rollout(
 add_task(async function check_no_button() {
   let cleanup = await test_rollout(true, true);
 
-  const url = "https://" + test_domain;
-  WebProtocolHandlerRegistrar._addWebProtocolHandler(
-    protocol,
-    test_domain,
-    url
-  );
+  const url = "https://" + sss_domain;
+  WebProtocolHandlerRegistrar._addWebProtocolHandler(protocol, sss_domain, url);
 
   await BrowserTestUtils.withNewTab("https://example.com/", async () => {
     Assert.notEqual(
@@ -173,9 +248,7 @@ add_task(async function check_no_button() {
 });
 
 add_task(async function check_x_button() {
-  let timeout_x = 15;
-  let cleanup = await test_rollout(true, true, 0, timeout_x);
-  Services.perms.removeAll();
+  let cleanup = await test_rollout(true, true, 0, 15);
 
   await BrowserTestUtils.withNewTab("https://example.com/", async browser => {
     Assert.notEqual(
@@ -208,20 +281,6 @@ add_task(async function check_x_button() {
       document.querySelector(selector_mailto_prompt),
       "prompt stays hidden even when called after the no button was clicked."
     );
-
-    // we expect that this test does not take more than a minute
-    let expireTime = Services.perms.getPermissionObject(
-      browser.contentPrincipal,
-      "mailto-infobar-dismissed",
-      true
-    ).expireTime;
-
-    Assert.equal(
-      timeout_x * 60,
-      ((expireTime - Date.now()) / 1000).toFixed(),
-      "test completed within one minute, confirmed by the time after" +
-        " which the permission manager would show the bar again after a dismiss."
-    );
   });
 
   cleanup();
@@ -229,14 +288,12 @@ add_task(async function check_x_button() {
 
 add_task(async function check_x_button() {
   let cleanup = await test_rollout(true, true, 0, 0);
-  Services.perms.removeByType("mailto-infobar-dismissed");
 
   await BrowserTestUtils.withNewTab("https://example.com/", async () => {
     Assert.notEqual(
       null,
       document.querySelector(selector_mailto_prompt),
-      "infobar shown after reset timeout for 'mailto-infobar-dismissed'" +
-        " in permission manager."
+      "prompt gets shown again- the timeout for the no_button was set to zero"
     );
   });
 

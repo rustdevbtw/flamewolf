@@ -15,39 +15,11 @@ fn cfgs_to_stream(attrs: &[Attribute]) -> proc_macro2::TokenStream {
 
 fn gen_params_at_boundary(param: &ast::Param, expanded_params: &mut Vec<FnArg>) {
     match &param.ty {
-        ast::TypeName::StrReference(
-            ..,
-            ast::StringEncoding::UnvalidatedUtf8
-            | ast::StringEncoding::UnvalidatedUtf16
-            | ast::StringEncoding::Utf8,
-        )
-        | ast::TypeName::PrimitiveSlice(..)
-        | ast::TypeName::StrSlice(..) => {
+        ast::TypeName::StrReference(_) | ast::TypeName::PrimitiveSlice(..) => {
             let data_type = if let ast::TypeName::PrimitiveSlice(.., prim) = &param.ty {
                 ast::TypeName::Primitive(*prim).to_syn().to_token_stream()
-            } else if let ast::TypeName::StrReference(
-                _,
-                ast::StringEncoding::UnvalidatedUtf8 | ast::StringEncoding::Utf8,
-            ) = &param.ty
-            {
-                quote! { u8 }
-            } else if let ast::TypeName::StrReference(_, ast::StringEncoding::UnvalidatedUtf16) =
-                &param.ty
-            {
-                quote! { u16 }
-            } else if let ast::TypeName::StrSlice(ast::StringEncoding::Utf8) = &param.ty {
-                // TODO: this is not an ABI-stable type!
-                quote! { &str }
-            } else if let ast::TypeName::StrSlice(ast::StringEncoding::UnvalidatedUtf8) = &param.ty
-            {
-                // TODO: this is not an ABI-stable type!
-                quote! { &[u8] }
-            } else if let ast::TypeName::StrSlice(ast::StringEncoding::UnvalidatedUtf16) = &param.ty
-            {
-                // TODO: this is not an ABI-stable type!
-                quote! { &[u16] }
             } else {
-                unreachable!()
+                quote! { u8 }
             };
             expanded_params.push(FnArg::Typed(PatType {
                 attrs: vec![],
@@ -61,11 +33,8 @@ fn gen_params_at_boundary(param: &ast::Param, expanded_params: &mut Vec<FnArg>) 
                 colon_token: syn::token::Colon(Span::call_site()),
                 ty: Box::new(
                     parse2({
-                        if let ast::TypeName::PrimitiveSlice(
-                            Some((_, ast::Mutability::Mutable)) | None,
-                            _,
-                        )
-                        | ast::TypeName::StrReference(None, ..) = &param.ty
+                        if let ast::TypeName::PrimitiveSlice(_, ast::Mutability::Mutable, _) =
+                            &param.ty
                         {
                             quote! { *mut #data_type }
                         } else {
@@ -113,80 +82,27 @@ fn gen_params_at_boundary(param: &ast::Param, expanded_params: &mut Vec<FnArg>) 
 
 fn gen_params_invocation(param: &ast::Param, expanded_params: &mut Vec<Expr>) {
     match &param.ty {
-        ast::TypeName::StrReference(..)
-        | ast::TypeName::PrimitiveSlice(..)
-        | ast::TypeName::StrSlice(..) => {
+        ast::TypeName::StrReference(_) | ast::TypeName::PrimitiveSlice(..) => {
             let data_ident =
                 Ident::new(&format!("{}_diplomat_data", param.name), Span::call_site());
             let len_ident = Ident::new(&format!("{}_diplomat_len", param.name), Span::call_site());
 
-            let tokens = if let ast::TypeName::PrimitiveSlice(lm, _) = &param.ty {
-                match lm {
-                    Some((_, ast::Mutability::Mutable)) => quote! {
-                        if #len_ident == 0 {
-                            &mut []
-                        } else {
-                            unsafe { core::slice::from_raw_parts_mut(#data_ident, #len_ident) }
-                        }
+            let tokens = if let ast::TypeName::PrimitiveSlice(_, mutability, _) = &param.ty {
+                match mutability {
+                    ast::Mutability::Mutable => quote! {
+                        unsafe { core::slice::from_raw_parts_mut(#data_ident, #len_ident) }
                     },
-                    Some((_, ast::Mutability::Immutable)) => quote! {
-                        if #len_ident == 0 {
-                            &[]
-                        } else {
-                            unsafe { core::slice::from_raw_parts(#data_ident, #len_ident) }
-                        }
-                    },
-                    None => quote! {
-                        if #len_ident == 0 {
-                            Default::default()
-                        } else {
-                            unsafe { alloc::boxed::Box::from_raw(core::ptr::slice_from_raw_parts_mut(#data_ident, #len_ident)) }
-                        }
-                    },
-                }
-            } else if let ast::TypeName::StrReference(Some(_), encoding) = &param.ty {
-                let encode = match encoding {
-                    ast::StringEncoding::Utf8 => quote! {
-                        // The FFI guarantees this, by either validating, or communicating this requirement to the user.
-                        unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(#data_ident, #len_ident)) }
-                    },
-                    _ => quote! {
+                    ast::Mutability::Immutable => quote! {
                         unsafe { core::slice::from_raw_parts(#data_ident, #len_ident) }
                     },
-                };
-                quote! {
-                    if #len_ident == 0 {
-                        Default::default()
-                    } else {
-                        #encode
-                    }
-                }
-            } else if let ast::TypeName::StrReference(None, encoding) = &param.ty {
-                let encode = match encoding {
-                    ast::StringEncoding::Utf8 => quote! {
-                        unsafe { core::str::from_boxed_utf8_unchecked(alloc::boxed::Box::from_raw(core::ptr::slice_from_raw_parts_mut(#data_ident, #len_ident))) }
-                    },
-                    _ => quote! {
-                        unsafe { alloc::boxed::Box::from_raw(core::ptr::slice_from_raw_parts_mut(#data_ident, #len_ident)) }
-                    },
-                };
-                quote! {
-                    if #len_ident == 0 {
-                        Default::default()
-                    } else {
-                        #encode
-                    }
-                }
-            } else if let ast::TypeName::StrSlice(_) = &param.ty {
-                quote! {
-                    if #len_ident == 0 {
-                        &[]
-                    } else {
-                        unsafe { core::slice::from_raw_parts(#data_ident, #len_ident) }
-                    }
                 }
             } else {
-                unreachable!();
+                // TODO(#57): don't just unwrap? or should we assume that the other side gives us a good value?
+                quote! {
+                    unsafe {
+                        core::str::from_utf8(core::slice::from_raw_parts(#data_ident, #len_ident)).unwrap()
+                    }
+                }
             };
             expanded_params.push(parse2(tokens).unwrap());
         }
@@ -262,25 +178,6 @@ fn gen_custom_type_method(strct: &ast::CustomType, m: &ast::Method) -> Item {
                 quote! { -> diplomat_runtime::DiplomatResult<#ok, #err> },
                 quote! { .into() },
             )
-        } else if let ast::TypeName::Ordering = return_type {
-            let return_type_syn = return_type.to_syn();
-            (quote! { -> #return_type_syn }, quote! { as i8 })
-        } else if let ast::TypeName::Option(ty) = return_type {
-            match ty.as_ref() {
-                // pass by reference, Option becomes null
-                ast::TypeName::Box(..) | ast::TypeName::Reference(..) => {
-                    let return_type_syn = return_type.to_syn();
-                    (quote! { -> #return_type_syn }, quote! {})
-                }
-                // anything else goes through DiplomatResult
-                _ => {
-                    let ty = ty.to_syn();
-                    (
-                        quote! { -> diplomat_runtime::DiplomatResult<#ty, ()> },
-                        quote! { .ok_or(()).into() },
-                    )
-                }
-            }
         } else {
             let return_type_syn = return_type.to_syn();
             (quote! { -> #return_type_syn }, quote! {})
@@ -325,14 +222,12 @@ fn gen_custom_type_method(strct: &ast::CustomType, m: &ast::Method) -> Item {
 struct AttributeInfo {
     repr: bool,
     opaque: bool,
-    is_out: bool,
 }
 
 impl AttributeInfo {
     fn extract(attrs: &mut Vec<Attribute>) -> Self {
         let mut repr = false;
         let mut opaque = false;
-        let mut is_out = false;
         attrs.retain(|attr| {
             let ident = &attr.path().segments.iter().next().unwrap().ident;
             if ident == "repr" {
@@ -345,15 +240,7 @@ impl AttributeInfo {
                     if seg == "opaque" {
                         opaque = true;
                         return false;
-                    } else if seg == "out" {
-                        is_out = true;
-                        return false;
-                    } else if seg == "rust_link"
-                        || seg == "out"
-                        || seg == "attr"
-                        || seg == "skip_if_ast"
-                        || seg == "abi_rename"
-                    {
+                    } else if seg == "rust_link" || seg == "out" || seg == "attr" {
                         // diplomat-tool reads these, not diplomat::bridge.
                         // throw them away so rustc doesn't complain about unknown attributes
                         return false;
@@ -371,46 +258,28 @@ impl AttributeInfo {
             true
         });
 
-        Self {
-            repr,
-            opaque,
-            is_out,
-        }
+        Self { repr, opaque }
     }
 }
 
-fn gen_bridge(mut input: ItemMod) -> ItemMod {
+fn gen_bridge(input: ItemMod) -> ItemMod {
     let module = ast::Module::from_syn(&input, true);
-    // Clean out any diplomat attributes so Rust doesn't get mad
-    let _attrs = AttributeInfo::extract(&mut input.attrs);
     let (brace, mut new_contents) = input.content.unwrap();
-
-    new_contents.push(parse2(quote! { use diplomat_runtime::*; }).unwrap());
 
     new_contents.iter_mut().for_each(|c| match c {
         Item::Struct(s) => {
             let info = AttributeInfo::extract(&mut s.attrs);
-
-            // Normal opaque types don't need repr(transparent) because the inner type is
-            // never referenced. #[diplomat::transparent_convert] handles adding repr(transparent)
-            // on its own
-            if !info.opaque {
-                let copy = if !info.is_out {
-                    // Nothing stops FFI from copying, so we better make sure the struct is Copy.
-                    quote!(#[derive(Clone, Copy)])
-                } else {
+            if info.opaque || !info.repr {
+                let repr = if info.opaque {
+                    // Normal opaque types don't need repr(transparent) because the inner type is
+                    // never referenced. #[diplomat::transparent_convert] handles adding repr(transparent)
+                    // on its own
                     quote!()
-                };
-
-                let repr = if !info.repr {
+                } else {
                     quote!(#[repr(C)])
-                } else {
-                    quote!()
                 };
-
                 *s = syn::parse_quote! {
                     #repr
-                    #copy
                     #s
                 }
             }
@@ -429,7 +298,6 @@ fn gen_bridge(mut input: ItemMod) -> ItemMod {
             }
             *e = syn::parse_quote! {
                 #[repr(C)]
-                #[derive(Clone, Copy)]
                 #e
             };
         }
@@ -452,7 +320,10 @@ fn gen_bridge(mut input: ItemMod) -> ItemMod {
             new_contents.push(gen_custom_type_method(custom_type, m));
         });
 
-        let destroy_ident = Ident::new(custom_type.dtor_name().as_str(), Span::call_site());
+        let destroy_ident = Ident::new(
+            format!("{}_destroy", custom_type.name()).as_str(),
+            Span::call_site(),
+        );
 
         let type_ident = custom_type.name().to_syn();
 
@@ -586,13 +457,13 @@ mod tests {
 
     #[test]
     fn method_taking_str() {
-        insta::assert_snapshot!(rustfmt_code(
+        insta::assert_display_snapshot!(rustfmt_code(
             &gen_bridge(parse_quote! {
                 mod ffi {
                     struct Foo {}
 
                     impl Foo {
-                        pub fn from_str(s: &DiplomatStr) {
+                        pub fn from_str(s: &str) {
                             unimplemented!()
                         }
                     }
@@ -605,7 +476,7 @@ mod tests {
 
     #[test]
     fn method_taking_slice() {
-        insta::assert_snapshot!(rustfmt_code(
+        insta::assert_display_snapshot!(rustfmt_code(
             &gen_bridge(parse_quote! {
                 mod ffi {
                     struct Foo {}
@@ -624,7 +495,7 @@ mod tests {
 
     #[test]
     fn method_taking_mutable_slice() {
-        insta::assert_snapshot!(rustfmt_code(
+        insta::assert_display_snapshot!(rustfmt_code(
             &gen_bridge(parse_quote! {
                 mod ffi {
                     struct Foo {}
@@ -642,46 +513,8 @@ mod tests {
     }
 
     #[test]
-    fn method_taking_owned_slice() {
-        insta::assert_snapshot!(rustfmt_code(
-            &gen_bridge(parse_quote! {
-                mod ffi {
-                    struct Foo {}
-
-                    impl Foo {
-                        pub fn fill_slice(s: Box<[u16]>) {
-                            unimplemented!()
-                        }
-                    }
-                }
-            })
-            .to_token_stream()
-            .to_string()
-        ));
-    }
-
-    #[test]
-    fn method_taking_owned_str() {
-        insta::assert_snapshot!(rustfmt_code(
-            &gen_bridge(parse_quote! {
-                mod ffi {
-                    struct Foo {}
-
-                    impl Foo {
-                        pub fn something_with_str(s: Box<str>) {
-                            unimplemented!()
-                        }
-                    }
-                }
-            })
-            .to_token_stream()
-            .to_string()
-        ));
-    }
-
-    #[test]
     fn mod_with_enum() {
-        insta::assert_snapshot!(rustfmt_code(
+        insta::assert_display_snapshot!(rustfmt_code(
             &gen_bridge(parse_quote! {
                 mod ffi {
                     enum Abc {
@@ -703,7 +536,7 @@ mod tests {
 
     #[test]
     fn mod_with_writeable_result() {
-        insta::assert_snapshot!(rustfmt_code(
+        insta::assert_display_snapshot!(rustfmt_code(
             &gen_bridge(parse_quote! {
                 mod ffi {
                     struct Foo {}
@@ -722,7 +555,7 @@ mod tests {
 
     #[test]
     fn mod_with_rust_result() {
-        insta::assert_snapshot!(rustfmt_code(
+        insta::assert_display_snapshot!(rustfmt_code(
             &gen_bridge(parse_quote! {
                 mod ffi {
                     struct Foo {}
@@ -741,7 +574,7 @@ mod tests {
 
     #[test]
     fn multilevel_borrows() {
-        insta::assert_snapshot!(rustfmt_code(
+        insta::assert_display_snapshot!(rustfmt_code(
             &gen_bridge(parse_quote! {
                 mod ffi {
                     #[diplomat::opaque]
@@ -776,7 +609,7 @@ mod tests {
 
     #[test]
     fn self_params() {
-        insta::assert_snapshot!(rustfmt_code(
+        insta::assert_display_snapshot!(rustfmt_code(
             &gen_bridge(parse_quote! {
                 mod ffi {
                     #[diplomat::opaque]
@@ -799,7 +632,7 @@ mod tests {
 
     #[test]
     fn cfged_method() {
-        insta::assert_snapshot!(rustfmt_code(
+        insta::assert_display_snapshot!(rustfmt_code(
             &gen_bridge(parse_quote! {
                 mod ffi {
                     struct Foo {}
@@ -816,7 +649,7 @@ mod tests {
             .to_string()
         ));
 
-        insta::assert_snapshot!(rustfmt_code(
+        insta::assert_display_snapshot!(rustfmt_code(
             &gen_bridge(parse_quote! {
                 mod ffi {
                     struct Foo {}
@@ -837,7 +670,7 @@ mod tests {
 
     #[test]
     fn cfgd_struct() {
-        insta::assert_snapshot!(rustfmt_code(
+        insta::assert_display_snapshot!(rustfmt_code(
             &gen_bridge(parse_quote! {
                 mod ffi {
                     #[diplomat::opaque]

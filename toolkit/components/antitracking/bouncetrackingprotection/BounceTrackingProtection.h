@@ -7,8 +7,9 @@
 #include "mozilla/Logging.h"
 #include "mozilla/MozPromise.h"
 #include "nsIBounceTrackingProtection.h"
+#include "nsIClearDataService.h"
 #include "mozilla/Maybe.h"
-#include "nsIObserver.h"
+#include "ClearDataCallback.h"
 
 class nsIPrincipal;
 class nsITimer;
@@ -19,17 +20,12 @@ class BounceTrackingAllowList;
 class BounceTrackingState;
 class BounceTrackingStateGlobal;
 class BounceTrackingProtectionStorage;
-class ClearDataCallback;
 class OriginAttributes;
-
-using ClearDataMozPromise = MozPromise<nsCString, uint32_t, true>;
 
 extern LazyLogModule gBounceTrackingProtectionLog;
 
-class BounceTrackingProtection final : public nsIObserver,
-                                       public nsIBounceTrackingProtection {
+class BounceTrackingProtection final : public nsIBounceTrackingProtection {
   NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
   NS_DECL_NSIBOUNCETRACKINGPROTECTION
 
  public:
@@ -76,11 +72,6 @@ class BounceTrackingProtection final : public nsIObserver,
   using PurgeBounceTrackersMozPromise =
       MozPromise<nsTArray<nsCString>, nsresult, true>;
   RefPtr<PurgeBounceTrackersMozPromise> PurgeBounceTrackers();
-
-  // Report purged trackers to the anti-tracking database via
-  // nsITrackingDBService.
-  static void ReportPurgedTrackersToAntiTrackingDB(
-      const nsTArray<nsCString>& aPurgedSiteHosts);
 
   // Clear state for classified bounce trackers for a specific state global.
   // aClearPromises is populated with promises for each host that is cleared.

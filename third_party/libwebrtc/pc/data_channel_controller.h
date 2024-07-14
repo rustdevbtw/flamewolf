@@ -54,9 +54,6 @@ class DataChannelController : public SctpDataChannelControllerInterface,
   void RemoveSctpDataStream(StreamId sid) override;
   void OnChannelStateChanged(SctpDataChannel* channel,
                              DataChannelInterface::DataState state) override;
-  size_t buffered_amount(StreamId sid) const override;
-  size_t buffered_amount_low_threshold(StreamId sid) const override;
-  void SetBufferedAmountLowThreshold(StreamId sid, size_t bytes) override;
 
   // Implements DataChannelSink.
   void OnDataReceived(int channel_id,
@@ -66,7 +63,6 @@ class DataChannelController : public SctpDataChannelControllerInterface,
   void OnChannelClosed(int channel_id) override;
   void OnReadyToSend() override;
   void OnTransportClosed(RTCError error) override;
-  void OnBufferedAmountLow(int channel_id) override;
 
   // Called as part of destroying the owning PeerConnection.
   void PrepareForShutdown();

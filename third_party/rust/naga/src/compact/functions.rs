@@ -1,4 +1,4 @@
-use super::arena::HandleSet;
+use super::handle_set_map::HandleSet;
 use super::{FunctionMap, ModuleMap};
 
 pub struct FunctionTracer<'a> {

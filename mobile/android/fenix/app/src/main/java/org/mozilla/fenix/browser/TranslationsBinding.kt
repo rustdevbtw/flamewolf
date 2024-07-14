@@ -74,7 +74,6 @@ class TranslationsBinding(
                         TranslationsIconState(
                             isVisible = false,
                             isTranslated = false,
-                            isTranslateProcessing = false,
                         ),
                     )
                 } else if (isEngineSupported == true && sessionTranslationsState.isTranslated) {
@@ -92,7 +91,6 @@ class TranslationsBinding(
                             TranslationsIconState(
                                 isVisible = true,
                                 isTranslated = true,
-                                isTranslateProcessing = sessionTranslationsState.isTranslateProcessing,
                                 fromSelectedLanguage = fromSelected,
                                 toSelectedLanguage = toSelected,
                             ),
@@ -103,7 +101,6 @@ class TranslationsBinding(
                         TranslationsIconState(
                             isVisible = true,
                             isTranslated = false,
-                            isTranslateProcessing = sessionTranslationsState.isTranslateProcessing,
                         ),
                     )
                 } else {
@@ -111,7 +108,6 @@ class TranslationsBinding(
                         TranslationsIconState(
                             isVisible = false,
                             isTranslated = false,
-                            isTranslateProcessing = false,
                         ),
                     )
                 }
@@ -123,14 +119,6 @@ class TranslationsBinding(
                             isOfferTranslate = false,
                         ),
                     )
-                    onShowTranslationsDialog()
-                }
-
-                if (
-                    isEngineSupported == true &&
-                    sessionTranslationsState.isExpectedTranslate &&
-                    sessionTranslationsState.translationError != null
-                ) {
                     onShowTranslationsDialog()
                 }
             }

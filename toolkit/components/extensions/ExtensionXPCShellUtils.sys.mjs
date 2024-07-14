@@ -249,17 +249,8 @@ class ExtensionWrapper {
    *
    * @returns {Promise} resolves after the background is asleep and listeners primed.
    */
-  async terminateBackground({ expectStopped = true, ...rest } = {}) {
-    await this.extension.terminateBackground(rest);
-    if (expectStopped) {
-      lazy.ExtensionTestCommon.testAssertions.assertBackgroundStatusStopped(
-        this
-      );
-    } else {
-      lazy.ExtensionTestCommon.testAssertions.assertBackgroundStatusRunning(
-        this
-      );
-    }
+  terminateBackground(...args) {
+    return this.extension.terminateBackground(...args);
   }
 
   wakeupBackground() {

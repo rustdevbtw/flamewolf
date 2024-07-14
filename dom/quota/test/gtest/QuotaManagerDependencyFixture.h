@@ -11,7 +11,6 @@
 #include "mozilla/MozPromise.h"
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
-#include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 
@@ -113,7 +112,7 @@ class QuotaManagerDependencyFixture : public testing::Test {
 
       PerformOnIOThread(std::move(task), directoryLock->Id());
 
-      DropDirectoryLock(directoryLock);
+      directoryLock = nullptr;
     });
   }
 

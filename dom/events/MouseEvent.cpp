@@ -132,8 +132,6 @@ already_AddRefed<MouseEvent> MouseEvent::Constructor(
   e->InitializeExtraMouseEventDictionaryMembers(aParam);
   e->SetTrusted(trusted);
   e->SetComposed(aParam.mComposed);
-  MOZ_ASSERT(!trusted || !IsPointerEventMessage(e->mEvent->mMessage),
-             "Please use PointerEvent constructor!");
   return e.forget();
 }
 

@@ -37,7 +37,6 @@
 #include "mozilla/dom/quota/Client.h"
 #include "mozilla/dom/quota/ClientImpl.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
-#include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/FileStreams.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/QuotaManager.h"
@@ -719,9 +718,7 @@ void Connection::OnClose() {
 
   mOrigin.Truncate();
   mName.Truncate();
-
-  DropDirectoryLock(mDirectoryLock);
-
+  mDirectoryLock = nullptr;
   mFileRandomAccessStream = nullptr;
   mOpen = false;
 
@@ -1270,8 +1267,7 @@ void OpenOp::StreamClosedCallback() {
   MOZ_ASSERT(mFileRandomAccessStream);
   MOZ_ASSERT(mFileRandomAccessStreamOpen);
 
-  DropDirectoryLock(mDirectoryLock);
-
+  mDirectoryLock = nullptr;
   mFileRandomAccessStream = nullptr;
   mFileRandomAccessStreamOpen = false;
 }
@@ -1329,10 +1325,10 @@ void OpenOp::Cleanup() {
         new StreamHelper(mFileRandomAccessStream, callback);
     helper->AsyncClose();
   } else {
-    SafeDropDirectoryLock(mDirectoryLock);
-
-    mFileRandomAccessStream = nullptr;
     MOZ_ASSERT(!mFileRandomAccessStreamOpen);
+
+    mDirectoryLock = nullptr;
+    mFileRandomAccessStream = nullptr;
   }
 
   ConnectionOperationBase::Cleanup();

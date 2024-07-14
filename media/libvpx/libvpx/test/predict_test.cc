@@ -8,7 +8,6 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <tuple>
@@ -24,6 +23,7 @@
 #include "test/util.h"
 #include "vpx/vpx_integer.h"
 #include "vpx_mem/vpx_mem.h"
+#include "vpx_ports/msvc.h"
 
 namespace {
 

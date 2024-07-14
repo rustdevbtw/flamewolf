@@ -651,8 +651,7 @@ class NPZCSupport final
 
     PostInputEvent([input = std::move(input), result,
                     clickCount = sLastClickCount](nsWindow* window) {
-      WidgetMouseEvent mouseEvent =
-          input.ToWidgetEvent<WidgetMouseEvent>(window);
+      WidgetMouseEvent mouseEvent = input.ToWidgetEvent(window);
       mouseEvent.mClickCount = clickCount;
       window->ProcessUntransformedAPZEvent(&mouseEvent, result);
       if (MouseInput::SECONDARY_BUTTON == input.mButtonType) {
@@ -667,15 +666,8 @@ class NPZCSupport final
           // dispatch it on APZ thread. It may cause a race condition.
           contextMenu.mType = MouseInput::MOUSE_CONTEXTMENU;
 
-          if (contextMenu.IsPointerEventType()) {
-            WidgetPointerEvent contextMenuEvent =
-                contextMenu.ToWidgetEvent<WidgetPointerEvent>(window);
-            window->ProcessUntransformedAPZEvent(&contextMenuEvent, result);
-          } else {
-            WidgetMouseEvent contextMenuEvent =
-                contextMenu.ToWidgetEvent<WidgetMouseEvent>(window);
-            window->ProcessUntransformedAPZEvent(&contextMenuEvent, result);
-          }
+          WidgetMouseEvent contextMenuEvent = contextMenu.ToWidgetEvent(window);
+          window->ProcessUntransformedAPZEvent(&contextMenuEvent, result);
         }
       }
     });
@@ -1923,15 +1915,6 @@ void GeckoViewSupport::OnShowDynamicToolbar() const {
   window->OnShowDynamicToolbar();
 }
 
-void GeckoViewSupport::OnHideDynamicToolbar() const {
-  GeckoSession::Window::LocalRef window(mGeckoViewWindow);
-  if (!window) {
-    return;
-  }
-
-  window->OnHideDynamicToolbar();
-}
-
 void GeckoViewSupport::OnReady(jni::Object::Param aQueue) {
   GeckoSession::Window::LocalRef window(mGeckoViewWindow);
   if (!window) {
@@ -2450,6 +2433,10 @@ void nsWindow::Resize(double aX, double aY, double aWidth, double aHeight,
   if (aRepaint && FindTopLevel() == nsWindow::TopWindow()) RedrawAll();
 }
 
+void nsWindow::SetZIndex(int32_t aZIndex) {
+  ALOG("nsWindow[%p]::SetZIndex %d ignored", (void*)this, aZIndex);
+}
+
 void nsWindow::SetSizeMode(nsSizeMode aMode) {
   if (aMode == mSizeMode) {
     return;
@@ -2854,15 +2841,6 @@ void nsWindow::UpdateOverscrollOffset(const float aX, const float aY) {
           compositor->UpdateOverscrollOffset(aX, aY);
         });
   }
-}
-
-void nsWindow::HideDynamicToolbar() {
-  auto acc(mGeckoViewSupport.Access());
-  if (!acc) {
-    return;
-  }
-
-  acc->OnHideDynamicToolbar();
 }
 
 void* nsWindow::GetNativeData(uint32_t aDataType) {

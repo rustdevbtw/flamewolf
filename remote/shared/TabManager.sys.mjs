@@ -66,40 +66,8 @@ class TabManagerClass {
     return browsers;
   }
 
-  /**
-   * Retrieve all the browser tabs in open windows.
-   *
-   * @returns {Array<Tab>}
-   *     All the open browser tabs. Will return an empty list if tab browser
-   *     is not available or tabs are undefined.
-   */
-  get tabs() {
-    const tabs = [];
-
-    for (const win of this.windows) {
-      tabs.push(...this.getTabsForWindow(win));
-    }
-
-    return tabs;
-  }
-
-  /**
-   * Retrieve all the open windows.
-   *
-   * @returns {Array<Window>}
-   *     All the open windows. Will return an empty list if no window is open.
-   */
   get windows() {
-    const windows = [];
-
-    for (const win of Services.wm.getEnumerator(null)) {
-      if (win.closed) {
-        continue;
-      }
-      windows.push(win);
-    }
-
-    return windows;
+    return Services.wm.getEnumerator(null);
   }
 
   /**
@@ -421,24 +389,15 @@ class TabManagerClass {
    *
    * @param {Tab} tab
    *     Tab to remove.
-   * @param {object=} options
-   * @param {boolean=} options.skipPermitUnload
-   *     Flag to indicate if a potential beforeunload prompt should be skipped
-   *     when closing the tab. Defaults to false.
-
    */
-  async removeTab(tab, options = {}) {
-    const { skipPermitUnload = false } = options;
-
+  async removeTab(tab) {
     if (!tab) {
       return;
     }
 
     const ownerWindow = this.getWindowForTab(tab);
     const tabBrowser = this.getTabBrowser(ownerWindow);
-    await tabBrowser.removeTab(tab, {
-      skipPermitUnload,
-    });
+    await tabBrowser.removeTab(tab);
   }
 
   /**

@@ -16,6 +16,8 @@ namespace mozilla::dom {
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(EventCounts, mParent)
 
 static const EventMessage sQualifiedEventType[36] = {
+    EventMessage::eMouseAuxClick,
+    EventMessage::eMouseClick,
     EventMessage::eContextMenu,
     EventMessage::eMouseDoubleClick,
     EventMessage::eMouseDown,
@@ -24,8 +26,6 @@ static const EventMessage sQualifiedEventType[36] = {
     EventMessage::eMouseOut,
     EventMessage::eMouseOver,
     EventMessage::eMouseUp,
-    EventMessage::ePointerAuxClick,
-    EventMessage::ePointerClick,
     EventMessage::ePointerOver,
     EventMessage::ePointerEnter,
     EventMessage::ePointerDown,

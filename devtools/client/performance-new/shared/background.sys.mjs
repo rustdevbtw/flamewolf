@@ -180,7 +180,6 @@ export const presets = {
       "Renderer",
       "SwComposite",
       "RenderBackend",
-      "GlyphRasterizer",
       "SceneBuilder",
       "WrWorker",
       "CanvasWorkers",
@@ -312,32 +311,6 @@ export const presets = {
       },
     },
   },
-  debug: {
-    entries: 128 * 1024 * 1024,
-    interval: 1,
-    features: [
-      "cpu",
-      "ipcmessages",
-      "js",
-      "markersallthreads",
-      "processcpu",
-      "samplingallthreads",
-      "stackwalk",
-      "unregisteredthreads",
-    ],
-    threads: ["*"],
-    duration: 0,
-    l10nIds: {
-      popup: {
-        label: "profiler-popup-presets-debug-label",
-        description: "profiler-popup-presets-debug-description",
-      },
-      devtools: {
-        label: "perftools-presets-debug-label",
-        description: "perftools-presets-debug-description",
-      },
-    },
-  },
 };
 
 /**
@@ -417,7 +390,7 @@ export async function captureProfile(pageContext) {
   );
 
   const { openProfilerTab } = lazy.BrowserModule();
-  const browser = await openProfilerTab({ profilerViewMode });
+  const browser = await openProfilerTab(profilerViewMode);
   registerProfileCaptureForBrowser(
     browser,
     profileCaptureResult,

@@ -24,6 +24,7 @@ struct nsWindowInfo {
 
   nsCOMPtr<nsIAppWindow> mWindow;
   int32_t mTimeStamp;
+  uint32_t mZLevel;
 
   // each struct is in two, independent, circular, doubly-linked lists
   nsWindowInfo *mYounger,  // next younger in sequence

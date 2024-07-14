@@ -14,7 +14,7 @@
 #include "mozilla/net/DNS.h"
 #include "nsContentUtils.h"
 #include "nsHTTPSOnlyUtils.h"
-#include "nsIEffectiveTLDService.h"
+#include "nsIConsoleService.h"
 #include "nsIHttpChannel.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsIHttpsOnlyModePermission.h"
@@ -80,7 +80,7 @@ void nsHTTPSOnlyUtils::PotentiallyFireHttpRequestToShortenTimout(
   }
 
   nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
-  bool isPrivateWin = loadInfo->GetOriginAttributes().IsPrivateBrowsing();
+  bool isPrivateWin = loadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
 
   // if neither HTTPS-Only nor HTTPS-First mode is enabled, then there is
   // nothing to do here.
@@ -153,7 +153,7 @@ void nsHTTPSOnlyUtils::PotentiallyFireHttpRequestToShortenTimout(
 bool nsHTTPSOnlyUtils::ShouldUpgradeRequest(nsIURI* aURI,
                                             nsILoadInfo* aLoadInfo) {
   // 1. Check if the HTTPS-Only Mode is even enabled, before we do anything else
-  bool isPrivateWin = aLoadInfo->GetOriginAttributes().IsPrivateBrowsing();
+  bool isPrivateWin = aLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
   if (!IsHttpsOnlyModeEnabled(isPrivateWin)) {
     return false;
   }
@@ -221,7 +221,7 @@ bool nsHTTPSOnlyUtils::ShouldUpgradeRequest(nsIURI* aURI,
 bool nsHTTPSOnlyUtils::ShouldUpgradeWebSocket(nsIURI* aURI,
                                               nsILoadInfo* aLoadInfo) {
   // 1. Check if the HTTPS-Only Mode is even enabled, before we do anything else
-  bool isPrivateWin = aLoadInfo->GetOriginAttributes().IsPrivateBrowsing();
+  bool isPrivateWin = aLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
   if (!IsHttpsOnlyModeEnabled(isPrivateWin)) {
     return false;
   }
@@ -270,7 +270,7 @@ bool nsHTTPSOnlyUtils::IsUpgradeDowngradeEndlessLoop(
     const mozilla::EnumSet<UpgradeDowngradeEndlessLoopOptions>& aOptions) {
   // 1. Check if the HTTPS-Only/HTTPS-First is even enabled, before doing
   // anything else
-  bool isPrivateWin = aLoadInfo->GetOriginAttributes().IsPrivateBrowsing();
+  bool isPrivateWin = aLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
   bool enforceForHTTPSOnlyMode =
       IsHttpsOnlyModeEnabled(isPrivateWin) &&
       aOptions.contains(
@@ -355,7 +355,7 @@ bool nsHTTPSOnlyUtils::IsUpgradeDowngradeEndlessLoop(
 bool nsHTTPSOnlyUtils::ShouldUpgradeHttpsFirstRequest(nsIURI* aURI,
                                                       nsILoadInfo* aLoadInfo) {
   // 1. Check if HTTPS-First Mode is enabled
-  bool isPrivateWin = aLoadInfo->GetOriginAttributes().IsPrivateBrowsing();
+  bool isPrivateWin = aLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
   if (!IsHttpsFirstModeEnabled(isPrivateWin) &&
       !(aLoadInfo->GetWasSchemelessInput() &&
         mozilla::StaticPrefs::dom_security_https_first_schemeless())) {
@@ -370,8 +370,7 @@ bool nsHTTPSOnlyUtils::ShouldUpgradeHttpsFirstRequest(nsIURI* aURI,
   }
 
   // 3. Check for general exceptions
-  if (OnionException(aURI) || LoopbackOrLocalException(aURI) ||
-      UnknownPublicSuffixException(aURI)) {
+  if (OnionException(aURI) || LoopbackOrLocalException(aURI)) {
     return false;
   }
 
@@ -589,19 +588,6 @@ void nsHTTPSOnlyUtils::UpdateLoadStateAfterHTTPSFirstDowngrade(
   // loop
   aLoadState->SetIsExemptFromHTTPSFirstMode(true);
 
-  // we can safely set the flag to indicate the downgrade here and it will be
-  // propagated all the way to nsHttpChannel::OnStopRequest() where we collect
-  // the telemetry.
-  nsCOMPtr<nsIChannel> channel = aDocumentLoadListener->GetChannel();
-  nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
-  if (loadInfo->GetWasSchemelessInput()) {
-    aLoadState->SetHttpsUpgradeTelemetry(
-        nsILoadInfo::HTTPS_FIRST_SCHEMELESS_UPGRADE_DOWNGRADE);
-  } else {
-    aLoadState->SetHttpsUpgradeTelemetry(
-        nsILoadInfo::HTTPS_FIRST_UPGRADE_DOWNGRADE);
-  }
-
   // Add downgrade data for later telemetry usage to load state
   nsDOMNavigationTiming* timing = aDocumentLoadListener->GetTiming();
   if (timing) {
@@ -610,7 +596,11 @@ void nsHTTPSOnlyUtils::UpdateLoadStateAfterHTTPSFirstDowngrade(
       mozilla::TimeDuration duration =
           mozilla::TimeStamp::Now() - navigationStart;
 
-      bool isPrivateWin = loadInfo->GetOriginAttributes().IsPrivateBrowsing();
+      nsCOMPtr<nsIChannel> channel = aDocumentLoadListener->GetChannel();
+      nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
+
+      bool isPrivateWin =
+          loadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
       bool isSchemeless =
           loadInfo->GetWasSchemelessInput() &&
           !nsHTTPSOnlyUtils::IsHttpsFirstModeEnabled(isPrivateWin);
@@ -672,7 +662,7 @@ bool nsHTTPSOnlyUtils::CouldBeHttpsOnlyError(nsIChannel* aChannel,
 
   // If HTTPS-Only Mode is not enabled, then there is nothing to do here.
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
-  bool isPrivateWin = loadInfo->GetOriginAttributes().IsPrivateBrowsing();
+  bool isPrivateWin = loadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
   if (!IsHttpsOnlyModeEnabled(isPrivateWin)) {
     return false;
   }
@@ -721,7 +711,7 @@ void nsHTTPSOnlyUtils::TestSitePermissionAndPotentiallyAddExemption(
   // If HTTPS-Only or HTTPS-First Mode is not enabled, then there is nothing to
   // do here.
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
-  bool isPrivateWin = loadInfo->GetOriginAttributes().IsPrivateBrowsing();
+  bool isPrivateWin = loadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
   bool isHttpsOnly = IsHttpsOnlyModeEnabled(isPrivateWin);
   bool isHttpsFirst = IsHttpsFirstModeEnabled(isPrivateWin);
   bool isSchemelessHttpsFirst =
@@ -774,7 +764,7 @@ bool nsHTTPSOnlyUtils::IsSafeToAcceptCORSOrMixedContent(
     return false;
   }
   // Check if HTTPS-Only Mode is enabled for this request
-  bool isPrivateWin = aLoadInfo->GetOriginAttributes().IsPrivateBrowsing();
+  bool isPrivateWin = aLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
   return nsHTTPSOnlyUtils::IsHttpsOnlyModeEnabled(isPrivateWin);
 }
 
@@ -832,7 +822,7 @@ void nsHTTPSOnlyUtils::LogMessage(const nsAString& aMessage, uint32_t aFlags,
                                               windowId, aURI);
   } else {
     // Send to browser console
-    bool isPrivateWin = aLoadInfo->GetOriginAttributes().IsPrivateBrowsing();
+    bool isPrivateWin = aLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
     nsContentUtils::LogSimpleConsoleError(message, category, isPrivateWin,
                                           true /* from chrome context */,
                                           aFlags);
@@ -880,19 +870,6 @@ bool nsHTTPSOnlyUtils::LoopbackOrLocalException(nsIURI* aURI) {
 }
 
 /* static */
-bool nsHTTPSOnlyUtils::UnknownPublicSuffixException(nsIURI* aURI) {
-  nsCOMPtr<nsIEffectiveTLDService> tldService =
-      do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
-  NS_ENSURE_TRUE(tldService, false);
-
-  bool hasKnownPublicSuffix;
-  nsresult rv = tldService->HasKnownPublicSuffix(aURI, &hasKnownPublicSuffix);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  return !hasKnownPublicSuffix;
-}
-
-/* static */
 bool nsHTTPSOnlyUtils::ShouldUpgradeConnection(nsILoadInfo* aLoadInfo) {
   // Check if one of parameters is null then webpage can't be loaded yet
   // and no further inspections are needed
@@ -901,7 +878,7 @@ bool nsHTTPSOnlyUtils::ShouldUpgradeConnection(nsILoadInfo* aLoadInfo) {
   }
 
   // Check if the HTTPS-Only Mode is even enabled, before we do anything else
-  bool isPrivateWin = aLoadInfo->GetOriginAttributes().IsPrivateBrowsing();
+  bool isPrivateWin = aLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
   if (!IsHttpsOnlyModeEnabled(isPrivateWin) &&
       !IsHttpsFirstModeEnabled(isPrivateWin)) {
     return false;

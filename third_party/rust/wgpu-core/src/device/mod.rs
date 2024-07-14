@@ -3,9 +3,7 @@ use crate::{
     hal_api::HalApi,
     hub::Hub,
     id::{BindGroupLayoutId, PipelineLayoutId},
-    resource::{
-        Buffer, BufferAccessError, BufferAccessResult, BufferMapOperation, ResourceErrorIdent,
-    },
+    resource::{Buffer, BufferAccessError, BufferAccessResult, BufferMapOperation},
     snatch::SnatchGuard,
     Label, DOWNLEVEL_ERROR_MESSAGE,
 };
@@ -323,7 +321,9 @@ fn map_buffer<A: HalApi>(
     kind: HostMap,
     snatch_guard: &SnatchGuard,
 ) -> Result<ptr::NonNull<u8>, BufferAccessError> {
-    let raw_buffer = buffer.try_raw(snatch_guard)?;
+    let raw_buffer = buffer
+        .raw(snatch_guard)
+        .ok_or(BufferAccessError::Destroyed)?;
     let mapping = unsafe {
         raw.map_buffer(raw_buffer, offset..offset + size)
             .map_err(DeviceError::from)?
@@ -378,45 +378,25 @@ fn map_buffer<A: HalApi>(
     Ok(mapping.ptr)
 }
 
-#[derive(Clone, Debug)]
-pub struct DeviceMismatch {
-    pub(super) res: ResourceErrorIdent,
-    pub(super) res_device: ResourceErrorIdent,
-    pub(super) target: Option<ResourceErrorIdent>,
-    pub(super) target_device: ResourceErrorIdent,
-}
-
-impl std::fmt::Display for DeviceMismatch {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(
-            f,
-            "{} of {} doesn't match {}",
-            self.res_device, self.res, self.target_device
-        )?;
-        if let Some(target) = self.target.as_ref() {
-            write!(f, " of {target}")?;
-        }
-        Ok(())
-    }
-}
-
-impl std::error::Error for DeviceMismatch {}
+#[derive(Clone, Debug, Error)]
+#[error("Device is invalid")]
+pub struct InvalidDevice;
 
 #[derive(Clone, Debug, Error)]
 #[non_exhaustive]
 pub enum DeviceError {
-    #[error("{0} is invalid.")]
-    Invalid(ResourceErrorIdent),
+    #[error("Parent device is invalid.")]
+    Invalid,
     #[error("Parent device is lost")]
     Lost,
     #[error("Not enough memory left.")]
     OutOfMemory,
     #[error("Creation of a resource failed for a reason other than running out of memory.")]
     ResourceCreationFailed,
-    #[error("DeviceId is invalid")]
-    InvalidDeviceId,
-    #[error(transparent)]
-    DeviceMismatch(#[from] Box<DeviceMismatch>),
+    #[error("QueueId is invalid")]
+    InvalidQueueId,
+    #[error("Attempt to use a resource with a different device from the one that created it")]
+    WrongDevice,
 }
 
 impl From<hal::DeviceError> for DeviceError {
@@ -512,16 +492,6 @@ pub fn create_validator(
         features.contains(wgt::Features::SHADER_INT64),
     );
     caps.set(
-        Caps::SHADER_INT64_ATOMIC_MIN_MAX,
-        features.intersects(
-            wgt::Features::SHADER_INT64_ATOMIC_MIN_MAX | wgt::Features::SHADER_INT64_ATOMIC_ALL_OPS,
-        ),
-    );
-    caps.set(
-        Caps::SHADER_INT64_ATOMIC_ALL_OPS,
-        features.contains(wgt::Features::SHADER_INT64_ATOMIC_ALL_OPS),
-    );
-    caps.set(
         Caps::MULTISAMPLED_SHADING,
         downlevel.contains(wgt::DownlevelFlags::MULTISAMPLED_SHADING),
     );
@@ -541,10 +511,25 @@ pub fn create_validator(
         Caps::SUBGROUP_BARRIER,
         features.intersects(wgt::Features::SUBGROUP_BARRIER),
     );
-    caps.set(
-        Caps::SUBGROUP_VERTEX_STAGE,
+
+    let mut subgroup_stages = naga::valid::ShaderStages::empty();
+    subgroup_stages.set(
+        naga::valid::ShaderStages::COMPUTE | naga::valid::ShaderStages::FRAGMENT,
+        features.contains(wgt::Features::SUBGROUP),
+    );
+    subgroup_stages.set(
+        naga::valid::ShaderStages::VERTEX,
         features.contains(wgt::Features::SUBGROUP_VERTEX),
     );
 
-    naga::valid::Validator::new(flags, caps)
+    let subgroup_operations = if caps.contains(Caps::SUBGROUP) {
+        use naga::valid::SubgroupOperationSet as S;
+        S::BASIC | S::VOTE | S::ARITHMETIC | S::BALLOT | S::SHUFFLE | S::SHUFFLE_RELATIVE
+    } else {
+        naga::valid::SubgroupOperationSet::empty()
+    };
+    let mut validator = naga::valid::Validator::new(flags, caps);
+    validator.subgroup_stages(subgroup_stages);
+    validator.subgroup_operations(subgroup_operations);
+    validator
 }

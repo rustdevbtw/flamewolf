@@ -22,7 +22,6 @@ let win;
 
 add_setup(async () => {
   await SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", true]] });
-  await PlacesUtils.history.clear();
   const pageInfos = URLs.flatMap((url, i) =>
     dates.map(date => ({
       url,

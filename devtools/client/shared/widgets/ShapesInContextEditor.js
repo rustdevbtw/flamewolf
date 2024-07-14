@@ -160,7 +160,7 @@ class ShapesInContextEditor {
     }
 
     if (this.swatch) {
-      this.swatch.setAttribute("aria-pressed", false);
+      this.swatch.classList.remove("active");
     }
     this.swatch = null;
     this.rule = null;
@@ -188,7 +188,7 @@ class ShapesInContextEditor {
     const valueSpan = this.textProperty.editor.valueSpan;
     this.swatch = valueSpan.querySelector(".ruleview-shapeswatch");
     if (this.swatch) {
-      this.swatch.setAttribute("aria-pressed", true);
+      this.swatch.classList.add("active");
     }
   }
 

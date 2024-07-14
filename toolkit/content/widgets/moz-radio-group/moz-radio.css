@@ -6,16 +6,11 @@
   --radio-size: var(--size-item-small);
 }
 
-label {
-  display: block;
-}
-
 input {
   font-size: inherit;
   min-height: var(--radio-size);
   min-width: var(--radio-size);
-  vertical-align: top;
-  font-family: inherit;
+  flex-shrink: 0;
 }
 
 input,
@@ -23,15 +18,15 @@ input,
   margin: calc((1lh - var(--radio-size)) / 2) 0;
 }
 
-.label-content {
-  position: relative;
-  padding-inline-start: var(--space-small);
-  width: calc(100% - (var(--radio-size) + var(--space-small)));
+label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-small);
 }
 
-.label-content,
-.text {
-  display: inline-block;
+.label-content {
+  display: flex;
+  position: relative;
 }
 
 .icon {
@@ -43,6 +38,6 @@ input,
   position: absolute;
 
   & + .text {
-    text-indent: calc(var(--icon-size-default) + var(--space-small));
+    text-indent: calc(var(--radio-size) + var(--space-small));
   }
 }

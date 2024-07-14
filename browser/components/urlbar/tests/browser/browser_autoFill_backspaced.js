@@ -28,7 +28,11 @@ async function test_autocomplete(data) {
   }
   await UrlbarTestUtils.promiseSearchComplete(window);
 
-  Assert.equal(gURLBar.value, modified, "backspaced value is as expected");
+  Assert.equal(
+    gURLBar.value,
+    UrlbarTestUtils.trimURL(modified),
+    "backspaced value is as expected"
+  );
 
   Assert.greater(
     UrlbarTestUtils.getResultCount(window),

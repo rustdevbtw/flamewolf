@@ -35,6 +35,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
   JSONFile: "resource://gre/modules/JSONFile.sys.mjs",
   Langpack: "resource://gre/modules/Extension.sys.mjs",
+  SitePermission: "resource://gre/modules/Extension.sys.mjs",
   TelemetrySession: "resource://gre/modules/TelemetrySession.sys.mjs",
 });
 
@@ -164,7 +165,14 @@ const BOOTSTRAP_REASONS = {
 // to return only supported add-ons. Without these, it is possible for
 // AddonManager.getAddonsByTypes to return addons from other providers, or even
 // add-on types that are no longer supported by XPIProvider.
-const ALL_XPI_TYPES = new Set(["dictionary", "extension", "locale", "theme"]);
+const ALL_XPI_TYPES = new Set([
+  "dictionary",
+  "extension",
+  "locale",
+  // TODO(Bug 1789718): Remove after the deprecated XPIProvider-based implementation is also removed.
+  "sitepermission-deprecated",
+  "theme",
+]);
 
 /**
  * Valid IDs fit this pattern.
@@ -1889,6 +1897,11 @@ class BootstrapScope {
         case "extension":
         case "theme":
           this.scope = lazy.Extension.getBootstrapScope();
+          break;
+
+        // TODO(Bug 1789718): Remove after the deprecated XPIProvider-based implementation is also removed.
+        case "sitepermission-deprecated":
+          this.scope = lazy.SitePermission.getBootstrapScope();
           break;
 
         case "locale":

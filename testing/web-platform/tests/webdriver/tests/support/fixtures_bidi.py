@@ -17,7 +17,6 @@ from webdriver.bidi.error import (
     UnableToSetCookieException,
     UnderspecifiedStoragePartitionException
 )
-from webdriver.bidi.modules.input import Actions
 from webdriver.bidi.modules.script import ContextTarget
 from webdriver.error import TimeoutException
 
@@ -44,16 +43,6 @@ async def add_preload_script(bidi_session):
             await bidi_session.script.remove_preload_script(script=script)
         except (InvalidArgumentException, NoSuchScriptException):
             pass
-
-
-@pytest_asyncio.fixture
-async def execute_as_async(bidi_session):
-    async def execute_as_async(sync_func, **kwargs):
-        # Ideally we should use asyncio.to_thread() but it's not available in
-        # Python 3.8 which wpt tests have to support.
-        return await bidi_session.event_loop.run_in_executor(None, sync_func, **kwargs)
-
-    return execute_as_async
 
 
 @pytest_asyncio.fixture
@@ -160,7 +149,7 @@ def wait_for_future_safe(configuration):
                 asyncio.shield(future),
                 timeout=timeout * configuration["timeout_multiplier"],
             )
-        except asyncio.TimeoutError:
+        except asyncio.exceptions.TimeoutError:
             raise TimeoutException("Future did not resolve within the given timeout")
 
     return wait_for_future_safe
@@ -581,37 +570,6 @@ def fetch(bidi_session, top_context, configuration):
         )
 
     return fetch
-
-
-@pytest_asyncio.fixture
-async def setup_beforeunload_page(bidi_session, url):
-    async def setup_beforeunload_page(context):
-        page_url = url("/webdriver/tests/support/html/beforeunload.html")
-        await bidi_session.browsing_context.navigate(
-            context=context["context"],
-            url=page_url,
-            wait="complete"
-        )
-
-        # Focus the input
-        await bidi_session.script.evaluate(
-            expression="""
-                const input = document.querySelector("input");
-                input.focus();
-            """,
-            target=ContextTarget(context["context"]),
-            await_promise=False,
-        )
-
-        actions = Actions()
-        actions.add_key().send_keys("foo")
-        await bidi_session.input.perform_actions(
-            actions=actions, context=context["context"]
-        )
-
-        return page_url
-
-    return setup_beforeunload_page
 
 
 @pytest_asyncio.fixture

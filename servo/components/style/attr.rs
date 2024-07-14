@@ -20,6 +20,7 @@ use euclid::num::Zero;
 use num_traits::ToPrimitive;
 use selectors::attr::AttrSelectorOperation;
 use servo_arc::Arc;
+use servo_url::ServoUrl;
 use std::str::FromStr;
 
 // Duplicated from script::dom::values.
@@ -50,10 +51,7 @@ pub enum AttrValue {
     ///
     /// The URL is resolved at setting-time, so this kind of attribute value is
     /// not actually suitable for most URL-reflecting IDL attributes.
-    ResolvedUrl(
-        String,
-        #[ignore_malloc_size_of = "Arc"] Option<Arc<url::Url>>
-    ),
+    ResolvedUrl(String, Option<ServoUrl>),
 
     /// Note that this variant is only used transitively as a fast path to set
     /// the property declaration block relevant to the style of an element when
@@ -245,8 +243,8 @@ impl AttrValue {
         AttrValue::Atom(value)
     }
 
-    pub fn from_resolved_url(base: &Arc<::url::Url>, url: String) -> AttrValue {
-        let joined = base.join(&url).ok().map(Arc::new);
+    pub fn from_resolved_url(base: &ServoUrl, url: String) -> AttrValue {
+        let joined = base.join(&url).ok();
         AttrValue::ResolvedUrl(url, joined)
     }
 
@@ -318,7 +316,7 @@ impl AttrValue {
     /// ## Panics
     ///
     /// Panics if the `AttrValue` is not a `ResolvedUrl`
-    pub fn as_resolved_url(&self) -> Option<&Arc<::url::Url>> {
+    pub fn as_resolved_url(&self) -> Option<&ServoUrl> {
         match *self {
             AttrValue::ResolvedUrl(_, ref url) => url.as_ref(),
             _ => panic!("Url not found"),

@@ -36,9 +36,6 @@ class TabSorter(
 
         // Normal tabs
         tabsTrayStore?.dispatch(TabsTrayAction.UpdateNormalTabs(normalTabs))
-
-        // Selected tab Id
-        tabsTrayStore?.dispatch(TabsTrayAction.UpdateSelectedTabId(selectedTabId))
     }
 }
 

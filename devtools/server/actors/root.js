@@ -135,8 +135,6 @@ class RootActor extends Actor {
             "dom.worker.console.dispatch_events_to_main_thread"
           )
         : true,
-      // @backward-compat { version 129 } The server started throttling ressource emission
-      throttledResources: true,
     };
   }
 
@@ -575,15 +573,13 @@ class RootActor extends Actor {
    *
    * @param String updateType
    *        Can be "available", "updated" or "destroyed"
-   * @param String resourceType
-   *        The type of resources to be notified about.
    * @param Array<json> resources
    *        List of all resources. A resource is a JSON object piped over to the client.
    *        It can contain actor IDs.
    *        It can also be or contain an actor form, to be manually marshalled by the client.
    *        (i.e. the frontend would have to manually instantiate a Front for the given actor form)
    */
-  notifyResources(updateType, resourceType, resources) {
+  notifyResources(updateType, resources) {
     if (resources.length === 0) {
       // Don't try to emit if the resources array is empty.
       return;
@@ -591,13 +587,13 @@ class RootActor extends Actor {
 
     switch (updateType) {
       case "available":
-        this.emit(`resources-available-array`, [[resourceType, resources]]);
+        this.emit(`resource-available-form`, resources);
         break;
       case "updated":
-        this.emit(`resources-updated-array`, [[resourceType, resources]]);
+        this.emit(`resource-updated-form`, resources);
         break;
       case "destroyed":
-        this.emit(`resources-destroyed-array`, [[resourceType, resources]]);
+        this.emit(`resource-destroyed-form`, resources);
         break;
       default:
         throw new Error("Unsupported update type: " + updateType);

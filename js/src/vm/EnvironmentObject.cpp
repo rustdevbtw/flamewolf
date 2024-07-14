@@ -1585,7 +1585,7 @@ namespace {
  *    proxy can either hide these optimizations or make the situation more
  *    clear to the debugger. An example is 'arguments'.
  */
-class DebugEnvironmentProxyHandler : public NurseryAllocableProxyHandler {
+class DebugEnvironmentProxyHandler : public BaseProxyHandler {
   enum Action { SET, GET };
 
   enum AccessResult { ACCESS_UNALIASED, ACCESS_GENERIC, ACCESS_LOST };
@@ -2086,8 +2086,7 @@ class DebugEnvironmentProxyHandler : public NurseryAllocableProxyHandler {
   static const char family;
   static const DebugEnvironmentProxyHandler singleton;
 
-  constexpr DebugEnvironmentProxyHandler()
-      : NurseryAllocableProxyHandler(&family) {}
+  constexpr DebugEnvironmentProxyHandler() : BaseProxyHandler(&family) {}
 
   static bool isFunctionEnvironmentWithThis(const JSObject& env) {
     // All functions except arrows should have their own this binding.

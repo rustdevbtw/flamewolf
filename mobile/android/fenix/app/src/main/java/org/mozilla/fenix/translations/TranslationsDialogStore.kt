@@ -271,11 +271,7 @@ internal object TranslationsDialogReducer {
                     positiveButtonType = if (action.inProgress) {
                         PositiveButtonType.InProgress
                     } else {
-                        if (state.positiveButtonType == PositiveButtonType.InProgress) {
-                            PositiveButtonType.Enabled
-                        } else {
-                            state.positiveButtonType
-                        }
+                        state.positiveButtonType
                     },
                 )
             }

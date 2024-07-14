@@ -86,7 +86,7 @@ NeckoParent::NeckoParent() : mSocketProcessBridgeInited(false) {
 static PBOverrideStatus PBOverrideStatusFromLoadContext(
     const SerializedLoadContext& aSerialized) {
   if (!aSerialized.IsNotNull() && aSerialized.IsPrivateBitValid()) {
-    return aSerialized.mOriginAttributes.IsPrivateBrowsing()
+    return (aSerialized.mOriginAttributes.mPrivateBrowsingId > 0)
                ? kPBOverride_Private
                : kPBOverride_NotPrivate;
   }
@@ -146,7 +146,7 @@ const char* NeckoParent::CreateChannelLoadContext(
   // the common case for most xpcshell tests.
   if (aSerialized.IsNotNull()) {
     attrs.SyncAttributesWithPrivateBrowsing(
-        aSerialized.mOriginAttributes.IsPrivateBrowsing());
+        aSerialized.mOriginAttributes.mPrivateBrowsingId > 0);
 
     RefPtr<BrowserParent> browserParent = BrowserParent::GetFrom(aBrowser);
     dom::Element* topFrameElement = nullptr;

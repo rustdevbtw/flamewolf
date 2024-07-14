@@ -652,10 +652,10 @@ add_task(async function test_send_tab_keys_regenerated_if_lost() {
   };
   const sendTab = new SendTab(commands, fxAccounts);
   let generateEncryptedKeysCalled = false;
-  sendTab._generateAndPersistEncryptedCommandKey = async () => {
+  sendTab._generateAndPersistEncryptedSendTabKey = async () => {
     generateEncryptedKeysCalled = true;
   };
-  await sendTab.getEncryptedCommandKeys();
+  await sendTab.getEncryptedSendTabKeys();
   Assert.ok(generateEncryptedKeysCalled);
 });
 
@@ -700,9 +700,9 @@ add_task(async function test_send_tab_keys_are_not_regenerated_if_not_lost() {
   };
   const sendTab = new SendTab(commands, fxAccounts);
   let generateEncryptedKeysCalled = false;
-  sendTab._generateAndPersistEncryptedCommandKey = async () => {
+  sendTab._generateAndPersistEncryptedSendTabKey = async () => {
     generateEncryptedKeysCalled = true;
   };
-  await sendTab.getEncryptedCommandKeys();
+  await sendTab.getEncryptedSendTabKeys();
   Assert.ok(!generateEncryptedKeysCalled);
 });

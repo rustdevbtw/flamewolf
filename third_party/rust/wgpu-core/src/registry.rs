@@ -255,7 +255,7 @@ mod tests {
                 s.spawn(|| {
                     for _ in 0..1000 {
                         let value = Arc::new(TestData {
-                            info: ResourceInfo::new(&None, None),
+                            info: ResourceInfo::new("Test data", None),
                         });
                         let new_id = registry.prepare(None);
                         let (id, _) = new_id.assign(value);

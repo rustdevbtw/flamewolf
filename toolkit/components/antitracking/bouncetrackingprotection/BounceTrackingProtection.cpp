@@ -9,7 +9,6 @@
 #include "BounceTrackingState.h"
 #include "BounceTrackingRecord.h"
 #include "BounceTrackingMapEntry.h"
-#include "ClearDataCallback.h"
 
 #include "BounceTrackingStateGlobal.h"
 #include "ErrorList.h"
@@ -33,15 +32,12 @@
 #include "mozilla/dom/BrowsingContext.h"
 #include "xpcpublic.h"
 #include "mozilla/glean/GleanMetrics.h"
-#include "mozilla/ContentBlockingLog.h"
-#include "mozilla/glean/GleanPings.h"
 
 #define TEST_OBSERVER_MSG_RECORD_BOUNCES_FINISHED "test-record-bounces-finished"
 
 namespace mozilla {
 
-NS_IMPL_ISUPPORTS(BounceTrackingProtection, nsIObserver,
-                  nsIBounceTrackingProtection);
+NS_IMPL_ISUPPORTS(BounceTrackingProtection, nsIBounceTrackingProtection);
 
 LazyLogModule gBounceTrackingProtectionLog("BounceTrackingProtection");
 
@@ -320,21 +316,6 @@ nsresult BounceTrackingProtection::RecordUserActivation(
 }
 
 NS_IMETHODIMP
-BounceTrackingProtection::Observe(nsISupports* aSubject, const char* aTopic,
-                                  const char16_t* aData) {
-  MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
-          ("%s: aTopic: %s", __FUNCTION__, aTopic));
-
-  if (!strcmp(aTopic, "idle-daily")) {
-#if defined(EARLY_BETA_OR_EARLIER)
-    // Submit custom telemetry ping.
-    glean_pings::BounceTrackingProtection.Submit();
-#endif  // defined(EARLY_BETA_OR_EARLIER)
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 BounceTrackingProtection::TestGetBounceTrackerCandidateHosts(
     JS::Handle<JS::Value> aOriginAttributes, JSContext* aCx,
     nsTArray<RefPtr<nsIBounceTrackingMapEntry>>& aCandidates) {
@@ -577,56 +558,23 @@ BounceTrackingProtection::PurgeBounceTrackers() {
                     ("%s: Done. Cleared %zu hosts.", __FUNCTION__,
                      aResults.ResolveValue().Length()));
 
-            if (!aResults.ResolveValue().IsEmpty()) {
-              glean::bounce_tracking_protection::num_hosts_per_purge_run
-                  .AccumulateSingleSample(aResults.ResolveValue().Length());
-            }
-
-            // Check if any clear call failed.
-            bool anyFailed = false;
-
             nsTArray<nsCString> purgedSiteHosts;
             // If any clear call failed reject.
             for (auto& result : aResults.ResolveValue()) {
               if (result.IsReject()) {
-                anyFailed = true;
-              } else {
-                purgedSiteHosts.AppendElement(result.ResolveValue());
+                mPurgeInProgress = false;
+                return PurgeBounceTrackersMozPromise::CreateAndReject(
+                    NS_ERROR_FAILURE, __func__);
               }
+              purgedSiteHosts.AppendElement(result.ResolveValue());
             }
 
-            // Record successful purges via nsITrackingDBService for tracker
-            // stats.
-            if (purgedSiteHosts.Length() > 0) {
-              ReportPurgedTrackersToAntiTrackingDB(purgedSiteHosts);
-            }
+            // No clearing errors, resolve.
 
             mPurgeInProgress = false;
-            // If any clear call failed reject the promise.
-            if (anyFailed) {
-              return PurgeBounceTrackersMozPromise::CreateAndReject(
-                  NS_ERROR_FAILURE, __func__);
-            }
-
             return PurgeBounceTrackersMozPromise::CreateAndResolve(
                 std::move(purgedSiteHosts), __func__);
           });
-}
-
-// static
-void BounceTrackingProtection::ReportPurgedTrackersToAntiTrackingDB(
-    const nsTArray<nsCString>& aPurgedSiteHosts) {
-  MOZ_ASSERT(!aPurgedSiteHosts.IsEmpty());
-
-  ContentBlockingLog log;
-  for (const nsCString& host : aPurgedSiteHosts) {
-    nsAutoCString origin("https://");
-    origin.Append(host);
-
-    log.RecordLogParent(
-        origin, nsIWebProgressListener::STATE_PURGED_BOUNCETRACKER, true);
-  }
-  log.ReportLog();
 }
 
 nsresult BounceTrackingProtection::PurgeBounceTrackersForStateGlobal(
@@ -718,10 +666,10 @@ nsresult BounceTrackingProtection::PurgeBounceTrackersForStateGlobal(
     }
 
     // No exception above applies, clear state for the given host.
+
     RefPtr<ClearDataMozPromise::Private> clearPromise =
         new ClearDataMozPromise::Private(__func__);
-    RefPtr<ClearDataCallback> cb =
-        new ClearDataCallback(clearPromise, host, bounceTime);
+    RefPtr<ClearDataCallback> cb = new ClearDataCallback(clearPromise, host);
 
     MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Info,
             ("%s: Purging bounce tracker. siteHost: %s, bounceTime: %" PRIu64

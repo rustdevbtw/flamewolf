@@ -393,6 +393,7 @@ class CleanupRunnable final : public WorkerMainThreadRunnable {
                                  "EventSource :: Cleanup"_ns),
         mESImpl(std::move(aEventSourceImpl)) {
     MOZ_ASSERT(mESImpl);
+    mWorkerPrivate->AssertIsOnWorkerThread();
   }
 
   bool MainThreadRun() override {
@@ -448,7 +449,7 @@ void EventSourceImpl::CloseInternal() {
     // run CleanupOnMainThread synchronously on main thread since it touches
     // observers and members only can be accessed on main thread.
     RefPtr<CleanupRunnable> runnable = new CleanupRunnable(this);
-    runnable->Dispatch(GetCurrentThreadWorkerPrivate(), Killing, rv);
+    runnable->Dispatch(Killing, rv);
     MOZ_ASSERT(!rv.Failed());
     ReleaseWorkerRef();
   }
@@ -501,8 +502,7 @@ class InitRunnable final : public WorkerMainThreadRunnable {
 
   bool MainThreadRun() override {
     // Get principal from worker's owner document or from worker.
-    MOZ_ASSERT(mWorkerRef);
-    WorkerPrivate* wp = mWorkerRef->Private();
+    WorkerPrivate* wp = mWorkerPrivate;
     while (wp->GetParent()) {
       wp = wp->GetParent();
     }
@@ -1209,6 +1209,7 @@ class CallRestartConnection final : public WorkerMainThreadRunnable {
       : WorkerMainThreadRunnable(aEventSourceImpl->mWorkerRef->Private(),
                                  "EventSource :: RestartConnection"_ns),
         mESImpl(std::move(aEventSourceImpl)) {
+    mWorkerPrivate->AssertIsOnWorkerThread();
     MOZ_ASSERT(mESImpl);
   }
 
@@ -1250,7 +1251,7 @@ void EventSourceImpl::ReestablishConnection() {
   } else {
     RefPtr<CallRestartConnection> runnable = new CallRestartConnection(this);
     ErrorResult result;
-    runnable->Dispatch(GetCurrentThreadWorkerPrivate(), Canceling, result);
+    runnable->Dispatch(Canceling, result);
     MOZ_ASSERT(!result.Failed());
     rv = result.StealNSResult();
   }
@@ -2056,7 +2057,7 @@ already_AddRefed<EventSource> EventSource::Constructor(
 
     RefPtr<InitRunnable> initRunnable =
         new InitRunnable(workerPrivate, eventSource->mESImpl, aURL);
-    initRunnable->Dispatch(workerPrivate, Canceling, aRv);
+    initRunnable->Dispatch(Canceling, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
     }
@@ -2088,7 +2089,7 @@ already_AddRefed<EventSource> EventSource::Constructor(
     // Let's connect to the server.
     RefPtr<ConnectRunnable> connectRunnable =
         new ConnectRunnable(workerPrivate, eventSource->mESImpl);
-    connectRunnable->Dispatch(workerPrivate, Canceling, aRv);
+    connectRunnable->Dispatch(Canceling, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
     }

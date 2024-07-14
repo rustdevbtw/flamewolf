@@ -611,7 +611,6 @@ TextPropertyEditor.prototype = {
           varName,
           this.rule.pseudoElement
         ),
-      inStartingStyleRule: this.rule.isInStartingStyle(),
     };
     const frag = outputParser.parseCssProperty(name, val, parserOptions);
 
@@ -785,8 +784,8 @@ TextPropertyEditor.prototype = {
     const flexToggle = this.valueSpan.querySelector(".ruleview-flex");
     if (flexToggle) {
       flexToggle.setAttribute("title", l10n("rule.flexToggle.tooltip"));
-      flexToggle.setAttribute(
-        "aria-pressed",
+      flexToggle.classList.toggle(
+        "active",
         this.ruleView.inspector.highlighters.getNodeForActiveHighlighter(
           this.ruleView.inspector.highlighters.TYPES.FLEXBOX
         ) === nodeFront
@@ -796,8 +795,8 @@ TextPropertyEditor.prototype = {
     const gridToggle = this.valueSpan.querySelector(".ruleview-grid");
     if (gridToggle) {
       gridToggle.setAttribute("title", l10n("rule.gridToggle.tooltip"));
-      gridToggle.setAttribute(
-        "aria-pressed",
+      gridToggle.classList.toggle(
+        "active",
         this.ruleView.highlighters.gridHighlighters.has(nodeFront)
       );
       gridToggle.toggleAttribute(
@@ -817,8 +816,6 @@ TextPropertyEditor.prototype = {
           })
           .join("");
       shapeToggle.setAttribute("data-mode", mode);
-      shapeToggle.setAttribute("aria-pressed", false);
-      shapeToggle.setAttribute("title", l10n("rule.shapeToggle.tooltip"));
     }
 
     // Now that we have updated the property's value, we might have a pending

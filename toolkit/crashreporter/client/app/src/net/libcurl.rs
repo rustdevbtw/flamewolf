@@ -11,7 +11,6 @@ use std::ffi::{c_char, c_long, c_uint, CStr, CString};
 
 // Constants lifted from `curl.h`
 const CURLE_OK: CurlCode = 0;
-const CURLE_OUT_OF_MEMORY: CurlCode = 27;
 const CURL_ERROR_SIZE: usize = 256;
 
 const CURLOPTTYPE_LONG: CurlOption = 0;
@@ -19,7 +18,6 @@ const CURLOPTTYPE_OBJECTPOINT: CurlOption = 10000;
 const CURLOPTTYPE_FUNCTIONPOINT: CurlOption = 20000;
 const CURLOPTTYPE_STRINGPOINT: CurlOption = CURLOPTTYPE_OBJECTPOINT;
 const CURLOPTTYPE_CBPOINT: CurlOption = CURLOPTTYPE_OBJECTPOINT;
-const CURLOPTTYPE_SLISTPOINT: CurlOption = CURLOPTTYPE_OBJECTPOINT;
 
 const CURLOPT_WRITEDATA: CurlOption = CURLOPTTYPE_CBPOINT + 1;
 const CURLOPT_URL: CurlOption = CURLOPTTYPE_STRINGPOINT + 2;
@@ -28,9 +26,6 @@ const CURLOPT_WRITEFUNCTION: CurlOption = CURLOPTTYPE_FUNCTIONPOINT + 11;
 const CURLOPT_USERAGENT: CurlOption = CURLOPTTYPE_STRINGPOINT + 18;
 const CURLOPT_MIMEPOST: CurlOption = CURLOPTTYPE_OBJECTPOINT + 269;
 const CURLOPT_MAXREDIRS: CurlOption = CURLOPTTYPE_LONG + 68;
-const CURLOPT_HTTPHEADER: CurlOption = CURLOPTTYPE_SLISTPOINT + 23;
-const CURLOPT_POSTFIELDS: CurlOption = CURLOPTTYPE_OBJECTPOINT + 15;
-const CURLOPT_POSTFIELDSIZE: CurlOption = CURLOPTTYPE_LONG + 60;
 
 const CURLINFO_LONG: CurlInfo = 0x200000;
 const CURLINFO_RESPONSE_CODE: CurlInfo = CURLINFO_LONG + 2;
@@ -58,6 +53,14 @@ const CURL_LIB_NAMES: &[&str] = if cfg!(target_os = "linux") {
     &[]
 };
 
+// Shim until min rust version 1.74 which allows std::io::Error::other
+fn error_other<E>(error: E) -> std::io::Error
+where
+    E: Into<Box<dyn std::error::Error + Send + Sync>>,
+{
+    std::io::Error::new(std::io::ErrorKind::Other, error)
+}
+
 #[repr(transparent)]
 #[derive(Clone, Copy)]
 struct CurlHandle(*mut ());
@@ -70,16 +73,6 @@ struct CurlMime(*mut ());
 #[repr(transparent)]
 #[derive(Clone, Copy)]
 struct CurlMimePart(*mut ());
-#[repr(transparent)]
-#[derive(Clone, Copy)]
-struct CurlSlist(*mut ());
-
-// # Safety
-// Curl handles are safe to pass among threads: https://curl.se/libcurl/c/threadsafe.html.
-unsafe impl Send for CurlHandle {}
-unsafe impl Send for CurlMime {}
-unsafe impl Send for CurlMimePart {}
-unsafe impl Send for CurlSlist {}
 
 macro_rules! library_binding {
     ( $localname:ident members[$($members:tt)*] load[$($load:tt)*] fn $name:ident $args:tt $( -> $ret:ty )? ; $($rest:tt)* ) => {
@@ -154,14 +147,12 @@ library_binding! {
     fn curl_mime_data(CurlMimePart, *const c_char, usize) -> CurlCode;
     fn curl_mime_filedata(CurlMimePart, *const c_char) -> CurlCode;
     fn curl_mime_free(CurlMime);
-    fn curl_slist_append(CurlSlist, *const c_char) -> CurlSlist;
-    fn curl_slist_free_all(CurlSlist);
 }
 
 /// Load libcurl if possible.
 pub fn load() -> std::io::Result<&'static Curl> {
     static CURL: Lazy<std::io::Result<Curl>> = Lazy::new(Curl::load);
-    CURL.as_ref().map_err(std::io::Error::other)
+    CURL.as_ref().map_err(error_other)
 }
 
 #[derive(Debug)]
@@ -184,7 +175,7 @@ impl std::error::Error for Error {}
 
 impl From<Error> for std::io::Error {
     fn from(e: Error) -> Self {
-        std::io::Error::other(e)
+        error_other(e)
     }
 }
 
@@ -202,14 +193,12 @@ impl Curl {
     pub fn easy(&self) -> std::io::Result<Easy> {
         let handle = unsafe { (self.curl_easy_init)() };
         if handle.0.is_null() {
-            Err(std::io::Error::other("curl_easy_init failed"))
+            Err(error_other("curl_easy_init failed"))
         } else {
             Ok(Easy {
                 lib: self,
                 handle,
-                mime: None,
-                headers: None,
-                postdata: None,
+                mime: Default::default(),
             })
         }
     }
@@ -227,18 +216,16 @@ pub struct Easy<'a> {
     lib: &'a Curl,
     handle: CurlHandle,
     mime: Option<Mime<'a>>,
-    headers: Option<Slist<'a>>,
-    postdata: Option<Box<[u8]>>,
 }
 
 impl<'a> Easy<'a> {
     pub fn set_url(&mut self, url: &str) -> Result<()> {
-        let url = CString::new(url).unwrap();
+        let url = CString::new(url.to_string()).unwrap();
         to_result(unsafe { (self.lib.curl_easy_setopt)(self.handle, CURLOPT_URL, url.as_ptr()) })
     }
 
     pub fn set_user_agent(&mut self, user_agent: &str) -> Result<()> {
-        let ua = CString::new(user_agent).unwrap();
+        let ua = CString::new(user_agent.to_string()).unwrap();
         to_result(unsafe {
             (self.lib.curl_easy_setopt)(self.handle, CURLOPT_USERAGENT, ua.as_ptr())
         })
@@ -247,7 +234,7 @@ impl<'a> Easy<'a> {
     pub fn mime(&self) -> std::io::Result<Mime<'a>> {
         let handle = unsafe { (self.lib.curl_mime_init)(self.handle) };
         if handle.0.is_null() {
-            Err(std::io::Error::other("curl_mime_init failed"))
+            Err(error_other("curl_mime_init failed"))
         } else {
             Ok(Mime {
                 lib: self.lib,
@@ -257,48 +244,17 @@ impl<'a> Easy<'a> {
     }
 
     pub fn set_mime_post(&mut self, mime: Mime<'a>) -> Result<()> {
-        to_result(unsafe {
+        let result = to_result(unsafe {
             (self.lib.curl_easy_setopt)(self.handle, CURLOPT_MIMEPOST, mime.handle)
-        })?;
-        self.mime = Some(mime);
-        Ok(())
+        });
+        if result.is_ok() {
+            self.mime = Some(mime);
+        }
+        result
     }
 
     pub fn set_max_redirs(&mut self, redirs: c_long) -> Result<()> {
         to_result(unsafe { (self.lib.curl_easy_setopt)(self.handle, CURLOPT_MAXREDIRS, redirs) })
-    }
-
-    /// Create a new, empty string list.
-    pub fn slist(&self) -> Slist<'a> {
-        Slist {
-            lib: self.lib,
-            handle: CurlSlist(std::ptr::null_mut()),
-        }
-    }
-
-    pub fn set_headers(&mut self, headers: Slist<'a>) -> Result<()> {
-        to_result(unsafe {
-            (self.lib.curl_easy_setopt)(self.handle, CURLOPT_HTTPHEADER, headers.handle)
-        })?;
-        self.headers = Some(headers);
-        Ok(())
-    }
-
-    pub fn set_postfields(&mut self, data: impl Into<Box<[u8]>>) -> std::io::Result<()> {
-        let data = data.into();
-        let size: c_long = data.len().try_into().map_err(std::io::Error::other)?;
-        to_result(unsafe {
-            (self.lib.curl_easy_setopt)(self.handle, CURLOPT_POSTFIELDSIZE, size)
-        })?;
-        to_result(unsafe {
-            (self.lib.curl_easy_setopt)(
-                self.handle,
-                CURLOPT_POSTFIELDS,
-                data.as_ptr() as *const c_char,
-            )
-        })?;
-        self.postdata = Some(data);
-        Ok(())
     }
 
     /// Returns the response data on success.
@@ -400,7 +356,7 @@ impl<'a> Mime<'a> {
     pub fn add_part(&mut self) -> std::io::Result<MimePart<'a>> {
         let handle = unsafe { (self.lib.curl_mime_addpart)(self.handle) };
         if handle.0.is_null() {
-            Err(std::io::Error::other("curl_mime_addpart failed"))
+            Err(error_other("curl_mime_addpart failed"))
         } else {
             Ok(MimePart {
                 lib: self.lib,
@@ -423,17 +379,17 @@ pub struct MimePart<'a> {
 
 impl MimePart<'_> {
     pub fn set_name(&mut self, name: &str) -> Result<()> {
-        let name = CString::new(name).unwrap();
+        let name = CString::new(name.to_string()).unwrap();
         to_result(unsafe { (self.lib.curl_mime_name)(self.handle, name.as_ptr()) })
     }
 
     pub fn set_filename(&mut self, filename: &str) -> Result<()> {
-        let filename = CString::new(filename).unwrap();
+        let filename = CString::new(filename.to_string()).unwrap();
         to_result(unsafe { (self.lib.curl_mime_filename)(self.handle, filename.as_ptr()) })
     }
 
     pub fn set_type(&mut self, mime_type: &str) -> Result<()> {
-        let mime_type = CString::new(mime_type).unwrap();
+        let mime_type = CString::new(mime_type.to_string()).unwrap();
         to_result(unsafe { (self.lib.curl_mime_type)(self.handle, mime_type.as_ptr()) })
     }
 
@@ -446,33 +402,5 @@ impl MimePart<'_> {
         to_result(unsafe {
             (self.lib.curl_mime_data)(self.handle, data.as_ptr() as *const c_char, data.len())
         })
-    }
-}
-
-pub struct Slist<'a> {
-    lib: &'a Curl,
-    handle: CurlSlist,
-}
-
-impl Slist<'_> {
-    pub fn append(&mut self, s: &str) -> Result<()> {
-        let cs = CString::new(s).unwrap();
-        let new_handle = unsafe { (self.lib.curl_slist_append)(self.handle, cs.as_ptr()) };
-        if new_handle.0.is_null() {
-            return Err(Error {
-                // From source inspection, failure modes are all malloc errors,
-                // which are more than likely only from OOM.
-                code: CURLE_OUT_OF_MEMORY,
-                error: Some(format!("failed to append {s} to slist")),
-            });
-        }
-        self.handle = new_handle;
-        Ok(())
-    }
-}
-
-impl Drop for Slist<'_> {
-    fn drop(&mut self) {
-        unsafe { (self.lib.curl_slist_free_all)(self.handle) };
     }
 }

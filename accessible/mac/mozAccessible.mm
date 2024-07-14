@@ -757,15 +757,6 @@ struct RoleDescrComparator {
   return [self moxEditableAncestor];
 }
 
-- (NSString*)moxLanguage {
-  MOZ_ASSERT(mGeckoAccessible);
-
-  nsAutoString lang;
-  mGeckoAccessible->Language(lang);
-
-  return nsCocoaUtils::ToNSString(lang);
-}
-
 #ifndef RELEASE_OR_BETA
 - (NSString*)moxMozDebugDescription {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
@@ -888,13 +879,10 @@ struct RoleDescrComparator {
   // a random acc with the same ID) by checking:
   //  - The gecko acc is local, our a11y-announcement lives in browser.xhtml
   //  - The ID of the gecko acc is "a11y-announcement"
-  //  - The native acc is a direct descendent of the chrome window (ChildView in
-  //  a non-headless context, mozRootAccessible in a headless context).
-  DocAccessible* maybeRoot = mGeckoAccessible->IsLocal()
-                                 ? mGeckoAccessible->AsLocal()->Document()
-                                 : nullptr;
-  if (maybeRoot && maybeRoot->IsRoot() &&
-      [[self moxDOMIdentifier] isEqualToString:@"a11y-announcement"]) {
+  //  - The native acc is a direct descendent of the root
+  if (mGeckoAccessible->IsLocal() &&
+      [[self moxDOMIdentifier] isEqualToString:@"a11y-announcement"] &&
+      [[self moxParent] isKindOfClass:[mozRootAccessible class]]) {
     // Our actual announcement should be stored as a child of the alert,
     // so we verify a child exists, and then query that child below.
     NSArray* children = [self moxChildren];
@@ -911,23 +899,20 @@ struct RoleDescrComparator {
 
     NSDictionary* info = @{
       NSAccessibilityAnnouncementKey : key ? key : @(""),
-      // High priority means VO will stop what it is currently speaking
-      // to speak our announcement.
-      NSAccessibilityPriorityKey : @(NSAccessibilityPriorityHigh)
+      NSAccessibilityPriorityKey : @(NSAccessibilityPriorityMedium)
     };
+
+    id window = [self moxWindow];
 
     // This sends events via nsIObserverService to be consumed by our
     // mochitests. Normally we'd fire these events through moxPostNotification
-    // which takes care of this, but because NSApp isn't derived
-    // from MOXAccessibleBase, we do this (and post the notification) manually.
-    // We used to fire this on the window, but per Chrome and Safari these
-    // notifs get dropped if fired on any non-main window. We now fire on NSApp
-    // to avoid this.
+    // which takes care of this, but because the window we fetch above isn't
+    // derrived from MOXAccessibleBase, we do this (and post the notification)
+    // manually.
     xpcAccessibleMacEvent::FireEvent(
-        GetNativeFromGeckoAccessible(maybeRoot),
-        NSAccessibilityAnnouncementRequestedNotification, info);
+        window, NSAccessibilityAnnouncementRequestedNotification, info);
     NSAccessibilityPostNotificationWithUserInfo(
-        NSApp, NSAccessibilityAnnouncementRequestedNotification, info);
+        window, NSAccessibilityAnnouncementRequestedNotification, info);
   }
 }
 

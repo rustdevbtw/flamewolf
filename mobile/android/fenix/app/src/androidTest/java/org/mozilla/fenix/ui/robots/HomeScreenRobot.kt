@@ -148,7 +148,6 @@ class HomeScreenRobot {
             allOf(
                 withId(R.id.counter_text),
                 withText(numberOfOpenTabs),
-                withEffectiveVisibility(Visibility.VISIBLE),
             ),
         ).check(matches(isDisplayed()))
 

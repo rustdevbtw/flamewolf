@@ -2126,7 +2126,7 @@ bool NS_UsePrivateBrowsing(nsIChannel* channel) {
   bool result = StoragePrincipalHelper::GetOriginAttributes(
       channel, attrs, StoragePrincipalHelper::eRegularPrincipal);
   NS_ENSURE_TRUE(result, result);
-  return attrs.IsPrivateBrowsing();
+  return attrs.mPrivateBrowsingId > 0;
 }
 
 bool NS_HasBeenCrossOrigin(nsIChannel* aChannel, bool aReport) {
@@ -2931,8 +2931,15 @@ bool handleResultFunc(bool aAllowSTS, bool aIsStsHost) {
   if (aIsStsHost) {
     LOG(("nsHttpChannel::Connect() STS permissions found\n"));
     if (aAllowSTS) {
+      Telemetry::AccumulateCategorical(
+          Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::STS);
       return true;
     }
+    Telemetry::AccumulateCategorical(
+        Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::PrefBlockedSTS);
+  } else {
+    Telemetry::AccumulateCategorical(
+        Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::NoReasonToUpgrade);
   }
   return false;
 };
@@ -2958,7 +2965,9 @@ static bool ShouldSecureUpgradeNoHSTS(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
                         1,       // aColumnNumber
                         nsIScriptError::warningFlag,
                         "upgradeInsecureRequest"_ns, innerWindowId,
-                        aLoadInfo->GetOriginAttributes().IsPrivateBrowsing());
+                        !!aLoadInfo->GetOriginAttributes().mPrivateBrowsingId);
+    Telemetry::AccumulateCategorical(
+        Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::CSP);
     return true;
   }
   // 3. Mixed content auto upgrading
@@ -2990,22 +2999,22 @@ static bool ShouldSecureUpgradeNoHSTS(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
     // Set this flag so we know we'll upgrade because of
     // 'security.mixed_content.upgrade_display_content'.
     aLoadInfo->SetBrowserDidUpgradeInsecureRequests(true);
+    Telemetry::AccumulateCategorical(
+        Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::BrowserDisplay);
+
     return true;
   }
 
   // 4. Https-Only
   if (nsHTTPSOnlyUtils::ShouldUpgradeRequest(aURI, aLoadInfo)) {
-    aLoadInfo->SetHttpsUpgradeTelemetry(nsILoadInfo::HTTPS_ONLY_UPGRADE);
+    Telemetry::AccumulateCategorical(
+        Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::HTTPSOnly);
     return true;
   }
   // 4.a Https-First
   if (nsHTTPSOnlyUtils::ShouldUpgradeHttpsFirstRequest(aURI, aLoadInfo)) {
-    if (aLoadInfo->GetWasSchemelessInput()) {
-      aLoadInfo->SetHttpsUpgradeTelemetry(
-          nsILoadInfo::HTTPS_FIRST_SCHEMELESS_UPGRADE);
-    } else {
-      aLoadInfo->SetHttpsUpgradeTelemetry(nsILoadInfo::HTTPS_FIRST_UPGRADE);
-    }
+    Telemetry::AccumulateCategorical(
+        Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::HTTPSFirst);
     return true;
   }
   return false;
@@ -3038,7 +3047,8 @@ nsresult NS_ShouldSecureUpgrade(
 
   // If request is https, then there is nothing to do here.
   if (isHttps) {
-    aLoadInfo->SetHttpsUpgradeTelemetry(nsILoadInfo::ALREADY_HTTPS);
+    Telemetry::AccumulateCategorical(
+        Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::AlreadyHTTPS);
     aShouldUpgrade = false;
     return NS_OK;
   }
@@ -3121,11 +3131,6 @@ nsresult NS_ShouldSecureUpgrade(
   NS_ENSURE_SUCCESS(rv, rv);
 
   aShouldUpgrade = handleResultFunc(aAllowSTS, isStsHost);
-  // we can't pass the loadinfo to handleResultFunc since it's not threadsafe
-  // hence we set the http telemetry information on the loadinfo here.
-  if (aShouldUpgrade) {
-    aLoadInfo->SetHttpsUpgradeTelemetry(nsILoadInfo::HSTS);
-  }
   if (!aShouldUpgrade) {
     // Check for CSP upgrade-insecure-requests, Mixed content auto upgrading
     // and Https-Only / -First.

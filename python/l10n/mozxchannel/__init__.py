@@ -39,7 +39,6 @@ def get_default_config(topsrcdir, strings_path):
                     "central": "mozilla-central",
                     "beta": "releases/mozilla-beta",
                     "release": "releases/mozilla-release",
-                    "esr128": "releases/mozilla-esr128",
                     "esr115": "releases/mozilla-esr115",
                 },
                 "config_files": [

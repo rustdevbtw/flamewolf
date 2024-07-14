@@ -295,28 +295,25 @@ class ChannelGetterRunnable final : public WorkerMainThreadRunnable {
 
   virtual bool MainThreadRun() override {
     AssertIsOnMainThread();
-    MOZ_ASSERT(mWorkerRef);
-
-    WorkerPrivate* workerPrivate = mWorkerRef->Private();
 
     // Initialize the WorkerLoadInfo principal to our triggering principal
     // before doing anything else.  Normally we do this in the WorkerPrivate
     // Constructor, but we can't do so off the main thread when creating
     // a nested worker.  So do it here instead.
-    mLoadInfo.mLoadingPrincipal = workerPrivate->GetPrincipal();
+    mLoadInfo.mLoadingPrincipal = mWorkerPrivate->GetPrincipal();
     MOZ_DIAGNOSTIC_ASSERT(mLoadInfo.mLoadingPrincipal);
 
     mLoadInfo.mPrincipal = mLoadInfo.mLoadingPrincipal;
 
     // Figure out our base URI.
-    nsCOMPtr<nsIURI> baseURI = workerPrivate->GetBaseURI();
+    nsCOMPtr<nsIURI> baseURI = mWorkerPrivate->GetBaseURI();
     MOZ_ASSERT(baseURI);
 
     // May be null.
-    nsCOMPtr<Document> parentDoc = workerPrivate->GetDocument();
+    nsCOMPtr<Document> parentDoc = mWorkerPrivate->GetDocument();
 
-    mLoadInfo.mLoadGroup = workerPrivate->GetLoadGroup();
-    mLoadInfo.mCookieJarSettings = workerPrivate->CookieJarSettings();
+    mLoadInfo.mLoadGroup = mWorkerPrivate->GetLoadGroup();
+    mLoadInfo.mCookieJarSettings = mWorkerPrivate->CookieJarSettings();
 
     // Nested workers use default uri encoding.
     nsCOMPtr<nsIURI> url;
@@ -331,7 +328,7 @@ class ChannelGetterRunnable final : public WorkerMainThreadRunnable {
         ReferrerInfo::CreateForFetch(mLoadInfo.mLoadingPrincipal, nullptr);
     mLoadInfo.mReferrerInfo =
         static_cast<ReferrerInfo*>(referrerInfo.get())
-            ->CloneWithNewPolicy(workerPrivate->GetReferrerPolicy());
+            ->CloneWithNewPolicy(mWorkerPrivate->GetReferrerPolicy());
 
     mResult = workerinternals::ChannelFromScriptURLMainThread(
         mLoadInfo.mLoadingPrincipal, parentDoc, mLoadInfo.mLoadGroup, url,
@@ -1058,7 +1055,8 @@ nsresult WorkerScriptLoader::LoadScript(
   // should have occured prior that processed the headers.
   if (!IsDebuggerScript()) {
     headerProcessor = MakeRefPtr<ScriptResponseHeaderProcessor>(
-        mWorkerRef, loadContext->IsTopLevel() && !IsDynamicImport(request),
+        mWorkerRef->Private(),
+        loadContext->IsTopLevel() && !IsDynamicImport(request),
         GetContentPolicyType(request) ==
             nsIContentPolicy::TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS);
   }
@@ -1851,7 +1849,7 @@ nsresult ChannelFromScriptURLWorkerThread(
       aParent, aScriptURL, aWorkerType, aCredentials, aLoadInfo);
 
   ErrorResult rv;
-  getter->Dispatch(aParent, Canceling, rv);
+  getter->Dispatch(Canceling, rv);
   if (rv.Failed()) {
     NS_ERROR("Failed to dispatch!");
     return rv.StealNSResult();

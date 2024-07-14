@@ -472,14 +472,9 @@ add_task(async function test_terminateBackground_after_extension_hasShutdown() {
   await extension.awaitMessage("bg-ready");
 
   // Fake suspending event page on idle while the extension was being shutdown by manually
-  // setting the hasShutdown flag to true on the Extension class instance object, if that
-  // isn't the case the test should be failing because the onSuspend listener call will
-  // trigger a failure through browser.test.fail.
+  // setting the hasShutdown flag to true on the Extension class instance object.
   extension.extension.hasShutdown = true;
-  await extension.terminateBackground({
-    expectStopped: false,
-    disableResetIdleForTest: true,
-  });
+  await extension.terminateBackground();
   extension.extension.hasShutdown = false;
 
   await extension.unload();

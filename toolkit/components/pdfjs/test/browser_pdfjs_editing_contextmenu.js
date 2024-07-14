@@ -355,7 +355,11 @@ add_task(async function test_copy_paste_undo_redo() {
         "All the FreeText editors must have been deleted"
       );
 
-      await waitForPdfJSClose(browser);
+      await SpecialPowers.spawn(browser, [], async function () {
+        var viewer = content.wrappedJSObject.PDFViewerApplication;
+        viewer.pdfDocument.annotationStorage.resetModified();
+        await viewer.close();
+      });
     }
   );
 });
@@ -417,7 +421,11 @@ add_task(async function test_highlight_selection() {
         "An highlight editor must have been added"
       );
 
-      await waitForPdfJSClose(browser);
+      await SpecialPowers.spawn(browser, [], async function () {
+        var viewer = content.wrappedJSObject.PDFViewerApplication;
+        viewer.pdfDocument.annotationStorage.resetModified();
+        await viewer.close();
+      });
     }
   );
 });

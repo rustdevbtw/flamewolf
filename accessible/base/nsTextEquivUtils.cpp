@@ -37,10 +37,7 @@ static bool sInAriaRelationTraversal = false;
  * alternative for an accessible. Per the Name From Content section of the Acc
  * Name spec, "[e]ach node in the subtree is consulted only once."
  */
-static nsTHashSet<const Accessible*>& GetReferencedAccs() {
-  static nsTHashSet<const Accessible*> sReferencedAccs;
-  return sReferencedAccs;
-}
+static nsTHashSet<const Accessible*> sReferencedAccs;
 
 ////////////////////////////////////////////////////////////////////////////////
 // nsTextEquivUtils. Public.
@@ -49,15 +46,15 @@ nsresult nsTextEquivUtils::GetNameFromSubtree(
     const LocalAccessible* aAccessible, nsAString& aName) {
   aName.Truncate();
 
-  if (GetReferencedAccs().Contains(aAccessible)) {
+  if (sReferencedAccs.Contains(aAccessible)) {
     return NS_OK;
   }
 
   // Remember the initiating accessible so we know when we've returned to it.
-  if (GetReferencedAccs().IsEmpty()) {
+  if (sReferencedAccs.IsEmpty()) {
     sInitiatorAcc = aAccessible;
   }
-  GetReferencedAccs().Insert(aAccessible);
+  sReferencedAccs.Insert(aAccessible);
 
   if (GetRoleRule(aAccessible->Role()) == eNameFromSubtreeRule) {
     // XXX: is it necessary to care the accessible is not a document?
@@ -73,7 +70,7 @@ nsresult nsTextEquivUtils::GetNameFromSubtree(
   // returned to the initiator acc), clear out the referenced accessibles and
   // reset the initiator acc.
   if (aAccessible == sInitiatorAcc) {
-    GetReferencedAccs().Clear();
+    sReferencedAccs.Clear();
     sInitiatorAcc = nullptr;
   }
 
@@ -89,7 +86,7 @@ nsresult nsTextEquivUtils::GetTextEquivFromIDRefs(
   const bool isAriaTraversal = aIDRefsAttr == nsGkAtoms::aria_labelledby ||
                                aIDRefsAttr == nsGkAtoms::aria_describedby;
   if ((sInAriaRelationTraversal && isAriaTraversal) ||
-      GetReferencedAccs().Contains(aAccessible)) {
+      sReferencedAccs.Contains(aAccessible)) {
     return NS_OK;
   }
 
@@ -129,21 +126,21 @@ nsresult nsTextEquivUtils::AppendTextEquivFromContent(
   // Prevent recursion which can cause infinite loops.
   LocalAccessible* accessible =
       aInitiatorAcc->Document()->GetAccessible(aContent);
-  if (GetReferencedAccs().Contains(aInitiatorAcc) ||
-      GetReferencedAccs().Contains(accessible)) {
+  if (sReferencedAccs.Contains(aInitiatorAcc) ||
+      sReferencedAccs.Contains(accessible)) {
     return NS_OK;
   }
 
   // Remember the initiating accessible so we know when we've returned to it.
-  if (GetReferencedAccs().IsEmpty()) {
+  if (sReferencedAccs.IsEmpty()) {
     sInitiatorAcc = aInitiatorAcc;
   }
-  GetReferencedAccs().Insert(aInitiatorAcc);
+  sReferencedAccs.Insert(aInitiatorAcc);
 
   nsresult rv = NS_ERROR_FAILURE;
   if (accessible) {
     rv = AppendFromAccessible(accessible, aString);
-    GetReferencedAccs().Insert(accessible);
+    sReferencedAccs.Insert(accessible);
   } else {
     // The given content is invisible or otherwise inaccessible, so use the DOM
     // subtree.
@@ -154,7 +151,7 @@ nsresult nsTextEquivUtils::AppendTextEquivFromContent(
   // returned to the initiator acc), clear out the referenced accessibles and
   // reset the initiator acc.
   if (aInitiatorAcc == sInitiatorAcc) {
-    GetReferencedAccs().Clear();
+    sReferencedAccs.Clear();
     sInitiatorAcc = nullptr;
   }
   return rv;
@@ -215,7 +212,7 @@ nsresult nsTextEquivUtils::AppendFromAccessibleChildren(
   for (uint32_t childIdx = 0; childIdx < childCount; childIdx++) {
     Accessible* child = aAccessible->ChildAt(childIdx);
     // If we've already consulted this child, don't consult it again.
-    if (GetReferencedAccs().Contains(child)) {
+    if (sReferencedAccs.Contains(child)) {
       continue;
     }
     rv = AppendFromAccessible(child, aString);

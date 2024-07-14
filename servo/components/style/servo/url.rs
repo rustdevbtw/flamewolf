@@ -9,10 +9,9 @@ use crate::stylesheets::CorsMode;
 use crate::values::computed::{Context, ToComputedValue};
 use cssparser::Parser;
 use servo_arc::Arc;
+use servo_url::ServoUrl;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
-use to_shmem::{SharedMemoryBuilder, ToShmem};
-use url::Url;
 
 /// A CSS url() value for servo.
 ///
@@ -25,7 +24,7 @@ use url::Url;
 ///
 /// TODO(emilio): This should be shrunk by making CssUrl a wrapper type of an
 /// arc, and keep the serialization in that Arc. See gecko/url.rs for example.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, SpecifiedValueInfo)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, SpecifiedValueInfo, ToShmem)]
 pub struct CssUrl {
     /// The original URI. This might be optional since we may insert computed
     /// values of images into the cascade directly, and we don't bother to
@@ -37,14 +36,7 @@ pub struct CssUrl {
     original: Option<Arc<String>>,
 
     /// The resolved value for the url, if valid.
-    #[ignore_malloc_size_of = "Arc"]
-    resolved: Option<Arc<Url>>,
-}
-
-impl ToShmem for CssUrl {
-    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> to_shmem::Result<Self> {
-        unimplemented!("If servo wants to share stylesheets across processes, ToShmem for Url must be implemented");
-    }
+    resolved: Option<ServoUrl>,
 }
 
 impl CssUrl {
@@ -54,7 +46,7 @@ impl CssUrl {
     /// FIXME(emilio): Should honor CorsMode.
     pub fn parse_from_string(url: String, context: &ParserContext, _: CorsMode) -> Self {
         let serialization = Arc::new(url);
-        let resolved = context.url_data.0.join(&serialization).ok().map(Arc::new);
+        let resolved = context.url_data.join(&serialization).ok();
         CssUrl {
             original: Some(serialization),
             resolved: resolved,
@@ -79,7 +71,7 @@ impl CssUrl {
     }
 
     /// Returns the resolved url if it was valid.
-    pub fn url(&self) -> Option<&Arc<Url>> {
+    pub fn url(&self) -> Option<&ServoUrl> {
         self.resolved.as_ref()
     }
 
@@ -95,7 +87,7 @@ impl CssUrl {
 
     /// Creates an already specified url value from an already resolved URL
     /// for insertion in the cascade.
-    pub fn for_cascade(url: Arc<::url::Url>) -> Self {
+    pub fn for_cascade(url: ServoUrl) -> Self {
         CssUrl {
             original: None,
             resolved: Some(url),
@@ -106,7 +98,7 @@ impl CssUrl {
     pub fn new_for_testing(url: &str) -> Self {
         CssUrl {
             original: Some(Arc::new(url.into())),
-            resolved: ::url::Url::parse(url).ok().map(Arc::new),
+            resolved: ServoUrl::parse(url).ok(),
         }
     }
 
@@ -213,12 +205,12 @@ pub enum ComputedUrl {
     /// The `url()` was invalid or it wasn't specified by the user.
     Invalid(#[ignore_malloc_size_of = "Arc"] Arc<String>),
     /// The resolved `url()` relative to the stylesheet URL.
-    Valid(#[ignore_malloc_size_of = "Arc"] Arc<Url>),
+    Valid(ServoUrl),
 }
 
 impl ComputedUrl {
     /// Returns the resolved url if it was valid.
-    pub fn url(&self) -> Option<&Arc<Url>> {
+    pub fn url(&self) -> Option<&ServoUrl> {
         match *self {
             ComputedUrl::Valid(ref url) => Some(url),
             _ => None,

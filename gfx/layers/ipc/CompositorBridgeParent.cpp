@@ -1170,8 +1170,6 @@ void CompositorBridgeParent::InitializeStatics() {
   gfxVars::SetWebRenderBoolParametersListener(&UpdateWebRenderBoolParameters);
   gfxVars::SetWebRenderBatchingLookbackListener(&UpdateWebRenderParameters);
   gfxVars::SetWebRenderBlobTileSizeListener(&UpdateWebRenderParameters);
-  gfxVars::SetWebRenderSlowCpuFrameThresholdListener(
-      &UpdateWebRenderParameters);
   gfxVars::SetWebRenderBatchedUploadThresholdListener(
       &UpdateWebRenderParameters);
 
@@ -1596,26 +1594,16 @@ CompositorBridgeParent::GetAsyncImagePipelineManager() const {
 }
 
 /* static */ CompositorBridgeParent::LayerTreeState*
-CompositorBridgeParent::GetIndirectShadowTreeInternal(LayersId aId) {
+CompositorBridgeParent::GetIndirectShadowTree(LayersId aId) {
+  // Only the compositor thread should use this method variant
+  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
+
   StaticMonitorAutoLock lock(sIndirectLayerTreesLock);
   LayerTreeMap::iterator cit = sIndirectLayerTrees.find(aId);
   if (sIndirectLayerTrees.end() == cit) {
     return nullptr;
   }
   return &cit->second;
-}
-
-/* static */
-bool CompositorBridgeParent::HasIndirectShadowTree(LayersId aId) {
-  return GetIndirectShadowTreeInternal(aId) != nullptr;
-}
-
-/* static */ CompositorBridgeParent::LayerTreeState*
-CompositorBridgeParent::GetIndirectShadowTree(LayersId aId) {
-  // Only the compositor thread should use this method variant
-  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-
-  return GetIndirectShadowTreeInternal(aId);
 }
 
 /* static */

@@ -13,15 +13,13 @@
 #include "mozilla/dom/quota/Config.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
-#include "mozilla/dom/quota/StringifyUtils.h"
 #include "nsISupportsImpl.h"
 
 namespace mozilla::dom::quota {
 
 class QuotaManager;
 
-class OriginOperationBase : public BackgroundThreadObject,
-                            public Stringifyable {
+class OriginOperationBase : public BackgroundThreadObject {
  protected:
   const NotNull<RefPtr<QuotaManager>> mQuotaManager;
   nsresult mResultCode;
@@ -72,9 +70,6 @@ class OriginOperationBase : public BackgroundThreadObject,
   virtual nsresult DoDirectoryWork(QuotaManager& aQuotaManager) = 0;
 
   virtual void UnblockOpen() = 0;
-
- private:
-  void DoStringify(nsACString& aData) override {}
 };
 
 }  // namespace mozilla::dom::quota

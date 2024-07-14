@@ -344,7 +344,7 @@ public final class GeckoLoader {
 
   private static boolean attemptLoad(final String path) {
     try {
-      System.loadLibrary(path);
+      System.load(path);
       return true;
     } catch (final Throwable e) {
       Log.wtf(LOGTAG, "Couldn't load " + path + ": " + e);

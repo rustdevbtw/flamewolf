@@ -60,7 +60,6 @@
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
 #  include "mozilla/Sandbox.h"
-#  include "mozilla/SandboxProfilerObserver.h"
 #endif
 
 #include "ChildProfilerController.h"
@@ -226,10 +225,6 @@ void SocketProcessChild::ActorDestroy(ActorDestroyReason aWhy) {
     mShuttingDown = true;
   }
 
-#if defined(XP_LINUX) && defined(MOZ_SANDBOX)
-  DestroySandboxProfiler();
-#endif
-
   if (AbnormalShutdown == aWhy) {
     NS_WARNING("Shutting down Socket process early due to a crash!");
     ProcessChild::QuickExit();
@@ -344,7 +339,6 @@ mozilla::ipc::IPCResult SocketProcessChild::RecvInitLinuxSandbox(
   if (aBrokerFd.isSome()) {
     fd = aBrokerFd.value().ClonePlatformHandle().release();
   }
-  RegisterProfilerObserversForSandboxProfiler();
   SetSocketProcessSandbox(fd);
 #endif  // XP_LINUX && MOZ_SANDBOX
   return IPC_OK();

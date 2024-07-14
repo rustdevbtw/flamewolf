@@ -158,6 +158,10 @@ impl Resource for Surface {
     fn as_info_mut(&mut self) -> &mut ResourceInfo<Self> {
         &mut self.info
     }
+
+    fn label(&self) -> &str {
+        "<Surface>"
+    }
 }
 
 impl Surface {
@@ -200,7 +204,7 @@ impl<A: HalApi> Adapter<A> {
 
         Self {
             raw,
-            info: ResourceInfo::new(&None, None),
+            info: ResourceInfo::new("<Adapter>", None),
         }
     }
 
@@ -305,7 +309,7 @@ impl<A: HalApi> Adapter<A> {
             let queue = Queue {
                 device: None,
                 raw: Some(hal_device.queue),
-                info: ResourceInfo::new(&None, None),
+                info: ResourceInfo::new("<Queue>", None),
             };
             return Ok((device, queue));
         }
@@ -528,7 +532,7 @@ impl Global {
 
         let surface = Surface {
             presentation: Mutex::new(rank::SURFACE_PRESENTATION, None),
-            info: ResourceInfo::new(&None, None),
+            info: ResourceInfo::new("<Surface>", None),
 
             #[cfg(vulkan)]
             vulkan: init::<hal::api::Vulkan>(
@@ -592,7 +596,7 @@ impl Global {
 
         let surface = Surface {
             presentation: Mutex::new(rank::SURFACE_PRESENTATION, None),
-            info: ResourceInfo::new(&None, None),
+            info: ResourceInfo::new("<Surface>", None),
             metal: Some(self.instance.metal.as_ref().map_or(
                 Err(CreateSurfaceError::BackendNotEnabled(Backend::Metal)),
                 |inst| {
@@ -621,7 +625,7 @@ impl Global {
     ) -> Result<SurfaceId, CreateSurfaceError> {
         let surface = Surface {
             presentation: Mutex::new(rank::SURFACE_PRESENTATION, None),
-            info: ResourceInfo::new(&None, None),
+            info: ResourceInfo::new("<Surface>", None),
             dx12: Some(create_surface_func(
                 self.instance
                     .dx12
@@ -1095,15 +1099,15 @@ impl Global {
         let device_fid = hub.devices.prepare(device_id_in);
         let queue_fid = hub.queues.prepare(queue_id_in);
 
-        let error = 'error: {
+        let error = loop {
             let adapter = match hub.adapters.get(adapter_id) {
                 Ok(adapter) => adapter,
-                Err(_) => break 'error RequestDeviceError::InvalidAdapter,
+                Err(_) => break RequestDeviceError::InvalidAdapter,
             };
             let (device, mut queue) =
                 match adapter.create_device_and_queue(desc, self.instance.flags, trace_path) {
                     Ok((device, queue)) => (device, queue),
-                    Err(e) => break 'error e,
+                    Err(e) => break e,
                 };
             let (device_id, _) = device_fid.assign(Arc::new(device));
             resource_log!("Created Device {:?}", device_id);
@@ -1143,10 +1147,10 @@ impl Global {
         let devices_fid = hub.devices.prepare(device_id_in);
         let queues_fid = hub.queues.prepare(queue_id_in);
 
-        let error = 'error: {
+        let error = loop {
             let adapter = match hub.adapters.get(adapter_id) {
                 Ok(adapter) => adapter,
-                Err(_) => break 'error RequestDeviceError::InvalidAdapter,
+                Err(_) => break RequestDeviceError::InvalidAdapter,
             };
             let (device, mut queue) = match adapter.create_device_and_queue_from_hal(
                 hal_device,
@@ -1155,7 +1159,7 @@ impl Global {
                 trace_path,
             ) {
                 Ok(device) => device,
-                Err(e) => break 'error e,
+                Err(e) => break e,
             };
             let (device_id, _) = devices_fid.assign(Arc::new(device));
             resource_log!("Created Device {:?}", device_id);

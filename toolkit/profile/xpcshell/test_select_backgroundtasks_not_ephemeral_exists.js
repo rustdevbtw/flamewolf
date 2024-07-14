@@ -10,7 +10,8 @@ let condition = {
   skip_if: () => !AppConstants.MOZ_BACKGROUNDTASKS,
 };
 
-let vendor = "Mozilla";
+// MOZ_APP_VENDOR is empty on Thunderbird.
+let vendor = AppConstants.MOZ_APP_NAME == "thunderbird" ? "" : "Mozilla";
 
 add_task(condition, async () => {
   let hash = xreDirProvider.getInstallHash();

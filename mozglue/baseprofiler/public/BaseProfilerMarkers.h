@@ -140,9 +140,7 @@ namespace mozilla::baseprofiler::markers {
 // Most common marker type. Others are in BaseProfilerMarkerTypes.h.
 struct TextMarker : public BaseMarkerType<TextMarker> {
   static constexpr const char* Name = "Text";
-  // It's not possible to add a single meaningful description to this marker
-  // type since it can be used by various different markers.
-  static constexpr const char* Description = nullptr;
+  static constexpr const char* Description = "Generic text marker";
 
   static constexpr bool StoreName = true;
 
@@ -169,9 +167,7 @@ struct TextMarker : public BaseMarkerType<TextMarker> {
 // counterpart.
 struct Tracing : public BaseMarkerType<Tracing> {
   static constexpr const char* Name = "tracing";
-  // It's not possible to add a single meaningful description to this marker
-  // type since it can be used by various different markers.
-  static constexpr const char* Description = nullptr;
+  static constexpr const char* Description = "Generic tracing marker";
 
   static constexpr bool StoreName = true;
 

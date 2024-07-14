@@ -2529,12 +2529,18 @@ class nsIFrame : public nsQueryFrame {
   virtual nsIFrame* LastInFlow() const { return const_cast<nsIFrame*>(this); }
 
   /**
-   * Mark any stored intrinsic inline size information as dirty (requiring
+   * Note: "width" in the names and comments on the following methods
+   * means inline-size, which could be height in vertical layout
+   */
+
+  /**
+   * Mark any stored intrinsic width information as dirty (requiring
    * re-calculation).  Note that this should generally not be called
    * directly; PresShell::FrameNeedsReflow() will call it instead.
    */
   virtual void MarkIntrinsicISizesDirty();
 
+ public:
   /**
    * Make this frame and all descendants dirty (if not already).
    * Exceptions: TableColGroupFrame children.
@@ -2573,8 +2579,8 @@ class nsIFrame : public nsQueryFrame {
   virtual nscoord GetPrefISize(gfxContext* aRenderingContext);
 
   /**
-   * |InlineIntrinsicISize| represents the intrinsic inline size information
-   * in inline layout.  Code that determines the intrinsic inline size of a
+   * |InlineIntrinsicISize| represents the intrinsic width information
+   * in inline layout.  Code that determines the intrinsic width of a
    * region of inline layout accumulates the result into this structure.
    * This pattern is needed because we need to maintain state
    * information about whitespace (for both collapsing and trimming).

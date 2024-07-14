@@ -314,7 +314,7 @@ private fun MenuDialogPreview() {
                 .background(color = FirefoxTheme.colors.layer3),
         ) {
             MainMenu(
-                accessPoint = MenuAccessPoint.Browser,
+                accessPoint = MenuAccessPoint.Home,
                 account = null,
                 accountState = NotAuthenticated,
                 isPrivate = false,

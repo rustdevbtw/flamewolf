@@ -35,6 +35,7 @@ import mozilla.components.service.glean.private.NoExtras
 import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.utils.ext.isLandscape
+import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.AddressToolbar
 import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.GleanMetrics.Shopping
@@ -45,14 +46,16 @@ import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
+import org.mozilla.fenix.components.toolbar.IncompleteRedesignToolbarFeature
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
-import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.HomeFragment
+import org.mozilla.fenix.messaging.FenixMessageSurfaceId
+import org.mozilla.fenix.messaging.MessagingFeature
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.settings.quicksettings.protections.cookiebanners.getCookieBannerUIMode
 import org.mozilla.fenix.shopping.DefaultShoppingExperienceFeature
@@ -74,6 +77,9 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     private val reviewQualityCheckFeature = ViewBoundFeatureWrapper<ReviewQualityCheckFeature>()
     private val translationsBinding = ViewBoundFeatureWrapper<TranslationsBinding>()
 
+    @VisibleForTesting
+    internal val messagingFeature = ViewBoundFeatureWrapper<MessagingFeature>()
+
     private var readerModeAvailable = false
     private var reviewQualityCheckAvailable = false
     private var translationsAvailable = false
@@ -86,8 +92,6 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     private var backAction: BrowserToolbar.TwoStateButton? = null
     private var refreshAction: BrowserToolbar.TwoStateButton? = null
     private var isTablet: Boolean = false
-
-    private var translationSnackbar: FenixSnackbar? = null
 
     @Suppress("LongMethod")
     override fun initializeUI(view: View, tab: SessionState) {
@@ -114,14 +118,12 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
 
         updateBrowserToolbarLeadingAndNavigationActions(
             context = context,
-            redesignEnabled = context.settings().navigationToolbarEnabled,
+            redesignEnabled = IncompleteRedesignToolbarFeature(context.settings()).isEnabled,
             isLandscape = context.isLandscape(),
             isTablet = resources.getBoolean(R.bool.tablet),
             isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
             feltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
         )
-
-        updateBrowserToolbarMenuVisibility()
 
         val readerModeAction =
             BrowserToolbar.ToggleButton(
@@ -216,6 +218,22 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         )
 
         setTranslationFragmentResultListener()
+
+        setupMicrosurvey()
+    }
+
+    @VisibleForTesting
+    internal fun setupMicrosurvey(isMicrosurveyEnabled: Boolean = FeatureFlags.microsurveysEnabled) {
+        if (requireContext().settings().isExperimentationEnabled && isMicrosurveyEnabled) {
+            messagingFeature.set(
+                feature = MessagingFeature(
+                    appStore = requireComponents.appStore,
+                    surface = FenixMessageSurfaceId.MICROSURVEY,
+                ),
+                owner = viewLifecycleOwner,
+                view = binding.root,
+            )
+        }
     }
 
     private fun setTranslationFragmentResultListener() {
@@ -224,21 +242,20 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         ) { _, result ->
             result.getString(SESSION_ID)?.let {
                 if (it == getCurrentTab()?.id) {
-                    translationSnackbar = FenixSnackbar.make(
+                    FenixSnackbar.make(
                         view = binding.dynamicSnackbarContainer,
-                        duration = FenixSnackbar.LENGTH_INDEFINITE,
+                        duration = Snackbar.LENGTH_LONG,
                         isDisplayedWithBrowserToolbar = true,
                     )
                         .setText(requireContext().getString(R.string.translation_in_progress_snackbar))
-
-                    translationSnackbar?.show()
+                        .show()
                 }
             }
         }
     }
 
     private fun initSharePageAction(context: Context) {
-        if (!context.settings().navigationToolbarEnabled) {
+        if (!IncompleteRedesignToolbarFeature(context.settings()).isEnabled) {
             return
         }
 
@@ -306,15 +323,8 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                     )
 
                     safeInvalidateBrowserToolbarView()
-
-                    if (!it.isTranslateProcessing && translationSnackbar?.isShown == true) {
-                        translationSnackbar?.dismiss()
-                    }
                 },
                 onShowTranslationsDialog = {
-                    if (translationSnackbar?.isShown == true) {
-                        translationSnackbar?.dismiss()
-                    }
                     browserToolbarInteractor.onTranslationsButtonClicked()
                 },
             ),
@@ -324,7 +334,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     }
 
     private fun initReloadAction(context: Context) {
-        if (!context.settings().navigationToolbarEnabled) {
+        if (!IncompleteRedesignToolbarFeature(context.settings()).isEnabled) {
             return
         }
 
@@ -510,12 +520,6 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         browserToolbarView.view.invalidateActions()
     }
 
-    private fun updateBrowserToolbarMenuVisibility() {
-        browserToolbarView.updateMenuVisibility(
-            isVisible = !requireContext().shouldAddNavigationBar(),
-        )
-    }
-
     @VisibleForTesting
     internal fun updateAddressBarLeadingAction(
         redesignEnabled: Boolean,
@@ -554,14 +558,12 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
 
         updateBrowserToolbarLeadingAndNavigationActions(
             context = requireContext(),
-            redesignEnabled = requireContext().settings().navigationToolbarEnabled,
+            redesignEnabled = IncompleteRedesignToolbarFeature(requireContext().settings()).isEnabled,
             isLandscape = requireContext().isLandscape(),
             isTablet = resources.getBoolean(R.bool.tablet),
             isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
             feltPrivateBrowsingEnabled = requireContext().settings().feltPrivateBrowsingEnabled,
         )
-
-        updateBrowserToolbarMenuVisibility()
     }
 
     @VisibleForTesting
@@ -857,7 +859,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             context.components.useCases.tabsUseCases,
             context.components.useCases.contextMenuUseCases,
             view,
-            ContextMenuSnackbarDelegate(),
+            FenixSnackbarDelegate(view),
         ) + ContextMenuCandidate.createOpenInExternalAppCandidate(
             requireContext(),
             contextMenuCandidateAppLinksUseCases,

@@ -268,9 +268,7 @@ class Expression:
             self.content = expression.content[:3]
 
         def __str__(self):
-            return 'Unexpected content at offset {0}, "{1}"'.format(
-                self.offset, self.content
-            )
+            return 'Unexpected content at offset {0}, "{1}"'.format(self.offset, self.content)
 
 
 class Context(dict):
@@ -292,6 +290,37 @@ class Context(dict):
         if key in self:
             return super(self.__class__, self).__getitem__(key)
         return key
+
+
+class StateList(list):
+    def __getitem__(self, index):
+        try:
+            return super().__getitem__(index)
+        except IndexError:
+            if index == -1:
+                return 0
+            raise
+
+    def __setitem__(self, index, value):
+        if index >= 0:
+            if index >= len(self):
+                self.extend([0] * (index - len(self) + 1))
+            super().__setitem__(index, value)
+        elif index == -1:
+            if not self:
+                self.append(value)
+            else:
+                super().__setitem__(index, value)
+        else:
+            raise IndexError("list assignment index out of range")
+
+    def pop(self, index=-1):
+        if not self:
+            return 0  # Return 0 or any default value for pop from empty list
+        return super().pop(index)
+
+    def __repr__(self):
+        return super().__repr__()
 
 
 class Preprocessor:
@@ -324,7 +353,7 @@ class Preprocessor:
         #  0: hadTrue
         #  1: wantsTrue
         #  2: #else found
-        self.ifStates = []
+        self.ifStates = StateList()
         self.checkLineNumbers = False
 
         # A list of (filter_name, filter_function) pairs.
@@ -478,14 +507,8 @@ class Preprocessor:
         if self.checkLineNumbers:
             expected_file, expected_line = self.line_info
             expected_line += 1
-            if (
-                expected_line != next_line
-                or expected_file
-                and expected_file != next_file
-            ):
-                self.out.write(
-                    '//@line {line} "{file}"\n'.format(line=next_line, file=next_file)
-                )
+            if expected_line != next_line or expected_file and expected_file != next_file:
+                self.out.write('//@line {line} "{file}"\n'.format(line=next_line, file=next_file))
         self.noteLineInfo()
 
         filteredLine = self.applyFilters(aLine)
@@ -519,18 +542,14 @@ class Preprocessor:
         if options.output:
             out = get_output_file(options.output, options.output_encoding)
         elif options.output_encoding:
-            raise Preprocessor.Error(
-                self, "--output-encoding doesn't work without --output", None
-            )
+            raise Preprocessor.Error(self, "--output-encoding doesn't work without --output", None)
         if defaultToStdin and len(args) == 0:
             args = [sys.stdin]
             if options.depend:
                 raise Preprocessor.Error(self, "--depend doesn't work with stdin", None)
         if options.depend:
             if not options.output:
-                raise Preprocessor.Error(
-                    self, "--depend doesn't work with stdout", None
-                )
+                raise Preprocessor.Error(self, "--depend doesn't work with stdout", None)
             depfile = get_output_file(options.depend)
 
         if args:
@@ -695,10 +714,8 @@ class Preprocessor:
 
     # Logic
     def ensure_not_else(self):
-        if len(self.ifStates) == 0 or self.ifStates[-1] == 2:
-            sys.stderr.write(
-                "WARNING: bad nesting of #else in %s\n" % self.context["FILE"]
-            )
+        if len(self.ifStates) == 0 or self.ifStates[-1] == 2 if len(self.ifStates) > 0 else False:
+            sys.stderr.write("WARNING: bad nesting of #else in %s\n" % self.context["FILE"])
 
     def do_if(self, args, replace=False):
         if self.disableLevel and not replace:
@@ -877,9 +894,7 @@ class Preprocessor:
                 raise
             except Exception:
                 raise Preprocessor.Error(self, "FILE_NOT_FOUND", _to_text(args))
-        self.checkLineNumbers = bool(
-            re.search(r"\.(js|jsm|java|webidl)(?:\.in)?$", args.name)
-        )
+        self.checkLineNumbers = bool(re.search(r"\.(js|jsm|java|webidl)(?:\.in)?$", args.name))
         oldFile = self.context["FILE"]
         oldLine = self.context["LINE"]
         oldDir = self.context["DIRECTORY"]

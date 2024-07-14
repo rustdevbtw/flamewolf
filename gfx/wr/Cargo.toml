@@ -7,9 +7,6 @@ members = [
     "example-compositor/compositor",
 ]
 
-[workspace.dependencies]
-glean = "=60.3.0"
-
 [profile.release]
 debug = true
 panic = "abort"

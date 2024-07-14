@@ -7,9 +7,7 @@ package org.mozilla.fenix.tabstray
 import androidx.annotation.VisibleForTesting
 import androidx.navigation.NavController
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.action.DebugAction
 import mozilla.components.browser.state.action.LastAccessAction
 import mozilla.components.browser.state.selector.findTab
@@ -189,12 +187,11 @@ interface TabsTrayController : SyncedTabsController, InactiveTabsController, Tab
  * @param tabsUseCases Use case wrapper for interacting with tabs.
  * @param bookmarksUseCase Use case wrapper for interacting with bookmarks.
  * @param closeSyncedTabsUseCases Use cases for closing synced tabs.
- * @param ioDispatcher [CoroutineContext] used for storage operations.
+ * @param ioDispatcher [CoroutineContext] used for storage and network operations.
  * @param collectionStorage Storage layer for interacting with collections.
  * @param selectTabPosition Lambda used to scroll the tabs tray to the desired position.
  * @param dismissTray Lambda used to dismiss/minimize the tabs tray.
- * @param showUndoSnackbarForTab Lambda used to display an undo snackbar when a normal or private tab is closed.
- * @param showUndoSnackbarForSyncedTab Lambda used to display an undo snackbar when a synced tab is closed.
+ * @param showUndoSnackbarForTab Lambda used to display an UNDO Snackbar.
  * @property showCancelledDownloadWarning Lambda used to display a cancelled download warning.
  * @param showBookmarkSnackbar Lambda used to display a snackbar upon saving tabs as bookmarks.
  * @param showCollectionSnackbar Lambda used to display a snackbar upon successfully saving tabs
@@ -221,7 +218,6 @@ class DefaultTabsTrayController(
     private val selectTabPosition: (Int, Boolean) -> Unit,
     private val dismissTray: () -> Unit,
     private val showUndoSnackbarForTab: (Boolean) -> Unit,
-    private val showUndoSnackbarForSyncedTab: (CloseTabsUseCases.UndoableOperation) -> Unit,
     internal val showCancelledDownloadWarning: (downloadCount: Int, tabId: String?, source: String?) -> Unit,
     private val showBookmarkSnackbar: (tabSize: Int) -> Unit,
     private val showCollectionSnackbar: (
@@ -253,14 +249,6 @@ class DefaultTabsTrayController(
     private fun openNewTab(isPrivate: Boolean) {
         val startTime = profiler?.getProfilerTime()
         browsingModeManager.mode = BrowsingMode.fromBoolean(isPrivate)
-
-        if (settings.enableHomepageAsNewTab) {
-            tabsUseCases.addTab.invoke(
-                startLoading = false,
-                private = isPrivate,
-            )
-        }
-
         navController.navigate(
             TabsTrayFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
         )
@@ -537,10 +525,7 @@ class DefaultTabsTrayController(
 
     override fun handleSyncedTabClosed(deviceId: String, tab: Tab) {
         CoroutineScope(ioDispatcher).launch {
-            val operation = closeSyncedTabsUseCases.close(deviceId, tab.active().url)
-            withContext(Dispatchers.Main) {
-                showUndoSnackbarForSyncedTab(operation)
-            }
+            closeSyncedTabsUseCases.close(deviceId, tab.active().url)
         }
     }
 

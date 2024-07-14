@@ -313,7 +313,8 @@ namespace {
 // This runnable is used to terminate the sync event loop.
 class ReadReadyRunnable final : public WorkerSyncRunnable {
  public:
-  explicit ReadReadyRunnable(nsIEventTarget* aSyncLoopTarget)
+  ReadReadyRunnable(WorkerPrivate* aWorkerPrivate,
+                    nsIEventTarget* aSyncLoopTarget)
       : WorkerSyncRunnable(aSyncLoopTarget, "ReadReadyRunnable") {}
 
   bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
@@ -338,18 +339,21 @@ class ReadCallback final : public nsIInputStreamCallback {
   NS_DECL_THREADSAFE_ISUPPORTS
 
   ReadCallback(WorkerPrivate* aWorkerPrivate, nsIEventTarget* aEventTarget)
-      : mEventTarget(aEventTarget) {}
+      : mWorkerPrivate(aWorkerPrivate), mEventTarget(aEventTarget) {}
 
   NS_IMETHOD
   OnInputStreamReady(nsIAsyncInputStream* aStream) override {
     // I/O Thread. Now we need to block the sync event loop.
-    RefPtr<ReadReadyRunnable> runnable = new ReadReadyRunnable(mEventTarget);
+    RefPtr<ReadReadyRunnable> runnable =
+        new ReadReadyRunnable(mWorkerPrivate, mEventTarget);
     return mEventTarget->Dispatch(runnable.forget(), NS_DISPATCH_NORMAL);
   }
 
  private:
   ~ReadCallback() = default;
 
+  // The worker is kept alive because of the sync event loop.
+  WorkerPrivate* mWorkerPrivate;
   nsCOMPtr<nsIEventTarget> mEventTarget;
 };
 

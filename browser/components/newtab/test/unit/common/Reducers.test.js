@@ -9,6 +9,7 @@ const {
   Personalization,
   DiscoveryStream,
   Search,
+  ASRouter,
 } = reducers;
 import { actionTypes as at } from "common/Actions.mjs";
 
@@ -1516,5 +1517,9 @@ describe("Reducers", () => {
       assert.propertyVal(nextState, "fakeFocus", false);
       assert.propertyVal(nextState, "disable", false);
     });
+  });
+  it("should set initialized to true on AS_ROUTER_INITIALIZED", () => {
+    const nextState = ASRouter(undefined, { type: "AS_ROUTER_INITIALIZED" });
+    assert.propertyVal(nextState, "initialized", true);
   });
 });

@@ -82,11 +82,9 @@ class WorkerCSPCheckRunnable final : public WorkerMainThreadRunnable {
         mEvalAllowed(false) {}
 
   bool MainThreadRun() override {
-    MOZ_ASSERT(mWorkerRef);
-    WorkerPrivate* workerPrivate = mWorkerRef->Private();
     mResult = CheckInternal(
-        workerPrivate->GetCsp(), workerPrivate->CSPEventListener(),
-        workerPrivate->GetLoadingPrincipal(), mExpression, mFileNameString,
+        mWorkerPrivate->GetCsp(), mWorkerPrivate->CSPEventListener(),
+        mWorkerPrivate->GetLoadingPrincipal(), mExpression, mFileNameString,
         mLineNum, mColumnNum, &mEvalAllowed);
     return true;
   }
@@ -176,7 +174,7 @@ nsresult CSPEvalChecker::CheckForWorker(JSContext* aCx,
   RefPtr<WorkerCSPCheckRunnable> r = new WorkerCSPCheckRunnable(
       aWorkerPrivate, aExpression, fileNameString, lineNum, columnNum);
   ErrorResult error;
-  r->Dispatch(aWorkerPrivate, Canceling, error);
+  r->Dispatch(Canceling, error);
   if (NS_WARN_IF(error.Failed())) {
     *aAllowEval = false;
     return error.StealNSResult();

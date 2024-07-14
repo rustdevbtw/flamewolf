@@ -71,8 +71,6 @@ namespace jit {
   _(MarkLoadsUsedAsPropertyKeys)           \
   /* Output a list of MIR expressions */   \
   _(MIRExpressions)                        \
-  /* Information about stub folding */     \
-  _(StubFolding)                           \
                                            \
   /* BASELINE COMPILER SPEW */             \
                                            \

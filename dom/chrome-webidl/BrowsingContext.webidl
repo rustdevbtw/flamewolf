@@ -388,14 +388,16 @@ interface CanonicalBrowsingContext : BrowsingContext {
   [SetterThrows] inherit attribute boolean targetTopLevelLinkClicksToBlank;
 
   /**
-   * Set the cross-group opener of this BrowsingContext. This tracks the opener
-   * of a browsing context regardless if that context is opened using noopener.
+   * Set the cross-group opener of this BrowsingContext. This is used to
+   * retarget the download dialog to an opener window, and close this
+   * BrowsingContext, if the first load in a newly created BrowsingContext is a
+   * download.
    *
    * This value will be automatically set for documents created using
    * `window.open`.
    */
-  [SetterThrows]
-  attribute CanonicalBrowsingContext? crossGroupOpener;
+  [Throws]
+  undefined setCrossGroupOpener(CanonicalBrowsingContext crossGroupOpener);
 
   readonly attribute boolean isReplaced;
 

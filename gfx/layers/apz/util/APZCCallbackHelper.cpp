@@ -517,7 +517,8 @@ nsEventStatus APZCCallbackHelper::DispatchSynthesizedMouseEvent(
   MOZ_ASSERT(aMsg == eMouseMove || aMsg == eMouseDown || aMsg == eMouseUp ||
              aMsg == eMouseLongTap);
 
-  WidgetMouseEvent event(true, aMsg, aWidget, WidgetMouseEvent::eReal);
+  WidgetMouseEvent event(true, aMsg, aWidget, WidgetMouseEvent::eReal,
+                         WidgetMouseEvent::eNormal);
   event.mRefPoint = LayoutDeviceIntPoint::Truncate(aRefPoint.x, aRefPoint.y);
   event.mButton = MouseButton::ePrimary;
   event.mButtons = aMsg == eMouseDown ? MouseButtonsFlag::ePrimaryFlag

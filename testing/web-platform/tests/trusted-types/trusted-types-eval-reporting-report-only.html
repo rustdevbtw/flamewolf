@@ -94,11 +94,11 @@
 
   promise_test(t => {
     trustedTypes.createPolicy('default', {
-      createScript: s => s,
+      createScript: s => s.replace('payload', 'default policy'),
     }, true);
     let p = promise_flush()();
     eval('script_run_beacon="payload"');
-    assert_equals(script_run_beacon, 'payload');
+    assert_equals(script_run_beacon, 'default policy');
     flush();
     return p;
   }, "Trusted Type violation report: default policy runs in report-only mode.");

@@ -138,12 +138,12 @@ namespace xsimd
         /**
          * @brief Generate a batch of @p batch_type from this @p batch_constant
          */
-        XSIMD_INLINE batch_type as_batch() const noexcept { return { Values... }; }
+        inline batch_type as_batch() const noexcept { return { Values... }; }
 
         /**
          * @brief Generate a batch of @p batch_type from this @p batch_constant
          */
-        XSIMD_INLINE operator batch_type() const noexcept { return as_batch(); }
+        inline operator batch_type() const noexcept { return as_batch(); }
 
         /**
          * @brief Get the @p i th element of this @p batch_constant
@@ -246,13 +246,13 @@ namespace xsimd
     namespace detail
     {
         template <typename T, class A, class G, std::size_t... Is>
-        XSIMD_INLINE constexpr auto make_batch_constant(detail::index_sequence<Is...>) noexcept
+        inline constexpr auto make_batch_constant(detail::index_sequence<Is...>) noexcept
             -> batch_constant<T, A, (T)G::get(Is, sizeof...(Is))...>
         {
             return {};
         }
         template <typename T, class A, class G, std::size_t... Is>
-        XSIMD_INLINE constexpr auto make_batch_bool_constant(detail::index_sequence<Is...>) noexcept
+        inline constexpr auto make_batch_bool_constant(detail::index_sequence<Is...>) noexcept
             -> batch_bool_constant<T, A, G::get(Is, sizeof...(Is))...>
         {
             return {};
@@ -281,13 +281,13 @@ namespace xsimd
      * @endcode
      */
     template <typename T, class A, class G>
-    XSIMD_INLINE constexpr auto make_batch_constant() noexcept -> decltype(detail::make_batch_constant<T, A, G>(detail::make_index_sequence<batch<T, A>::size>()))
+    inline constexpr auto make_batch_constant() noexcept -> decltype(detail::make_batch_constant<T, A, G>(detail::make_index_sequence<batch<T, A>::size>()))
     {
         return detail::make_batch_constant<T, A, G>(detail::make_index_sequence<batch<T, A>::size>());
     }
 
     template <typename T, class A, class G>
-    XSIMD_INLINE constexpr auto make_batch_bool_constant() noexcept
+    inline constexpr auto make_batch_bool_constant() noexcept
         -> decltype(detail::make_batch_bool_constant<T, A, G>(
             detail::make_index_sequence<batch<T, A>::size>()))
     {

@@ -110,12 +110,8 @@ class nsDOMWindowUtils final : public nsIDOMWindowUtils,
                                    bool aFromChrome);
 
  private:
-  enum class CoordsType {
-    Screen,
-    TopLevelWidget,
-  };
-  mozilla::Result<mozilla::LayoutDeviceRect, nsresult> ConvertTo(
-      float aX, float aY, float aWidth, float aHeight, CoordsType);
+  mozilla::Result<mozilla::ScreenRect, nsresult> ConvertToScreenRect(
+      float aX, float aY, float aWidth, float aHeight);
 };
 
 #endif

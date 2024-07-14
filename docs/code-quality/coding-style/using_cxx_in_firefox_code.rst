@@ -381,7 +381,7 @@ Data structures
      - Header
      - STL equivalent
      - Notes
-   * - ``AutoTArray``
+   * - ``nsAutoTArray``
      - ``nsTArray.h``
      -
      - Like ``nsTArray``, but will store a small amount as stack storage
@@ -401,17 +401,13 @@ Data structures
      - ``nsCOMArray.h``
      -
      - Like ``nsTArray<nsCOMPtr<T>>``
-   * - ``nsTHashMap``
-     - ``nsTHashMap.h``
+   * - ``nsDataHashtable``
+     - ``nsClassHashtable.h``
      - ``std::unordered_map``
-     - Adaptation of ``nsTHashtable``, see :ref:`XPCOM Hashtable Guide`
-   * - ``nsTHashSet``
-     - ``nsTHashSet.h``
-     - ``std::unordered_set``
      - Adaptation of ``nsTHashtable``, see :ref:`XPCOM Hashtable Guide`
    * - ``nsDeque``
      - ``nsDeque.h``
-     - ``std::deque<T>``
+     - ``std::deque<void *>``
      -
    * - ``mozilla::EnumSet``
      - ``mozilla/EnumSet.h``
@@ -429,7 +425,7 @@ Data structures
      - ``mozilla/LinkedList.h``
      - ``std::list``
      - Doubly-linked list
-   * - ``nsRefPtrHashtable``
+   * - ``nsRef PtrHashtable``
      - ``nsRefPtrHashtable.h``
      - ``std::unordered_map``
      - Adaptation of ``nsTHashtable``, see :ref:`XPCOM Hashtable Guide`
@@ -620,8 +616,8 @@ Miscellaneous
      - mfbt/MaybeOneOf.h
      - ``std::optional<std::variant<T1, T2>>``
      - ~ ``mozilla::Maybe<union {T1, T2}>``
-   * - ``mozilla::CompactPair``
-     - mfbt/CompactPair.h
+   * - ``mozilla::Pair``
+     - mfbt/Pair.h
      - ``std::tuple<T1, T2>``
      - minimal space!
    * - ``mozilla::TimeStamp``
@@ -683,8 +679,8 @@ Currently, these include:
      - `1126552 <https://bugzilla.mozilla.org/show_bug.cgi?id=1126552>`__
      - Random-access
      - Also reverse-iterable. Also supports remove-erase pattern via RemoveElementsAt method. Also supports back-inserting output iterators via ``MakeBackInserter`` function.
-   * - ``nsBaseHashtable`` and subclasses: ``nsTHashMap`` ``nsTHashSet`` ``nsClassHashtable`` ``nsInterfaceHashtable`` ``nsRefPtrHashtable``
-     - ``xpcom/ds/nsBaseHashtable.h`` ``xpcom/ds/nsTHashMap.h`` ``xpcom/ds/nsTHashSet.h`` ``xpcom/ds/nsClassHashtable.h`` ``xpcom/ds/nsInterfaceHashtable.h`` ``xpcom/ds/nsRefPtrHashtable.h``
+   * - ``nsBaseHashtable`` and subclasses: ``nsClassHashtable`` ``nsDataHashtable`` ``nsInterfaceHashtable`` ``nsJSThingHashtable`` ``nsRefPtrHashtable``
+     - ``xpcom/ds/nsBaseHashtable.h`` ``xpcom/ds/nsClassHashtable.h`` ``xpcom/ds/nsDataHashtable.h`` ``xpcom/ds/nsInterfaceHashtable.h`` ``xpcom/ds/nsJSThingHashtable.h`` ``xpcom/ds/nsRefPtrHashtable.h``
      - `1575479 <https://bugzilla.mozilla.org/show_bug.cgi?id=1575479>`__
      - Forward
      -

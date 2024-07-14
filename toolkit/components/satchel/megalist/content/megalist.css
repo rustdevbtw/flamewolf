@@ -32,7 +32,6 @@
       background-image: url(chrome://global/skin/icons/search-textbox.svg);
       background-position: center;
       background-repeat: no-repeat;
-      -moz-context-properties: fill;
       fill: currentColor;
       width: 18px;
       margin-inline-end: 4px;
@@ -93,17 +92,12 @@ virtualized-list {
 
     > button {
       border: none;
-      border-radius: 4px;
       margin-inline-start: 2px;
       padding: 2px;
       background-color: transparent;
       /* Fix: too lazy to load the svg  */
       width: 32px;
       color: unset;
-
-      &:hover {
-        background-color: var(--in-content-button-background-hover);
-      }
     }
 
     > .menuPopup {
@@ -153,16 +147,11 @@ virtualized-list {
     }
 
     > .icon {
-      border-radius: 4px;
       margin-inline-start: 4px;
       width: 16px;
       height: 16px;
       -moz-context-properties: fill;
       fill: currentColor;
-
-      &:hover {
-        background-color: var(--in-content-button-background-hover);
-      }
     }
 
     > .label {
@@ -226,16 +215,11 @@ virtualized-list {
 
     &.section {
       font-size: larger;
-      overflow: hidden;
-      display: flex;
-      min-width: 0;
 
       > .label {
         display: inline-block;
         margin: 0;
         color: unset;
-        margin-inline: 8px;
-        align-content: start;
       }
 
       > .value {
@@ -244,8 +228,6 @@ virtualized-list {
         font-size: smaller;
         color: var(--text-color-deemphasized);
         user-select: unset;
-        align-content: end;
-        flex-grow: 1;
       }
     }
   }

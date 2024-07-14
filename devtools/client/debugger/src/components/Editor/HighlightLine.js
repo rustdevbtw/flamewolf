@@ -31,7 +31,6 @@ import {
   getShouldHighlightSelectedLocation,
 } from "../../selectors/index";
 import { features } from "../../utils/prefs";
-import { markerTypes } from "../../constants";
 
 function isDebugLine(selectedFrame, selectedLocation) {
   if (!selectedFrame) {
@@ -138,7 +137,7 @@ export class HighlightLine extends Component {
 
     if (features.codemirrorNext) {
       editor.setLineContentMarker({
-        id: markerTypes.HIGHLIGHT_LINE_MARKER,
+        id: "highlight-line-marker",
         lineClassName: "highlight-line",
         condition(line) {
           const lineNumber = fromEditorLine(sourceId, line);

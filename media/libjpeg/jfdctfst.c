@@ -46,8 +46,8 @@
  */
 
 #if DCTSIZE != 8
-  Sorry, this code only copes with 8x8 DCTs. /* deliberate syntax err */
-#endif
+Sorry, this code only copes with 8x8 DCTs./* deliberate syntax err */
+#  endif
 
 
 /* Scaling decisions are generally the same as in the LL&M algorithm;
@@ -108,14 +108,11 @@
 
 #define MULTIPLY(var, const)  ((DCTELEM)DESCALE((var) * (const), CONST_BITS))
 
+       /*
+        * Perform the forward DCT on one block of samples.
+        */
 
-/*
- * Perform the forward DCT on one block of samples.
- */
-
-GLOBAL(void)
-_jpeg_fdct_ifast(DCTELEM *data)
-{
+       GLOBAL(void) jpeg_fdct_ifast(DCTELEM* data) {
   DCTELEM tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
   DCTELEM tmp10, tmp11, tmp12, tmp13;
   DCTELEM z1, z2, z3, z4, z5, z11, z13;

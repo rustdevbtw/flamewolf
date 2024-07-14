@@ -84,11 +84,6 @@ private const val DISMISS_THRESHOLD = 0.5f
 private val VELOCITY_THRESHOLD_DP = 150.dp
 
 /**
- * The length of time the swipe gesture will animate for after being initiated by the user.
- */
-private const val SWIPE_ANIMATION_DURATION_MS = 230
-
-/**
  * The UI state for [SwipeToDismissBox].
  *
  * @param density [Density] used to derive the underlying [AnchoredDraggableState.velocityThreshold].
@@ -103,9 +98,7 @@ class SwipeToDismissState(
         initialValue = SwipeToDismissAnchor.Default,
         positionalThreshold = { distance: Float -> distance * DISMISS_THRESHOLD },
         velocityThreshold = { with(density) { VELOCITY_THRESHOLD_DP.toPx() } },
-        animationSpec = tween(
-            durationMillis = SWIPE_ANIMATION_DURATION_MS,
-        ),
+        animationSpec = tween(),
     ),
     val anchors: List<SwipeToDismissAnchor> = SwipeToDismissAnchor.swipeBothDirectionsAnchors(),
     val enabled: Boolean = true,

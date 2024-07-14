@@ -18,11 +18,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/shared/ChallengeHeaderParser.sys.mjs",
   parseURLPattern:
     "chrome://remote/content/shared/webdriver/URLPattern.sys.mjs",
-  pprint: "chrome://remote/content/shared/Format.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
-  truncate: "chrome://remote/content/shared/Format.sys.mjs",
-  updateCacheBypassStatus:
-    "chrome://remote/content/shared/NetworkCacheManager.sys.mjs",
   WindowGlobalMessageHandler:
     "chrome://remote/content/shared/messagehandler/WindowGlobalMessageHandler.sys.mjs",
 });
@@ -249,7 +245,7 @@ const InterceptPhase = {
 const SameSite = {
   Lax: "lax",
   None: "none",
-  Strict: "strict",
+  Script: "script",
 };
 
 /**
@@ -476,7 +472,7 @@ class NetworkModule extends Module {
     if (body !== null) {
       this.#assertBytesValue(
         body,
-        lazy.truncate`Expected "body" to be a network.BytesValue, got ${body}`
+        `Expected "body" to be a network.BytesValue, got ${body}`
       );
     }
 
@@ -494,9 +490,31 @@ class NetworkModule extends Module {
       }
     }
 
-    let deserializedHeaders = [];
+    const deserializedHeaders = [];
     if (headers !== null) {
-      deserializedHeaders = this.#deserializeHeaders(headers);
+      lazy.assert.array(
+        headers,
+        `Expected "headers" to be an array got ${headers}`
+      );
+
+      for (const header of headers) {
+        this.#assertHeader(
+          header,
+          `Expected values in "headers" to be network.Header, got ${header}`
+        );
+
+        // Deserialize headers immediately to validate the value
+        const deserializedHeader = this.#deserializeHeader(header);
+        lazy.assert.that(
+          value => this.#isValidHttpToken(value),
+          `Expected "header" name to be a valid HTTP token, got ${deserializedHeader[0]}`
+        )(deserializedHeader[0]);
+        lazy.assert.that(
+          value => this.#isValidHeaderValue(value),
+          `Expected "header" value to be a valid header value, got ${deserializedHeader[1]}`
+        )(deserializedHeader[1]);
+        deserializedHeaders.push(deserializedHeader);
+      }
     }
 
     if (method !== null) {
@@ -538,14 +556,16 @@ class NetworkModule extends Module {
     }
 
     if (headers !== null) {
-      // Delete all existing request headers.
+      // Delete all existing request headers not found in the headers parameter.
       request.getHeadersList().forEach(([name]) => {
-        request.clearRequestHeader(name);
+        if (!headers.some(header => header.name == name)) {
+          request.setRequestHeader(name, "");
+        }
       });
 
       // Set all headers specified in the headers parameter.
       for (const [name, value] of deserializedHeaders) {
-        request.setRequestHeader(name, value, { merge: true });
+        request.setRequestHeader(name, value);
       }
     }
 
@@ -562,16 +582,14 @@ class NetworkModule extends Module {
       const requestHeaders = request.getHeadersList();
       for (const [name] of requestHeaders) {
         if (name.toLowerCase() == "cookie") {
-          // If there is already a cookie header, use merge: false to override
-          // the value.
-          request.setRequestHeader(name, cookieHeader, { merge: false });
+          request.setRequestHeader(name, cookieHeader);
           foundCookieHeader = true;
           break;
         }
       }
 
       if (!foundCookieHeader) {
-        request.setRequestHeader("Cookie", cookieHeader, { merge: false });
+        request.setRequestHeader("Cookie", cookieHeader);
       }
     }
 
@@ -849,23 +867,18 @@ class NetworkModule extends Module {
    * @param {string} options.request
    *     The id of the blocked request for which the response should be
    *     provided.
-   * @param {BytesValue=} options.body
+   * @param {BytesValue=} options.body [unsupported]
    *     Optional BytesValue to replace the body of the response.
-   *     For now, only supported for requests blocked in beforeRequestSent.
-   * @param {Array<SetCookieHeader>=} options.cookies
+   * @param {Array<SetCookieHeader>=} options.cookies [unsupported]
    *     Optional array of set-cookie header values to use for the provided
    *     response.
-   *     For now, only supported for requests blocked in beforeRequestSent.
-   * @param {Array<Header>=} options.headers
+   * @param {Array<Header>=} options.headers [unsupported]
    *     Optional array of header values to use for the provided
    *     response.
-   *     For now, only supported for requests blocked in beforeRequestSent.
-   * @param {string=} options.reasonPhrase
+   * @param {string=} options.reasonPhrase [unsupported]
    *     Optional string to use as the status message for the provided response.
-   *     For now, only supported for requests blocked in beforeRequestSent.
-   * @param {number=} options.statusCode
+   * @param {number=} options.statusCode [unsupported]
    *     Optional number to use as the status code for the provided response.
-   *     For now, only supported for requests blocked in beforeRequestSent.
    *
    * @throws {InvalidArgumentError}
    *     Raised if an argument is of an invalid type or value.
@@ -893,6 +906,10 @@ class NetworkModule extends Module {
         body,
         `Expected "body" to be a network.BytesValue, got ${body}`
       );
+
+      throw new lazy.error.UnsupportedOperationError(
+        `"body" not supported yet in network.provideResponse`
+      );
     }
 
     if (cookies !== null) {
@@ -904,11 +921,28 @@ class NetworkModule extends Module {
       for (const cookie of cookies) {
         this.#assertSetCookieHeader(cookie);
       }
+
+      throw new lazy.error.UnsupportedOperationError(
+        `"cookies" not supported yet in network.provideResponse`
+      );
     }
 
-    let deserializedHeaders = [];
     if (headers !== null) {
-      deserializedHeaders = this.#deserializeHeaders(headers);
+      lazy.assert.array(
+        headers,
+        `Expected "headers" to be an array got ${headers}`
+      );
+
+      for (const header of headers) {
+        this.#assertHeader(
+          header,
+          `Expected values in "headers" to be network.Header, got ${header}`
+        );
+      }
+
+      throw new lazy.error.UnsupportedOperationError(
+        `"headers" not supported yet in network.provideResponse`
+      );
     }
 
     if (reasonPhrase !== null) {
@@ -916,12 +950,20 @@ class NetworkModule extends Module {
         reasonPhrase,
         `Expected "reasonPhrase" to be a string, got ${reasonPhrase}`
       );
+
+      throw new lazy.error.UnsupportedOperationError(
+        `"reasonPhrase" not supported yet in network.provideResponse`
+      );
     }
 
     if (statusCode !== null) {
       lazy.assert.positiveInteger(
         statusCode,
         `Expected "statusCode" to be a positive integer, got ${statusCode}`
+      );
+
+      throw new lazy.error.UnsupportedOperationError(
+        `"statusCode" not supported yet in network.provideResponse`
       );
     }
 
@@ -934,84 +976,10 @@ class NetworkModule extends Module {
     const { authCallbacks, phase, request, resolveBlockedEvent } =
       this.#blockedRequests.get(requestId);
 
-    // Handle optional arguments for the beforeRequestSent phase.
-    // TODO: Support optional arguments in all phases, see Bug 1901055.
-    if (phase === InterceptPhase.BeforeRequestSent) {
-      // Create a new response.
-      const replacedHttpResponse = Cc[
-        "@mozilla.org/network/replaced-http-response;1"
-      ].createInstance(Ci.nsIReplacedHttpResponse);
-
-      if (statusCode !== null) {
-        replacedHttpResponse.responseStatus = statusCode;
-      }
-
-      if (reasonPhrase !== null) {
-        replacedHttpResponse.responseStatusText = reasonPhrase;
-      }
-
-      if (body !== null) {
-        replacedHttpResponse.responseBody = deserializeBytesValue(body);
-      }
-
-      if (headers !== null) {
-        for (const [name, value] of deserializedHeaders) {
-          replacedHttpResponse.setResponseHeader(name, value, true);
-        }
-      }
-
-      if (cookies !== null) {
-        for (const cookie of cookies) {
-          const headerValue = this.#serializeSetCookieHeader(cookie);
-          replacedHttpResponse.setResponseHeader(
-            "Set-Cookie",
-            headerValue,
-            false
-          );
-        }
-      }
-
-      request.setResponseOverride(replacedHttpResponse);
-      request.wrappedChannel.resume();
+    if (phase === InterceptPhase.AuthRequired) {
+      await authCallbacks.provideAuthCredentials();
     } else {
-      if (body !== null) {
-        throw new lazy.error.UnsupportedOperationError(
-          `The "body" parameter is only supported for the beforeRequestSent phase at the moment`
-        );
-      }
-
-      if (cookies !== null) {
-        throw new lazy.error.UnsupportedOperationError(
-          `The "cookies" parameter is only supported for the beforeRequestSent phase at the moment`
-        );
-      }
-
-      if (headers !== null) {
-        throw new lazy.error.UnsupportedOperationError(
-          `The "headers" parameter is only supported for the beforeRequestSent phase at the moment`
-        );
-      }
-
-      if (reasonPhrase !== null) {
-        throw new lazy.error.UnsupportedOperationError(
-          `The "reasonPhrase" parameter is only supported for the beforeRequestSent phase at the moment`
-        );
-      }
-
-      if (statusCode !== null) {
-        throw new lazy.error.UnsupportedOperationError(
-          `The "statusCode" parameter is only supported for the beforeRequestSent phase at the moment`
-        );
-      }
-
-      if (phase === InterceptPhase.AuthRequired) {
-        // AuthRequired with no optional argument, resume the authentication.
-        await authCallbacks.provideAuthCredentials();
-      } else {
-        // Any phase other than AuthRequired with no optional argument, resume the
-        // request.
-        request.wrappedChannel.resume();
-      }
+      request.wrappedChannel.resume();
     }
 
     resolveBlockedEvent();
@@ -1045,66 +1013,6 @@ class NetworkModule extends Module {
     }
 
     this.#interceptMap.delete(intercept);
-  }
-
-  /**
-   * Bypasses the network cache for certain contexts.
-   *
-   * @param {object=} options
-   * @param {boolean} options.bypass
-   *     The flag to enable or disable bypassing of the network cache.
-   * @param {Array<string>=} options.contexts
-   *     The list of browsing context ids where the network cache
-   *     should be bypassed.
-   *
-   * @throws {InvalidArgumentError}
-   *     Raised if an argument is of an invalid type or value.
-   * @throws {NoSuchFrameError}
-   *     If the browsing context cannot be found.
-   * @throws {UnsupportedOperationError}
-   *     If unsupported configuration is passed.
-   */
-  setCacheBypass(options = {}) {
-    const { bypass, contexts: contextIds = null } = options;
-
-    lazy.assert.boolean(
-      bypass,
-      lazy.pprint`Expected "bypass" to be a boolean, got ${bypass}`
-    );
-
-    if (contextIds === null) {
-      lazy.updateCacheBypassStatus(bypass);
-    } else {
-      lazy.assert.array(
-        contextIds,
-        lazy.pprint`Expected "contexts" to be an array, got ${contextIds}`
-      );
-
-      if (!contextIds.length) {
-        throw new lazy.error.InvalidArgumentError(
-          'Expected "contexts" to contain at least one item, got an empty array'
-        );
-      }
-
-      const contexts = new Set();
-      for (const contextId of contextIds) {
-        lazy.assert.string(
-          contextId,
-          lazy.pprint`Expected elements of "contexts" to be a string, got ${contextId}`
-        );
-        const context = this.#getBrowsingContext(contextId);
-
-        if (context.parent) {
-          throw new lazy.error.InvalidArgumentError(
-            lazy.pprint`Context with id ${contextId} is not a top-level browsing context`
-          );
-        }
-
-        contexts.add(context);
-      }
-
-      lazy.updateCacheBypassStatus(bypass, contexts);
-    }
   }
 
   /**
@@ -1254,36 +1162,6 @@ class NetworkModule extends Module {
     const name = protocolHeader.name;
     const value = deserializeBytesValue(protocolHeader.value);
     return [name, value];
-  }
-
-  #deserializeHeaders(headers) {
-    const deserializedHeaders = [];
-    lazy.assert.array(
-      headers,
-      `Expected "headers" to be an array got ${headers}`
-    );
-
-    for (const header of headers) {
-      this.#assertHeader(
-        header,
-        `Expected values in "headers" to be network.Header, got ${header}`
-      );
-
-      // Deserialize headers immediately to validate the value
-      const deserializedHeader = this.#deserializeHeader(header);
-      lazy.assert.that(
-        value => this.#isValidHttpToken(value),
-        `Expected "header" name to be a valid HTTP token, got ${deserializedHeader[0]}`
-      )(deserializedHeader[0]);
-      lazy.assert.that(
-        value => this.#isValidHeaderValue(value),
-        `Expected "header" value to be a valid header value, got ${deserializedHeader[1]}`
-      )(deserializedHeader[1]);
-
-      deserializedHeaders.push(deserializedHeader);
-    }
-
-    return deserializedHeaders;
   }
 
   #extractChallenges(response) {
@@ -1872,45 +1750,6 @@ class NetworkModule extends Module {
       name,
       value: this.#serializeStringAsBytesValue(value),
     };
-  }
-
-  #serializeSetCookieHeader(setCookieHeader) {
-    const {
-      name,
-      value,
-      domain = null,
-      httpOnly = null,
-      expiry = null,
-      maxAge = null,
-      path = null,
-      sameSite = null,
-      secure = null,
-    } = setCookieHeader;
-
-    let headerValue = `${name}=${deserializeBytesValue(value)}`;
-
-    if (expiry !== null) {
-      headerValue += `;Expires=${expiry}`;
-    }
-    if (maxAge !== null) {
-      headerValue += `;Max-Age=${maxAge}`;
-    }
-    if (domain !== null) {
-      headerValue += `;Domain=${domain}`;
-    }
-    if (path !== null) {
-      headerValue += `;Path=${path}`;
-    }
-    if (secure === true) {
-      headerValue += `;Secure`;
-    }
-    if (httpOnly === true) {
-      headerValue += `;HttpOnly`;
-    }
-    if (sameSite !== null) {
-      headerValue += `;SameSite=${sameSite}`;
-    }
-    return headerValue;
   }
 
   /**

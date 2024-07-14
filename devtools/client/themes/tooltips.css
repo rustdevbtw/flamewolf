@@ -94,25 +94,15 @@ strong {
   word-break: break-word;
   max-inline-size: 100vw;
 
-  .variable-value:has(+ .variable-tooltip-section) {
+  .variable-value:has(+ .registered-property) {
     padding-block-end: var(--block-padding);
   }
 
-  .variable-tooltip-section {
+  .registered-property {
     border-block-start: 1px solid var(--theme-splitter-color);
     margin: 0;
-    padding-block: var(--block-padding);
-
-    h2 {
-      margin-block: 0;
-      padding-block-start: 0;
-      padding-block-end: var(--block-padding);
-    }
-
-    dl {
-      padding: 0;
-      margin: 0;
-    }
+    padding: 0;
+    padding-block-start: var(--block-padding);
 
     dt,dd {
       display: inline;

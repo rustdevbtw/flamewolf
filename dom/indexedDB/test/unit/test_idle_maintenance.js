@@ -22,6 +22,13 @@ function* testSteps() {
     Ci.nsIPermissionManager.ALLOW_ACTION
   );
 
+  // The idle-daily notification is disabled in xpchsell tests, so we don't
+  // need to do anything special to disable it for this test.
+
+  info("Activating real idle service");
+
+  do_get_idle();
+
   info("Creating databases");
 
   // Keep at least one database open.
@@ -119,13 +126,10 @@ function* testSteps() {
   });
   yield undefined;
 
-  info("Starting idle maintenance");
+  info("Sending fake 'idle-daily' notification to QuotaManager");
 
-  const indexedDatabaseManager = Cc[
-    "@mozilla.org/dom/indexeddb/manager;1"
-  ].getService(Ci.nsIIndexedDatabaseManager);
-
-  const maintenancePromise = indexedDatabaseManager.doMaintenance();
+  let observer = Services.qms.QueryInterface(Ci.nsIObserver);
+  observer.observe(null, "idle-daily", "");
 
   info("Opening database while maintenance is performed");
 
@@ -134,9 +138,14 @@ function* testSteps() {
   req.onsuccess = grabEventAndContinueHandler;
   yield undefined;
 
-  info("Waiting for maintenance to finish");
+  info("Waiting for maintenance to start");
 
-  maintenancePromise.then(continueToNextStep);
+  // This time is totally arbitrary. Most likely directory scanning will have
+  // completed, QuotaManager locks will be acquired, and  maintenance tasks will
+  // be scheduled before this time has elapsed, so we will be testing the
+  // maintenance code. However, if something is slow then this will test
+  // shutting down in the middle of maintenance.
+  setTimeout(continueToNextStep, 10000);
   yield undefined;
 
   info("Getting usage after maintenance");

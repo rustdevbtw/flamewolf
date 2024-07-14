@@ -26,7 +26,7 @@ async def test_user_context(bidi_session, type_hint, create_user_context):
         contexts[1],
         new_context["context"],
         children=None,
-        parent_expected=True,
+        is_root=True,
         parent=None,
         url="about:blank",
         user_context=user_context,

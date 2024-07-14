@@ -745,21 +745,7 @@ nsBrowserContentHandler.prototype = {
             overridePage = Services.urlFormatter.formatURLPref(
               "startup.homepage_override_url"
             );
-            let update = lazy.UpdateManager.lastUpdateInstalled;
-
-            // Make sure the update is newer than the last WNP version
-            // and the update is not newer than the current Firefox version.
-            if (
-              update &&
-              (Services.vc.compare(update.platformVersion, old_mstone) <= 0 ||
-                Services.vc.compare(
-                  update.appVersion,
-                  Services.appinfo.version
-                ) > 0)
-            ) {
-              update = null;
-              overridePage = null;
-            }
+            let update = lazy.UpdateManager.updateInstalledAtStartup;
 
             /** If the override URL is provided by an experiment, is a valid
              * Firefox What's New Page URL, and the update version is less than
@@ -835,13 +821,9 @@ nsBrowserContentHandler.prototype = {
                   .then(() => nimbusWNPFeature.recordExposureEvent());
               }
 
-              lazy.LaterRun.enable(lazy.LaterRun.ENABLE_REASON_UPDATE_APPLIED);
-            }
-
-            // Send the update ping to signal that the update was successful.
-            // Only do this if the update is installed right now.
-            if (lazy.UpdateManager.updateInstalledAtStartup) {
+              // Send the update ping to signal that the update was successful.
               lazy.UpdatePing.handleUpdateSuccess(old_mstone, old_buildId);
+              lazy.LaterRun.enable(lazy.LaterRun.ENABLE_REASON_UPDATE_APPLIED);
             }
 
             overridePage = overridePage.replace("%OLD_VERSION%", old_mstone);

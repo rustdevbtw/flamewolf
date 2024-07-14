@@ -5,6 +5,8 @@
 
 #include "lib/extras/dec/exr.h"
 
+#include "lib/jxl/base/common.h"
+
 #if JPEGXL_ENABLE_EXR
 #include <ImfChromaticitiesAttribute.h>
 #include <ImfIO.h>
@@ -81,7 +83,7 @@ Status DecodeImageEXR(Span<const uint8_t> bytes, const ColorHints& color_hints,
 #ifdef __EXCEPTIONS
   std::unique_ptr<OpenEXR::RgbaInputFile> input_ptr;
   try {
-    input_ptr.reset(new OpenEXR::RgbaInputFile(is));
+    input_ptr = jxl::make_unique<OpenEXR::RgbaInputFile>(is);
   } catch (...) {
     // silently return false if it is not an EXR file
     return false;
@@ -121,7 +123,12 @@ Status DecodeImageEXR(Span<const uint8_t> bytes, const ColorHints& color_hints,
   };
   ppf->frames.clear();
   // Allocates the frame buffer.
-  ppf->frames.emplace_back(image_size.x, image_size.y, format);
+  {
+    JXL_ASSIGN_OR_RETURN(
+        PackedFrame frame,
+        PackedFrame::Create(image_size.x, image_size.y, format));
+    ppf->frames.emplace_back(std::move(frame));
+  }
   const auto& frame = ppf->frames.back();
 
   const int row_size = input.dataWindow().size().x + 1;

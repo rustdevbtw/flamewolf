@@ -1386,19 +1386,6 @@ nsresult nsCocoaUtils::GetScreenCapturePermissionState(
       continue;
     }
 
-    // macOS versions 12.2 (Monterey) or later have a status indicator when the
-    // microphone is in use (an orange dot). This is implemented as a window
-    // owned by the window server process. The permission check logic queries
-    // window server for all windows and assumes it has the required permission
-    // if it can read any window name that is at dock or normal level.
-    // The StatusIndicator window is an exception and needs to be skipped
-    // because it is owned by window server process and therefore when querying
-    // the window server, the name is always readable.
-    if (kCFCompareEqualTo ==
-        CFStringCompare(windowName, CFSTR("StatusIndicator"), 0)) {
-      continue;
-    }
-
     CFNumberRef windowLayerRef = reinterpret_cast<CFNumberRef>(
         CFDictionaryGetValue(windowDict, kCGWindowLayer));
     int32_t windowLayer;

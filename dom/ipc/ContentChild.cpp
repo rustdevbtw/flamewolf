@@ -142,12 +142,10 @@
 #  include "mozilla/SandboxSettings.h"
 #  if defined(XP_WIN)
 #    include "mozilla/sandboxTarget.h"
-#    include "mozilla/ProcInfo.h"
 #  elif defined(XP_LINUX)
 #    include "CubebUtils.h"
 #    include "mozilla/Sandbox.h"
 #    include "mozilla/SandboxInfo.h"
-#    include "mozilla/SandboxProfilerObserver.h"
 #  elif defined(XP_MACOSX)
 #    include <CoreGraphics/CGError.h>
 #    include "mozilla/Sandbox.h"
@@ -815,7 +813,9 @@ void ContentChild::AddProfileToProcessName(const nsACString& aProfile) {
   nsCOMPtr<nsIPrincipal> isolationPrincipal =
       ContentParent::CreateRemoteTypeIsolationPrincipal(mRemoteType);
   if (isolationPrincipal) {
-    if (isolationPrincipal->OriginAttributesRef().IsPrivateBrowsing()) {
+    // DEFAULT_PRIVATE_BROWSING_ID is the value when it's not private
+    if (isolationPrincipal->OriginAttributesRef().mPrivateBrowsingId !=
+        nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID) {
       return;
     }
   }
@@ -857,9 +857,11 @@ void ContentChild::SetProcessName(const nsACString& aName,
       // DEFAULT_PRIVATE_BROWSING_ID is the value when it's not private
       MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
               ("private = %d, pref = %d",
-               isolationPrincipal->OriginAttributesRef().IsPrivateBrowsing(),
+               isolationPrincipal->OriginAttributesRef().mPrivateBrowsingId !=
+                   nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID,
                StaticPrefs::fission_processPrivateWindowSiteNames()));
-      if (!isolationPrincipal->OriginAttributesRef().IsPrivateBrowsing()
+      if (isolationPrincipal->OriginAttributesRef().mPrivateBrowsingId ==
+              nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID
 #ifdef NIGHTLY_BUILD
           // Nightly can show site names for private windows, with a second pref
           || StaticPrefs::fission_processPrivateWindowSiteNames()
@@ -989,8 +991,7 @@ nsresult ContentChild::ProvideWindowCommon(
       aChromeFlags & nsIWebBrowserChrome::CHROME_FISSION_WINDOW;
 
   uint32_t parentSandboxFlags = parent->SandboxFlags();
-  Document* doc = parent->GetDocument();
-  if (doc) {
+  if (Document* doc = parent->GetDocument()) {
     parentSandboxFlags = doc->GetSandboxFlags();
   }
 
@@ -1032,32 +1033,11 @@ nsresult ContentChild::ProvideWindowCommon(
 
       MOZ_DIAGNOSTIC_ASSERT(!nsContentUtils::IsSpecialName(name));
 
-      const bool hasValidUserGestureActivation = [aLoadState, doc] {
-        if (aLoadState) {
-          return aLoadState->HasValidUserGestureActivation();
-        }
-        if (doc) {
-          return doc->HasValidTransientUserGestureActivation();
-        }
-        return false;
-      }();
-
-      const bool textDirectiveUserActivation = [aLoadState, doc] {
-        if (doc && doc->ConsumeTextDirectiveUserActivation()) {
-          return true;
-        }
-        if (aLoadState) {
-          return aLoadState->GetTextDirectiveUserActivation();
-        }
-        return false;
-      }() || hasValidUserGestureActivation;
-
       Unused << SendCreateWindowInDifferentProcess(
           aTabOpener, parent, aChromeFlags, aCalledFromJS,
           aOpenWindowInfo->GetIsTopLevelCreatedByWebContent(), aURI, features,
           aModifiers, name, triggeringPrincipal, csp, referrerInfo,
-          aOpenWindowInfo->GetOriginAttributes(), hasValidUserGestureActivation,
-          textDirectiveUserActivation);
+          aOpenWindowInfo->GetOriginAttributes());
 
       // We return NS_ERROR_ABORT, so that the caller knows that we've abandoned
       // the window open as far as it is concerned.
@@ -1258,16 +1238,13 @@ nsresult ContentChild::ProvideWindowCommon(
     return rv;
   }
 
-  SendCreateWindow(
-      aTabOpener, parent, newChild, aChromeFlags, aCalledFromJS,
-      aOpenWindowInfo->GetIsForPrinting(),
-      aOpenWindowInfo->GetIsForWindowDotPrint(),
-      aOpenWindowInfo->GetIsTopLevelCreatedByWebContent(), aURI, features,
-      aModifiers, triggeringPrincipal, csp, referrerInfo,
-      aOpenWindowInfo->GetOriginAttributes(),
-      aLoadState ? aLoadState->HasValidUserGestureActivation() : false,
-      aLoadState ? aLoadState->GetTextDirectiveUserActivation() : false,
-      std::move(resolve), std::move(reject));
+  SendCreateWindow(aTabOpener, parent, newChild, aChromeFlags, aCalledFromJS,
+                   aOpenWindowInfo->GetIsForPrinting(),
+                   aOpenWindowInfo->GetIsForWindowDotPrint(),
+                   aOpenWindowInfo->GetIsTopLevelCreatedByWebContent(), aURI,
+                   features, aModifiers, triggeringPrincipal, csp, referrerInfo,
+                   aOpenWindowInfo->GetOriginAttributes(), std::move(resolve),
+                   std::move(reject));
 
   // =======================
   // Begin Nested Event Loop
@@ -1732,36 +1709,10 @@ mozilla::ipc::IPCResult ContentChild::RecvSetProcessSandbox(
   }
 
   if (sandboxEnabled) {
-    RegisterProfilerObserversForSandboxProfiler();
     sandboxEnabled = SetContentProcessSandbox(
         ContentProcessSandboxParams::ForThisProcess(aBroker));
   }
 #  elif defined(XP_WIN)
-  if (GetEffectiveContentSandboxLevel() > 7) {
-    // Library required for timely audio processing.
-    ::LoadLibraryW(L"avrt.dll");
-    // Libraries required by Network Security Services (NSS).
-    ::LoadLibraryW(L"freebl3.dll");
-    ::LoadLibraryW(L"softokn3.dll");
-    // Library required by DirectWrite in some fall-back scenarios.
-    ::LoadLibraryW(L"textshaping.dll");
-    // Libraries that are required for WMF software encoding.
-    ::LoadLibraryW(L"mozavcodec.dll");
-    ::LoadLibraryW(L"mozavutil.dll");
-    ::LoadLibraryW(L"mfplat.dll");
-    ::LoadLibraryW(L"mf.dll");
-    ::LoadLibraryW(L"dxva2.dll");
-    ::LoadLibraryW(L"evr.dll");
-    ::LoadLibraryW(L"mfh264enc.dll");
-    // Cache value that is retrieved from a registry entry.
-    Unused << GetCpuFrequencyMHz();
-#    if defined(DEBUG)
-    // Library used in some debug testing.
-    ::LoadLibraryW(L"dbghelp.dll");
-    // Required for WMF shutdown, not required for opt due to quick exit.
-    ::LoadLibraryW(L"ole32.dll");
-#    endif
-  }
   mozilla::SandboxTarget::Instance()->StartSandbox();
 #  elif defined(XP_MACOSX)
   sandboxEnabled = (GetEffectiveContentSandboxLevel() >= 1);
@@ -2125,10 +2076,11 @@ mozilla::ipc::IPCResult ContentChild::RecvClearStyleSheetCache(
 mozilla::ipc::IPCResult ContentChild::RecvClearImageCacheFromPrincipal(
     nsIPrincipal* aPrincipal) {
   imgLoader* loader;
-  if (aPrincipal->OriginAttributesRef().IsPrivateBrowsing()) {
-    loader = imgLoader::PrivateBrowsingLoader();
-  } else {
+  if (aPrincipal->OriginAttributesRef().mPrivateBrowsingId ==
+      nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID) {
     loader = imgLoader::NormalLoader();
+  } else {
+    loader = imgLoader::PrivateBrowsingLoader();
   }
 
   loader->RemoveEntriesInternal(aPrincipal, nullptr);
@@ -2199,10 +2151,6 @@ mozilla::ipc::IPCResult ContentChild::RecvSetTRRMode(
 }
 
 void ContentChild::ActorDestroy(ActorDestroyReason why) {
-#if defined(XP_LINUX) && defined(MOZ_SANDBOX)
-  DestroySandboxProfiler();
-#endif
-
   if (mForceKillTimer) {
     mForceKillTimer->Cancel();
     mForceKillTimer = nullptr;
@@ -2733,6 +2681,13 @@ mozilla::ipc::IPCResult ContentChild::RecvRemoteType(
   CrashReporter::RecordAnnotationNSCString(
       CrashReporter::Annotation::RemoteType, remoteTypePrefix);
 
+  // Defer RemoteWorkerService initialization until the child process does
+  // receive its specific remoteType and can become actionable for the
+  // RemoteWorkerManager in the parent process.
+  if (mRemoteType != PREALLOC_REMOTE_TYPE) {
+    RemoteWorkerService::Initialize();
+  }
+
   return IPC_OK();
 }
 
@@ -2748,12 +2703,6 @@ void ContentChild::PreallocInit() {
 // Call RemoteTypePrefix() on the result to remove URIs if you want to use this
 // for telemetry.
 const nsACString& ContentChild::GetRemoteType() const { return mRemoteType; }
-
-mozilla::ipc::IPCResult ContentChild::RecvInitRemoteWorkerService(
-    Endpoint<PRemoteWorkerServiceChild>&& aEndpoint) {
-  RemoteWorkerService::InitializeChild(std::move(aEndpoint));
-  return IPC_OK();
-}
 
 mozilla::ipc::IPCResult ContentChild::RecvInitBlobURLs(
     nsTArray<BlobURLRegistrationData>&& aRegistrations) {

@@ -6,7 +6,6 @@ const types = [
   "Uint16",
   "Uint32",
   "Uint8Clamped",
-  "Float16",
   "Float32",
   "Float64",
 ];
@@ -40,8 +39,6 @@ function convert(type, value) {
       }
       return f + (f & 1);
     }
-    case "Float16":
-      return Math.f16round(num);
     case "Float32":
       return Math.fround(num);
     case "Float64":

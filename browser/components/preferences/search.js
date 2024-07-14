@@ -27,6 +27,7 @@ Preferences.addAll([
   { id: "browser.search.separatePrivateDefault.ui.enabled", type: "bool" },
   { id: "browser.urlbar.suggest.trending", type: "bool" },
   { id: "browser.urlbar.trending.featureGate", type: "bool" },
+  { id: "browser.urlbar.trending.enabledLocales", type: "string" },
   { id: "browser.urlbar.recentsearches.featureGate", type: "bool" },
   { id: "browser.urlbar.suggest.recentsearches", type: "bool" },
 ]);
@@ -283,8 +284,18 @@ var gSearchPane = {
     let trendingSupported = (
       await Services.search.getDefault()
     ).supportsResponseType(lazy.SearchUtils.URL_TYPE.TRENDING_JSON);
-    trendingBox.hidden = !Preferences.get("browser.urlbar.trending.featureGate")
-      .value;
+    let trendingEnabled = Preferences.get(
+      "browser.urlbar.trending.featureGate"
+    ).value;
+    let enabledLocales = Preferences.get(
+      "browser.urlbar.trending.enabledLocales"
+    ).value;
+    if (trendingEnabled && enabledLocales) {
+      trendingEnabled = enabledLocales.includes(
+        Services.locale.appLocaleAsBCP47
+      );
+    }
+    trendingBox.hidden = !trendingEnabled;
     trendingCheckBox.disabled = suggestDisabled || !trendingSupported;
   },
 
@@ -411,7 +422,7 @@ var gSearchPane = {
     let instance = (this._firefoxSuggestInfoBoxInstance = {});
     let infoBox = document.getElementById("firefoxSuggestInfoBox");
     if (!l10nId) {
-      infoBox.hidden = true;
+      infoBox.hidden = false;
     } else {
       let infoText = document.getElementById("firefoxSuggestInfoText");
       infoText.dataset.l10nId = l10nId;
@@ -880,9 +891,10 @@ class EngineView {
       "browser.urlbar.update2.engineAliasRefresh",
       false
     );
-
-    let addButton = document.getElementById("addEngineButton");
-    addButton.hidden = false;
+    if (aliasRefresh) {
+      let addButton = document.getElementById("addEngineButton");
+      addButton.hidden = false;
+    }
   }
 
   get lastEngineIndex() {
@@ -1278,10 +1290,10 @@ class EngineView {
     }
     return undefined;
   }
-  toggleOpenState() {}
-  cycleHeader() {}
-  selectionChanged() {}
-  cycleCell() {}
+  toggleOpenState() { }
+  cycleHeader() { }
+  selectionChanged() { }
+  cycleCell() { }
   isEditable(index, column) {
     return (
       column.id != "engineName" &&

@@ -16,9 +16,7 @@
 #include <utility>
 #include <vector>
 
-#include "absl/strings/string_view.h"
 #include "api/fec_controller_override.h"
-#include "api/field_trials_view.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "api/video/encoded_image.h"
@@ -41,10 +39,15 @@ namespace webrtc {
 
 class LibvpxVp8Encoder : public VideoEncoder {
  public:
-  LibvpxVp8Encoder(const Environment& env,
-                   Vp8EncoderSettings settings,
-                   std::unique_ptr<LibvpxInterface> interface);
+  LibvpxVp8Encoder(const Environment& env, Vp8EncoderSettings settings,
+                   std::unique_ptr<LibvpxInterface> interface)
+      // TODO: bugs.webrtc.org/15860 - Save `env` and use field trials from it
+      // when constructor below can be removed.
+      : LibvpxVp8Encoder(std::move(interface), std::move(settings)) {}
 
+  // Deprecated, bugs.webrtc.org/15860
+  LibvpxVp8Encoder(std::unique_ptr<LibvpxInterface> interface,
+                   VP8Encoder::Settings settings);
   ~LibvpxVp8Encoder() override;
 
   int Release() override;
@@ -111,7 +114,6 @@ class LibvpxVp8Encoder : public VideoEncoder {
   std::vector<rtc::scoped_refptr<VideoFrameBuffer>> PrepareBuffers(
       rtc::scoped_refptr<VideoFrameBuffer> buffer);
 
-  const Environment env_;
   const std::unique_ptr<LibvpxInterface> libvpx_;
 
   const CpuSpeedExperiment experimental_cpu_speed_config_arm_;
@@ -126,6 +128,8 @@ class LibvpxVp8Encoder : public VideoEncoder {
   int number_of_cores_ = 0;
   uint32_t rc_max_intra_target_ = 0;
   int num_active_streams_ = 0;
+  const std::unique_ptr<Vp8FrameBufferControllerFactory>
+      frame_buffer_controller_factory_;
   std::unique_ptr<Vp8FrameBufferController> frame_buffer_controller_;
   const std::vector<VideoEncoder::ResolutionBitrateLimits>
       resolution_bitrate_limits_;
@@ -152,8 +156,7 @@ class LibvpxVp8Encoder : public VideoEncoder {
     int steady_state_undershoot_percentage = 30;
   } variable_framerate_experiment_;
   static VariableFramerateExperiment ParseVariableFramerateConfig(
-      const FieldTrialsView& field_trials,
-      absl::string_view group_name);
+      std::string group_name);
   FramerateControllerDeprecated framerate_controller_;
   int num_steady_state_frames_ = 0;
 

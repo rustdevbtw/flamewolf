@@ -4,6 +4,10 @@
 
 "use strict";
 
+const {
+  TYPES: { CSS_REGISTERED_PROPERTIES },
+} = require("resource://devtools/server/actors/resources/index.js");
+
 /**
  * @typedef InspectorCSSPropertyDefinition (see InspectorUtils.webidl)
  * @type {object}
@@ -207,6 +211,7 @@ class CSSRegisteredPropertiesWatcher {
     for (const registeredProperty of registeredProperties) {
       registeredProperty.resourceId =
         this.#getRegisteredPropertyResourceId(registeredProperty);
+      registeredProperty.resourceType = CSS_REGISTERED_PROPERTIES;
     }
     this.#onAvailable(registeredProperties);
   };
@@ -227,6 +232,7 @@ class CSSRegisteredPropertiesWatcher {
       update.resourceId = this.#getRegisteredPropertyResourceId(
         update.registeredProperty
       );
+      update.resourceType = CSS_REGISTERED_PROPERTIES;
       // We don't need to send the property definition
       delete update.registeredProperty;
     }
@@ -243,9 +249,10 @@ class CSSRegisteredPropertiesWatcher {
     }
 
     this.#onDestroyed(
-      registeredProperties.map(registeredProperty =>
-        this.#getRegisteredPropertyResourceId(registeredProperty)
-      )
+      registeredProperties.map(registeredProperty => ({
+        resourceType: CSS_REGISTERED_PROPERTIES,
+        resourceId: this.#getRegisteredPropertyResourceId(registeredProperty),
+      }))
     );
   };
 

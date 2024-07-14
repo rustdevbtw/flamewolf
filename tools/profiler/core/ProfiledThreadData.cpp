@@ -226,7 +226,7 @@ ProfilerThreadId DoStreamSamplesAndMarkers(
       aWriter.StringProperty("eTLD+1", aETLDplus1);
     } else {
       aWriter.StringProperty("eTLD+1", originNoSuffix);
-      aWriter.BoolProperty("isPrivateBrowsing", attrs.IsPrivateBrowsing());
+      aWriter.BoolProperty("isPrivateBrowsing", attrs.mPrivateBrowsingId > 0);
       aWriter.IntProperty("userContextId", attrs.mUserContextId);
     }
   }

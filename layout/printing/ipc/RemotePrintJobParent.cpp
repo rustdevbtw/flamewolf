@@ -46,7 +46,7 @@ mozilla::ipc::IPCResult RemotePrintJobParent::RecvInitializePrint(
     return IPC_OK();
   }
 
-  mPrintTranslator = MakeUnique<PrintTranslator>(mPrintDeviceContext);
+  mPrintTranslator.reset(new PrintTranslator(mPrintDeviceContext));
   FileDescriptor fd;
   rv = PrepareNextPageFD(&fd);
   if (NS_FAILED(rv)) {

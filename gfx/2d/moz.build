@@ -22,7 +22,6 @@ EXPORTS.mozilla.gfx += [
     "BorrowedContext.h",
     "Coord.h",
     "CriticalSection.h",
-    "DataSourceSurfaceWrapper.h",
     "DataSurfaceHelpers.h",
     "DrawEventRecorder.h",
     "DrawTargetOffset.h",

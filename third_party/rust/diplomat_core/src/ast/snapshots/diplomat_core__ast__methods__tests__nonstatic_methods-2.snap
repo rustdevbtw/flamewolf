@@ -36,5 +36,6 @@ params:
 return_type:
   Primitive: u64
 lifetime_env: {}
-attrs: {}
+attrs:
+  cfg: []
 

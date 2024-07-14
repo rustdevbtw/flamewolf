@@ -10,15 +10,13 @@
 
 #include "video/config/simulcast.h"
 
+#include "api/transport/field_trial_based_config.h"
 #include "media/base/media_constants.h"
-#include "test/explicit_key_value_config.h"
+#include "test/field_trial.h"
 #include "test/gtest.h"
 
 namespace webrtc {
 namespace {
-
-using test::ExplicitKeyValueConfig;
-
 constexpr int kQpMax = 55;
 constexpr double kBitratePriority = 2.0;
 constexpr bool kScreenshare = true;
@@ -81,9 +79,8 @@ TEST(SimulcastTest, BandwidthAboveTotalMaxBitrateGivenToHighestStream) {
 }
 
 TEST(SimulcastTest, GetConfig) {
-  const ExplicitKeyValueConfig trials("");
-
   const std::vector<VideoStream> kExpected = GetSimulcastBitrates720p();
+  const FieldTrialBasedConfig trials;
 
   const size_t kMinLayers = 1;
   const size_t kMaxLayers = 3;
@@ -115,8 +112,9 @@ TEST(SimulcastTest, GetConfig) {
 }
 
 TEST(SimulcastTest, GetConfigWithBaseHeavyVP8TL3RateAllocation) {
-  ExplicitKeyValueConfig trials(
+  test::ScopedFieldTrials field_trials(
       "WebRTC-UseBaseHeavyVP8TL3RateAllocation/Enabled/");
+  FieldTrialBasedConfig trials;
 
   const std::vector<VideoStream> kExpected = GetSimulcastBitrates720p();
 
@@ -139,10 +137,9 @@ TEST(SimulcastTest, GetConfigWithBaseHeavyVP8TL3RateAllocation) {
 }
 
 TEST(SimulcastTest, GetConfigWithLimitedMaxLayers) {
-  ExplicitKeyValueConfig trials("");
-
   const size_t kMinLayers = 1;
   const size_t kMaxLayers = 2;
+  FieldTrialBasedConfig trials;
   std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
       kMinLayers, kMaxLayers, 1280, 720, kBitratePriority, kQpMax,
       !kScreenshare, true, trials, webrtc::kVideoCodecVP8);
@@ -155,9 +152,9 @@ TEST(SimulcastTest, GetConfigWithLimitedMaxLayers) {
 }
 
 TEST(SimulcastTest, GetConfigWithLimitedMaxLayersForResolution) {
-  ExplicitKeyValueConfig trials(
+  test::ScopedFieldTrials field_trials(
       "WebRTC-LegacySimulcastLayerLimit/Enabled/");
-
+  FieldTrialBasedConfig trials;
   const size_t kMinLayers = 1;
   const size_t kMaxLayers = 3;
   std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
@@ -172,9 +169,9 @@ TEST(SimulcastTest, GetConfigWithLimitedMaxLayersForResolution) {
 }
 
 TEST(SimulcastTest, GetConfigWithLowResolutionScreenshare) {
-  ExplicitKeyValueConfig trials(
+  test::ScopedFieldTrials field_trials(
       "WebRTC-LegacySimulcastLayerLimit/Enabled/");
-
+  FieldTrialBasedConfig trials;
   const size_t kMinLayers = 1;
   const size_t kMaxLayers = 3;
   std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
@@ -187,9 +184,9 @@ TEST(SimulcastTest, GetConfigWithLowResolutionScreenshare) {
 }
 
 TEST(SimulcastTest, GetConfigWithNotLimitedMaxLayersForResolution) {
-  ExplicitKeyValueConfig trials(
+  test::ScopedFieldTrials field_trials(
       "WebRTC-LegacySimulcastLayerLimit/Disabled/");
-
+  FieldTrialBasedConfig trials;
   const size_t kMinLayers = 1;
   const size_t kMaxLayers = 3;
   std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
@@ -206,8 +203,7 @@ TEST(SimulcastTest, GetConfigWithNotLimitedMaxLayersForResolution) {
 }
 
 TEST(SimulcastTest, GetConfigWithNormalizedResolution) {
-  ExplicitKeyValueConfig trials("");
-
+  FieldTrialBasedConfig trials;
   const size_t kMinLayers = 1;
   const size_t kMaxLayers = 2;
   std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
@@ -223,8 +219,9 @@ TEST(SimulcastTest, GetConfigWithNormalizedResolution) {
 }
 
 TEST(SimulcastTest, GetConfigWithNormalizedResolutionDivisibleBy4) {
-  ExplicitKeyValueConfig trials(
+  test::ScopedFieldTrials field_trials(
       "WebRTC-NormalizeSimulcastResolution/Enabled-2/");
+  FieldTrialBasedConfig trials;
 
   const size_t kMinLayers = 1;
   const size_t kMaxLayers = 2;
@@ -241,8 +238,9 @@ TEST(SimulcastTest, GetConfigWithNormalizedResolutionDivisibleBy4) {
 }
 
 TEST(SimulcastTest, GetConfigWithNormalizedResolutionDivisibleBy8) {
-  ExplicitKeyValueConfig trials(
+  test::ScopedFieldTrials field_trials(
       "WebRTC-NormalizeSimulcastResolution/Enabled-3/");
+  FieldTrialBasedConfig trials;
 
   const size_t kMinLayers = 1;
   const size_t kMaxLayers = 2;
@@ -259,8 +257,9 @@ TEST(SimulcastTest, GetConfigWithNormalizedResolutionDivisibleBy8) {
 }
 
 TEST(SimulcastTest, GetConfigForLegacyLayerLimit) {
-  ExplicitKeyValueConfig trials(
+  test::ScopedFieldTrials field_trials(
       "WebRTC-LegacySimulcastLayerLimit/Enabled/");
+  FieldTrialBasedConfig trials;
 
   const size_t kMinLayers = 1;
   const int kMaxLayers = 3;
@@ -281,8 +280,9 @@ TEST(SimulcastTest, GetConfigForLegacyLayerLimit) {
 }
 
 TEST(SimulcastTest, GetConfigForLegacyLayerLimitWithRequiredHD) {
-  ExplicitKeyValueConfig trials(
+  test::ScopedFieldTrials field_trials(
       "WebRTC-LegacySimulcastLayerLimit/Enabled/");
+  FieldTrialBasedConfig trials;
 
   const size_t kMinLayers = 3;  // "HD" layer must be present!
   const int kMaxLayers = 3;
@@ -303,7 +303,7 @@ TEST(SimulcastTest, GetConfigForLegacyLayerLimitWithRequiredHD) {
 }
 
 TEST(SimulcastTest, GetConfigForScreenshareSimulcast) {
-  ExplicitKeyValueConfig trials("");
+  FieldTrialBasedConfig trials;
   const size_t kMinLayers = 1;
   const size_t kMaxLayers = 3;
   std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
@@ -325,7 +325,7 @@ TEST(SimulcastTest, GetConfigForScreenshareSimulcast) {
 }
 
 TEST(SimulcastTest, GetConfigForScreenshareSimulcastWithLimitedMaxLayers) {
-  ExplicitKeyValueConfig trials("");
+  FieldTrialBasedConfig trials;
   const size_t kMinLayers = 1;
   const size_t kMaxLayers = 1;
   std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
@@ -336,7 +336,7 @@ TEST(SimulcastTest, GetConfigForScreenshareSimulcastWithLimitedMaxLayers) {
 }
 
 TEST(SimulcastTest, AveragesBitratesForNonStandardResolution) {
-  ExplicitKeyValueConfig trials("");
+  FieldTrialBasedConfig trials;
   const size_t kMinLayers = 1;
   const size_t kMaxLayers = 3;
   std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
@@ -352,14 +352,13 @@ TEST(SimulcastTest, AveragesBitratesForNonStandardResolution) {
 }
 
 TEST(SimulcastTest, BitratesForCloseToStandardResolution) {
-  ExplicitKeyValueConfig trials("");
-
   const size_t kMinLayers = 1;
   const size_t kMaxLayers = 3;
   // Resolution very close to 720p in number of pixels
   const size_t kWidth = 1280;
   const size_t kHeight = 716;
   const std::vector<VideoStream> kExpectedNear = GetSimulcastBitrates720p();
+  FieldTrialBasedConfig trials;
 
   std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
       kMinLayers, kMaxLayers, kWidth, kHeight, kBitratePriority, kQpMax,
@@ -379,9 +378,9 @@ TEST(SimulcastTest, BitratesForCloseToStandardResolution) {
 }
 
 TEST(SimulcastTest, MaxLayersWithRoundUpDisabled) {
-  ExplicitKeyValueConfig trials(
+  test::ScopedFieldTrials field_trials(
       "WebRTC-SimulcastLayerLimitRoundUp/max_ratio:0.0/");
-
+  FieldTrialBasedConfig trials;
   const size_t kMinLayers = 1;
   const int kMaxLayers = 3;
 
@@ -408,7 +407,7 @@ TEST(SimulcastTest, MaxLayersWithRoundUpDisabled) {
 
 TEST(SimulcastTest, MaxLayersWithDefaultRoundUpRatio) {
   // Default: "WebRTC-SimulcastLayerLimitRoundUp/max_ratio:0.1/"
-  ExplicitKeyValueConfig trials("");
+  FieldTrialBasedConfig trials;
   const size_t kMinLayers = 1;
   const int kMaxLayers = 3;
 
@@ -442,9 +441,9 @@ TEST(SimulcastTest, MaxLayersWithDefaultRoundUpRatio) {
 }
 
 TEST(SimulcastTest, MaxLayersWithRoundUpRatio) {
-  ExplicitKeyValueConfig trials(
+  test::ScopedFieldTrials field_trials(
       "WebRTC-SimulcastLayerLimitRoundUp/max_ratio:0.13/");
-
+  FieldTrialBasedConfig trials;
   const size_t kMinLayers = 1;
   const int kMaxLayers = 3;
 
@@ -466,10 +465,12 @@ TEST(SimulcastTest, MaxLayersWithRoundUpRatio) {
 
 TEST(SimulcastTest, BitratesInterpolatedForResBelow180p) {
   // TODO(webrtc:12415): Remove when feature launches.
-  ExplicitKeyValueConfig trials(
+  test::ScopedFieldTrials field_trials(
       "WebRTC-LowresSimulcastBitrateInterpolation/Enabled/");
 
   const size_t kMaxLayers = 3;
+  FieldTrialBasedConfig trials;
+
   std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
       /* min_layers = */ 1, kMaxLayers, /* width = */ 960, /* height = */ 540,
       kBitratePriority, kQpMax, !kScreenshare, true, trials,
@@ -485,8 +486,10 @@ TEST(SimulcastTest, BitratesInterpolatedForResBelow180p) {
 
 TEST(SimulcastTest, BitratesConsistentForVerySmallRes) {
   // TODO(webrtc:12415): Remove when feature launches.
-  ExplicitKeyValueConfig trials(
+  test::ScopedFieldTrials field_trials(
       "WebRTC-LowresSimulcastBitrateInterpolation/Enabled/");
+
+  FieldTrialBasedConfig trials;
 
   std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
       /* min_layers = */ 1, /* max_layers = */ 3, /* width = */ 1,
@@ -503,10 +506,12 @@ TEST(SimulcastTest, BitratesConsistentForVerySmallRes) {
 
 TEST(SimulcastTest,
      BitratesNotInterpolatedForResBelow180pWhenDisabledTrialSet) {
-  ExplicitKeyValueConfig trials(
+  test::ScopedFieldTrials field_trials(
       "WebRTC-LowresSimulcastBitrateInterpolation/Disabled/");
 
   const size_t kMaxLayers = 3;
+  FieldTrialBasedConfig trials;
+
   std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
       /* min_layers = */ 1, kMaxLayers, /* width = */ 960, /* height = */ 540,
       kBitratePriority, kQpMax, !kScreenshare, true, trials,
@@ -521,9 +526,9 @@ TEST(SimulcastTest,
 }
 
 TEST(SimulcastTest, BitratesBasedOnCodec) {
-  ExplicitKeyValueConfig trials("");
-
   const size_t kMaxLayers = 3;
+  FieldTrialBasedConfig trials;
+
   std::vector<VideoStream> streams_vp8 = cricket::GetSimulcastConfig(
       /* min_layers = */ 1, /* max_layers = */ 3, /* width = */ 1280,
       /* height = */ 720, kBitratePriority, kQpMax, !kScreenshare, true, trials,
@@ -556,9 +561,8 @@ TEST(SimulcastTest, BitratesBasedOnCodec) {
 }
 
 TEST(SimulcastTest, BitratesForVP9) {
-  ExplicitKeyValueConfig trials("");
-
   const size_t kMaxLayers = 3;
+  FieldTrialBasedConfig trials;
 
   std::vector<VideoStream> streams = cricket::GetSimulcastConfig(
       /* min_layers = */ 1, kMaxLayers, /* width = */ 1280, /* height = */ 720,

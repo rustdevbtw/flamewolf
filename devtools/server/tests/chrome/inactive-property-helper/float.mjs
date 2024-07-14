@@ -10,7 +10,6 @@ export default [
     tagName: "div",
     rules: ["div { display: inline; float: right; }"],
     isActive: false,
-    expectedMsgId: "inactive-css-not-display-block-on-floated-2",
   },
   {
     info: "display: block is active on a floated element",
@@ -33,7 +32,6 @@ export default [
       ".test { display: inline-grid ;}",
     ],
     isActive: false,
-    expectedMsgId: "inactive-css-not-display-block-on-floated-2",
   },
   {
     info: "display: table-footer-group is inactive on a floated element",
@@ -49,7 +47,6 @@ export default [
     },
     rules: [".table-footer { display: table-footer-group; float: left;}"],
     isActive: false,
-    expectedMsgId: "inactive-css-not-display-block-on-floated-2",
   },
   createGridPlacementOnFloatedItemTest("grid-row"),
   createGridPlacementOnFloatedItemTest("grid-column"),

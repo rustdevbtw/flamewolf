@@ -10,58 +10,50 @@
 
 #include "rtc_base/experiments/normalize_simulcast_size_experiment.h"
 
-#include "test/explicit_key_value_config.h"
+#include "test/field_trial.h"
 #include "test/gtest.h"
 
 namespace webrtc {
 
-using test::ExplicitKeyValueConfig;
-
 TEST(NormalizeSimulcastSizeExperimentTest, GetExponent) {
-  ExplicitKeyValueConfig field_trials(
+  webrtc::test::ScopedFieldTrials field_trials(
       "WebRTC-NormalizeSimulcastResolution/Enabled-2/");
-  EXPECT_EQ(2,
-            NormalizeSimulcastSizeExperiment::GetBase2Exponent(field_trials));
+  EXPECT_EQ(2, NormalizeSimulcastSizeExperiment::GetBase2Exponent());
 }
 
 TEST(NormalizeSimulcastSizeExperimentTest, GetExponentWithTwoParameters) {
-  ExplicitKeyValueConfig field_trials(
+  webrtc::test::ScopedFieldTrials field_trials(
       "WebRTC-NormalizeSimulcastResolution/Enabled-3-4/");
-  EXPECT_EQ(3,
-            NormalizeSimulcastSizeExperiment::GetBase2Exponent(field_trials));
+  EXPECT_EQ(3, NormalizeSimulcastSizeExperiment::GetBase2Exponent());
 }
 
 TEST(NormalizeSimulcastSizeExperimentTest, GetExponentFailsIfNotEnabled) {
-  ExplicitKeyValueConfig field_trials(
+  webrtc::test::ScopedFieldTrials field_trials(
       "WebRTC-NormalizeSimulcastResolution/Disabled/");
-  EXPECT_FALSE(
-      NormalizeSimulcastSizeExperiment::GetBase2Exponent(field_trials));
+  EXPECT_FALSE(NormalizeSimulcastSizeExperiment::GetBase2Exponent());
 }
 
 TEST(NormalizeSimulcastSizeExperimentTest,
      GetExponentFailsForInvalidFieldTrial) {
-  ExplicitKeyValueConfig field_trials(
+  webrtc::test::ScopedFieldTrials field_trials(
       "WebRTC-NormalizeSimulcastResolution/Enabled-invalid/");
-  EXPECT_FALSE(
-      NormalizeSimulcastSizeExperiment::GetBase2Exponent(field_trials));
+  EXPECT_FALSE(NormalizeSimulcastSizeExperiment::GetBase2Exponent());
 }
 
 TEST(NormalizeSimulcastSizeExperimentTest,
      GetExponentFailsForNegativeOutOfBoundValue) {
   // Supported range: [0, 5].
-  ExplicitKeyValueConfig field_trials(
+  webrtc::test::ScopedFieldTrials field_trials(
       "WebRTC-NormalizeSimulcastResolution/Enabled--1/");
-  EXPECT_FALSE(
-      NormalizeSimulcastSizeExperiment::GetBase2Exponent(field_trials));
+  EXPECT_FALSE(NormalizeSimulcastSizeExperiment::GetBase2Exponent());
 }
 
 TEST(NormalizeSimulcastSizeExperimentTest,
      GetExponentFailsForPositiveOutOfBoundValue) {
   // Supported range: [0, 5].
-  ExplicitKeyValueConfig field_trials(
+  webrtc::test::ScopedFieldTrials field_trials(
       "WebRTC-NormalizeSimulcastResolution/Enabled-6/");
-  EXPECT_FALSE(
-      NormalizeSimulcastSizeExperiment::GetBase2Exponent(field_trials));
+  EXPECT_FALSE(NormalizeSimulcastSizeExperiment::GetBase2Exponent());
 }
 
 }  // namespace webrtc

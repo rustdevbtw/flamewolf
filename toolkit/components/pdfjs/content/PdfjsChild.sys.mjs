@@ -45,6 +45,5 @@ export class PdfjsChild extends JSWindowActorChild {
         break;
       }
     }
-    return null;
   }
 }

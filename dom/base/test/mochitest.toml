@@ -59,7 +59,6 @@ support-files = [
   "bug1576154.sjs",
   "chrome/bug418986-1.js",
   "copypaste.js",
-  "copypaste_shadow_dom.js",
   "delayedServerEvents.sjs",
   "eventsource_message.sjs",
   "eventsource_reconnect.sjs",
@@ -1183,12 +1182,6 @@ skip-if = [
   "headless", #bug 904183
 ]
 
-["test_copypaste_shadow_dom.html"]
-skip-if = [
-  "os == 'android'",
-  "headless", #bug 904183
-]
-
 ["test_copypaste.xhtml"]
 skip-if = ["headless"]  #bug 904183
 
@@ -1204,8 +1197,6 @@ skip-if = [
 ]
 
 ["test_custom_element.html"]
-
-["test_custom_element_invalid_name.html"]
 
 ["test_custom_element_reflector.html"]
 
@@ -1491,8 +1482,6 @@ scheme = "https"
 ["test_range_bounds.html"]
 
 ["test_reentrant_flush.html"]
-
-["test_reportPatternFailure.html"]
 
 ["test_root_iframe.html"]
 

@@ -70,12 +70,6 @@ RemoteTextureOwnerId RemoteTextureOwnerId::GetNext() {
 }
 
 /* static */
-SurfaceDescriptorRemoteDecoderId SurfaceDescriptorRemoteDecoderId::GetNext() {
-  static std::atomic<uint64_t> sCounter = 0;
-  return SurfaceDescriptorRemoteDecoderId{++sCounter};
-}
-
-/* static */
 GpuProcessTextureId GpuProcessTextureId::GetNext() {
   if (!XRE_IsGPUProcess()) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");

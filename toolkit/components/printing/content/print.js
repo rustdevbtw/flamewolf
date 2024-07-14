@@ -81,16 +81,11 @@ function cancelDeferredTasks() {
 document.addEventListener(
   "DOMContentLoaded",
   () => {
-    const dialogBox = ourBrowser.closest(".dialogBox");
-    if (!dialogBox) {
-      return;
-    }
-
     window._initialized = PrintEventHandler.init().catch(e => console.error(e));
     ourBrowser.setAttribute("flex", "0");
     ourBrowser.setAttribute("constrainpopups", "false");
     ourBrowser.classList.add("printSettingsBrowser");
-    dialogBox.classList.add("printDialogBox");
+    ourBrowser.closest(".dialogBox")?.classList.add("printDialogBox");
   },
   { once: true }
 );

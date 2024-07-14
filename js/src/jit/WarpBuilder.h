@@ -11,7 +11,6 @@
 
 #include "ds/InlineTable.h"
 #include "jit/JitContext.h"
-#include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 #include "jit/WarpBuilderShared.h"
 #include "jit/WarpSnapshot.h"
@@ -52,7 +51,6 @@ namespace jit {
   /* TODO: To be implemented (Bug 1899501) */            \
   IF_EXPLICIT_RESOURCE_MANAGEMENT(_(AddDisposable))      \
   IF_EXPLICIT_RESOURCE_MANAGEMENT(_(DisposeDisposables)) \
-  IF_EXPLICIT_RESOURCE_MANAGEMENT(_(TryUsing))           \
   /* Records and Tuples */                               \
   IF_RECORD_TUPLE(_(InitRecord))                         \
   IF_RECORD_TUPLE(_(AddRecordProperty))                  \

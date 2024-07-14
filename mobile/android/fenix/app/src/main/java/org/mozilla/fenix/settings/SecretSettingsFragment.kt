@@ -59,9 +59,9 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
-        requirePreference<SwitchPreference>(R.string.pref_key_toolbar_show_navigation_toolbar).apply {
+        requirePreference<SwitchPreference>(R.string.pref_key_toolbar_use_redesign_incomplete).apply {
             isVisible = Config.channel.isNightlyOrDebug
-            isChecked = context.settings().navigationToolbarEnabled
+            isChecked = context.settings().enableIncompleteToolbarRedesign
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
@@ -77,21 +77,9 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
-        requirePreference<SwitchPreference>(R.string.pref_key_enable_compose_homepage).apply {
-            isVisible = Config.channel.isNightlyOrDebug
-            isChecked = context.settings().enableComposeHomepage
-            onPreferenceChangeListener = SharedPreferenceUpdater()
-        }
-
         requirePreference<SwitchPreference>(R.string.pref_key_enable_menu_redesign).apply {
             isVisible = Config.channel.isNightlyOrDebug
             isChecked = context.settings().enableMenuRedesign
-            onPreferenceChangeListener = SharedPreferenceUpdater()
-        }
-
-        requirePreference<SwitchPreference>(R.string.pref_key_enable_homepage_as_new_tab).apply {
-            isVisible = Config.channel.isNightlyOrDebug
-            isChecked = context.settings().enableHomepageAsNewTab
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 

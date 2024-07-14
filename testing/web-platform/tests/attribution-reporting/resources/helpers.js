@@ -16,9 +16,8 @@ const resetWptServer = () =>
           resetAttributionReports(eventLevelReportsUrl),
           resetAttributionReports(aggregatableReportsUrl),
           resetAttributionReports(eventLevelDebugReportsUrl),
-          resetAttributionReports(attributionSuccessDebugAggregatableReportsUrl),
-          resetAttributionReports(verboseDebugReportsUrl),
           resetAttributionReports(aggregatableDebugReportsUrl),
+          resetAttributionReports(verboseDebugReportsUrl),
           resetRegisteredSources(),
         ]);
 
@@ -28,12 +27,10 @@ const eventLevelDebugReportsUrl =
     '/.well-known/attribution-reporting/debug/report-event-attribution';
 const aggregatableReportsUrl =
     '/.well-known/attribution-reporting/report-aggregate-attribution';
-const attributionSuccessDebugAggregatableReportsUrl =
+const aggregatableDebugReportsUrl =
     '/.well-known/attribution-reporting/debug/report-aggregate-attribution';
 const verboseDebugReportsUrl =
     '/.well-known/attribution-reporting/debug/verbose';
-const aggregatableDebugReportsUrl =
-    '/.well-known/attribution-reporting/debug/report-aggregate-debug';
 
 const attributionDebugCookie = 'ar_debug=1;Secure;HttpOnly;SameSite=None;Path=/';
 
@@ -166,7 +163,7 @@ const registerAttributionSrcByImg = (attributionSrc) => {
   element.attributionSrc = attributionSrc;
 };
 
-const registerAttributionSrc = ({
+const registerAttributionSrc = async ({
   source,
   trigger,
   cookie,
@@ -226,8 +223,16 @@ const registerAttributionSrc = ({
       if (eligible === null) {
         img.attributionSrc = url;
       } else {
-        img.attributionSrc = '';
-        img.src = url;
+        await new Promise(resolve => {
+          img.onload = resolve;
+          // Since the resource being fetched isn't a valid image, onerror will
+          // be fired, but the browser will still process the
+          // attribution-related headers, so resolve the promise instead of
+          // rejecting.
+          img.onerror = resolve;
+          img.attributionSrc = '';
+          img.src = url;
+        });
       }
       return 'event';
     case 'script':
@@ -236,9 +241,12 @@ const registerAttributionSrc = ({
       if (eligible === null) {
         script.attributionSrc = url;
       } else {
-        script.attributionSrc = '';
-        script.src = url;
-        document.body.appendChild(script);
+        await new Promise(resolve => {
+          script.onload = resolve;
+          script.attributionSrc = '';
+          script.src = url;
+          document.body.appendChild(script);
+        });
       }
       return 'event';
     case 'a':
@@ -254,10 +262,10 @@ const registerAttributionSrc = ({
         a.href = url;
       }
       document.body.appendChild(a);
-      test_driver.click(a);
+      await test_driver.click(a);
       return 'navigation';
     case 'open':
-      test_driver.bless('open window', () => {
+      await test_driver.bless('open window', () => {
         const feature = referrerPolicy === 'no-referrer' ? 'noreferrer' : '';
         if (eligible === null) {
           open(
@@ -273,16 +281,20 @@ const registerAttributionSrc = ({
       if (eligible !== null) {
         attributionReporting = JSON.parse(eligible);
       }
-      fetch(url, {credentials, attributionReporting, referrerPolicy});
+      await fetch(url, {credentials, attributionReporting, referrerPolicy});
       return 'event';
     }
     case 'xhr':
-      const req = new XMLHttpRequest();
-      req.open('GET', url);
-      if (eligible !== null) {
-        req.setAttributionReporting(JSON.parse(eligible));
-      }
-      req.send();
+      await new Promise((resolve, reject) => {
+        const req = new XMLHttpRequest();
+        req.open('GET', url);
+        if (eligible !== null) {
+          req.setAttributionReporting(JSON.parse(eligible));
+        }
+        req.onload = resolve;
+        req.onerror = () => reject(req.statusText);
+        req.send();
+      });
       return 'event';
     default:
       throw `unknown method "${method}"`;
@@ -336,12 +348,10 @@ const pollEventLevelDebugReports = (origin) =>
     pollAttributionReports(eventLevelDebugReportsUrl, origin);
 const pollAggregatableReports = (origin) =>
     pollAttributionReports(aggregatableReportsUrl, origin);
-const pollAttributionSuccessDebugAggregatableReports = (origin) =>
-    pollAttributionReports(attributionSuccessDebugAggregatableReportsUrl, origin);
+const pollAggregatableDebugReports = (origin) =>
+    pollAttributionReports(aggregatableDebugReportsUrl, origin);
 const pollVerboseDebugReports = (origin) =>
     pollAttributionReports(verboseDebugReportsUrl, origin);
-const pollAggregatableDebugReports = (origin) =>
-  pollAttributionReports(aggregatableDebugReportsUrl, origin);
 
 const validateReportHeaders = headers => {
   assert_array_equals(headers['content-type'], ['application/json']);

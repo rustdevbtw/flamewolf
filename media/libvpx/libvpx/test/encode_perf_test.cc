@@ -7,7 +7,6 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#include <cstdio>
 #include <string>
 #include "third_party/googletest/src/include/gtest/gtest.h"
 #include "./vpx_config.h"

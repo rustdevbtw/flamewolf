@@ -285,11 +285,11 @@ class StringBuffer {
   }
 
   [[nodiscard]] inline bool append(JSString* str);
-  [[nodiscard]] inline bool append(const JSLinearString* str);
+  [[nodiscard]] inline bool append(JSLinearString* str);
   [[nodiscard]] inline bool appendSubstring(JSString* base, size_t off,
                                             size_t len);
-  [[nodiscard]] inline bool appendSubstring(const JSLinearString* base,
-                                            size_t off, size_t len);
+  [[nodiscard]] inline bool appendSubstring(JSLinearString* base, size_t off,
+                                            size_t len);
   [[nodiscard]] bool append(const frontend::ParserAtomsTable& parserAtoms,
                             frontend::TaggedParserAtomIndex atom);
 
@@ -322,8 +322,7 @@ class StringBuffer {
     infallibleAppend(reinterpret_cast<const Latin1Char*>(chars), len);
   }
 
-  void infallibleAppendSubstring(const JSLinearString* base, size_t off,
-                                 size_t len);
+  void infallibleAppendSubstring(JSLinearString* base, size_t off, size_t len);
 
   /*
    * Because inflation is fallible, these methods should only be used after
@@ -416,7 +415,7 @@ inline bool StringBuffer::append(const char16_t* begin, const char16_t* end) {
   return twoByteChars().append(begin, end);
 }
 
-inline bool StringBuffer::append(const JSLinearString* str) {
+inline bool StringBuffer::append(JSLinearString* str) {
   JS::AutoCheckCannotGC nogc;
   if (isLatin1()) {
     if (str->hasLatin1Chars()) {
@@ -431,7 +430,7 @@ inline bool StringBuffer::append(const JSLinearString* str) {
              : twoByteChars().append(str->twoByteChars(nogc), str->length());
 }
 
-inline void StringBuffer::infallibleAppendSubstring(const JSLinearString* base,
+inline void StringBuffer::infallibleAppendSubstring(JSLinearString* base,
                                                     size_t off, size_t len) {
   MOZ_ASSERT(off + len <= base->length());
   MOZ_ASSERT_IF(base->hasTwoByteChars(), isTwoByte());
@@ -444,8 +443,8 @@ inline void StringBuffer::infallibleAppendSubstring(const JSLinearString* base,
   }
 }
 
-inline bool StringBuffer::appendSubstring(const JSLinearString* base,
-                                          size_t off, size_t len) {
+inline bool StringBuffer::appendSubstring(JSLinearString* base, size_t off,
+                                          size_t len) {
   MOZ_ASSERT(off + len <= base->length());
 
   JS::AutoCheckCannotGC nogc;

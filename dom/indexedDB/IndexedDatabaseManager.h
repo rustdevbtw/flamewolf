@@ -14,7 +14,6 @@
 #include "mozilla/Mutex.h"
 #include "nsClassHashtable.h"
 #include "nsHashKeys.h"
-#include "nsIIndexedDatabaseManager.h"
 #include "SafeRefPtr.h"
 
 namespace mozilla {
@@ -33,7 +32,7 @@ class FileManagerInfo;
 
 }  // namespace indexedDB
 
-class IndexedDatabaseManager final : public nsIIndexedDatabaseManager {
+class IndexedDatabaseManager final {
   using PersistenceType = mozilla::dom::quota::PersistenceType;
   using DatabaseFileManager = mozilla::dom::indexedDB::DatabaseFileManager;
   using FileManagerInfo = mozilla::dom::indexedDB::FileManagerInfo;
@@ -47,17 +46,13 @@ class IndexedDatabaseManager final : public nsIIndexedDatabaseManager {
     Logging_DetailedProfilerMarks
   };
 
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIINDEXEDDATABASEMANAGER
+  NS_INLINE_DECL_REFCOUNTING_WITH_DESTROY(IndexedDatabaseManager, Destroy())
 
   // Returns a non-owning reference.
   static IndexedDatabaseManager* GetOrCreate();
 
   // Returns a non-owning reference.
   static IndexedDatabaseManager* Get();
-
-  // No one should call this but the factory.
-  static already_AddRefed<IndexedDatabaseManager> FactoryCreate();
 
   static bool IsClosed();
 
@@ -152,8 +147,6 @@ class IndexedDatabaseManager final : public nsIIndexedDatabaseManager {
   nsresult Init();
 
   void Destroy();
-
-  nsresult EnsureBackgroundActor();
 
   static void LoggingModePrefChangedCallback(const char* aPrefName,
                                              void* aClosure);

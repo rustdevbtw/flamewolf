@@ -43,7 +43,6 @@ use std::{
 use arrayvec::ArrayVec;
 use ash::{ext, khr, vk};
 use parking_lot::{Mutex, RwLock};
-use wgt::InternalCounter;
 
 const MILLIS_TO_NANOS: u64 = 1_000_000;
 const MAX_TOTAL_ATTACHMENTS: usize = crate::MAX_COLOR_ATTACHMENTS * 2 + 1;
@@ -528,7 +527,6 @@ struct DeviceShared {
     features: wgt::Features,
     render_passes: Mutex<rustc_hash::FxHashMap<RenderPassKey, vk::RenderPass>>,
     framebuffers: Mutex<rustc_hash::FxHashMap<FramebufferKey, vk::Framebuffer>>,
-    memory_allocations_counter: InternalCounter,
 }
 
 pub struct Device {
@@ -540,7 +538,6 @@ pub struct Device {
     naga_options: naga::back::spv::Options<'static>,
     #[cfg(feature = "renderdoc")]
     render_doc: crate::auxil::renderdoc::RenderDoc,
-    counters: wgt::HalCounters,
 }
 
 /// Semaphores for forcing queue submissions to run in order.

@@ -38,7 +38,10 @@ add_task(async function () {
   pressKey(dbg, "toggleCondPanel");
 
   await waitForConditionalPanelFocus(dbg);
-  ok(!!getConditionalPanel(dbg, 32), "conditional panel is open on line 32");
+  ok(
+    !!getConditionalPanel(dbg, 32),
+    "conditional panel panel is open on line 32"
+  );
   is(
     dbg.selectors.getConditionalPanelLocation().line,
     32,
@@ -53,7 +56,7 @@ add_task(async function () {
   info(
     "toggle conditional panel with shortcut and add condition to first breakpoint"
   );
-  setConditionalBreakpointWithKeyboardShortcut(dbg, "1");
+  setConditionalBreakpoint(dbg, "1");
   await waitForCondition(dbg, 1);
   const firstBreakpoint = findColumnBreakpoint(dbg, "long.js", 32, 2);
   is(
@@ -69,7 +72,7 @@ add_task(async function () {
   info(
     "toggle conditional panel with shortcut and add condition to second breakpoint"
   );
-  setConditionalBreakpointWithKeyboardShortcut(dbg, "2");
+  setConditionalBreakpoint(dbg, "2");
   await waitForCondition(dbg, 2);
   const secondBreakpoint = findColumnBreakpoint(dbg, "long.js", 32, 26);
   is(
@@ -83,7 +86,7 @@ add_task(async function () {
   );
   getCM(dbg).setCursor({ line: 31, ch: 7 });
   info("toggle conditional panel and edit condition using shortcut");
-  setConditionalBreakpointWithKeyboardShortcut(dbg, "2");
+  setConditionalBreakpoint(dbg, "2");
   ok(
     !!waitForCondition(dbg, "12"),
     "breakpoint closest to cursor position has been edited"
@@ -97,26 +100,11 @@ add_task(async function () {
   );
   getCM(dbg).setCursor({ line: 31, ch: 21 });
   info("toggle conditional panel and edit condition using shortcut");
-  setConditionalBreakpointWithKeyboardShortcut(dbg, "3");
+  setConditionalBreakpoint(dbg, "3");
   ok(
     !!waitForCondition(dbg, "13"),
     "breakpoint closest to cursor position has been edited"
   );
-
-  info("close conditional panel");
-  pressKey(dbg, "Escape");
-
-  info("toggle log panel with shortcut: cursor on line 33");
-
-  getCM(dbg).setCursor({ line: 33, ch: 1 });
-  setLogBreakpointWithKeyboardShortcut(dbg, "3");
-  ok(
-    !!waitForLog(dbg, "3"),
-    "breakpoint closest to cursor position has been edited"
-  );
-
-  info("close conditional panel");
-  pressKey(dbg, "Escape");
 });
 
 // from test/mochitest/browser_dbg-breakpoints-cond-source-maps.js
@@ -153,12 +141,7 @@ async function enableSecondBreakpoint(dbg) {
 
 // modified method from browser_dbg-breakpoints-columns.js
 // use shortcut to open conditional panel.
-function setConditionalBreakpointWithKeyboardShortcut(dbg, condition) {
+function setConditionalBreakpoint(dbg, condition) {
   pressKey(dbg, "toggleCondPanel");
   typeInPanel(dbg, condition);
-}
-
-function setLogBreakpointWithKeyboardShortcut(dbg, condition) {
-  pressKey(dbg, "toggleLogPanel");
-  typeInPanel(dbg, condition, true);
 }

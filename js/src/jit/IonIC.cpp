@@ -264,9 +264,6 @@ bool IonSetPropertyIC::update(JSContext* cx, HandleScript outerScript,
         MOZ_ASSERT(deferType != DeferType::None);
         break;
     }
-    if (deferType == DeferType::None && !attached) {
-      ic->state().trackNotAttached();
-    }
   }
 
   jsbytecode* pc = ic->pc();
@@ -343,9 +340,9 @@ bool IonSetPropertyIC::update(JSContext* cx, HandleScript outerScript,
         MOZ_ASSERT_UNREACHABLE("Invalid attach result");
         break;
     }
-    if (!attached) {
-      ic->state().trackNotAttached();
-    }
+  }
+  if (!attached && canAttachStub) {
+    ic->state().trackNotAttached();
   }
 
   return true;

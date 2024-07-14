@@ -149,7 +149,15 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=782211
       SimpleTest.finish();
     }
 
-    showNotifications();
+    SpecialPowers.pushPrefEnv(
+      {
+        set: [
+          ["notification.prompt.testing", true],
+          ["notification.prompt.testing.allow", true],
+        ],
+      },
+      showNotifications
+    );
   } else {
     ok(true, "Notifications are not enabled on the platform.");
   }

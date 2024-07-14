@@ -497,9 +497,9 @@ describe("ASRouter", () => {
       );
     });
     describe("lazily loading local test providers", () => {
-      let justIdAndContent = ({ id, content }) => ({ id, content });
-      afterEach(() => Router.uninit());
-
+      afterEach(() => {
+        Router.uninit();
+      });
       it("should add the local test providers on init if devtools are enabled", async () => {
         sandbox.stub(ASRouterPreferences, "devtoolsEnabled").get(() => true);
 
@@ -513,38 +513,6 @@ describe("ASRouter", () => {
         await createRouterAndInit();
 
         assert.notProperty(Router._localProviders, "PanelTestProvider");
-      });
-      it("should flatten experiment translated messages from local test providers if devtools are enabled...", async () => {
-        sandbox.stub(ASRouterPreferences, "devtoolsEnabled").get(() => true);
-
-        await createRouterAndInit();
-
-        assert.property(Router._localProviders, "PanelTestProvider");
-
-        expect(
-          Router.state.messages.map(justIdAndContent)
-        ).to.deep.include.members([
-          { id: "experimentL10n", content: { text: "UniqueText" } },
-        ]);
-      });
-      it("...but not if devtools are disabled", async () => {
-        sandbox.stub(ASRouterPreferences, "devtoolsEnabled").get(() => false);
-
-        await createRouterAndInit();
-
-        assert.notProperty(Router._localProviders, "PanelTestProvider");
-
-        let justIdAndContentMessages =
-          Router.state.messages.map(justIdAndContent);
-        expect(justIdAndContentMessages).not.to.deep.include.members([
-          { id: "experimentL10n", content: { text: "UniqueText" } },
-        ]);
-        expect(justIdAndContentMessages).to.deep.include.members([
-          {
-            id: "experimentL10n",
-            content: { text: { $l10n: { text: "UniqueText" } } },
-          },
-        ]);
       });
     });
   });
@@ -562,7 +530,7 @@ describe("ASRouter", () => {
         Router.onPrefChange
       );
     });
-    it("should call clearChildMessages (does nothing, see bug 1899028)", async () => {
+    it("should send a AS_ROUTER_TARGETING_UPDATE message", async () => {
       const messageTargeted = {
         id: "1",
         campaign: "foocampaign",
@@ -991,13 +959,14 @@ describe("ASRouter", () => {
         .rejects("fake error");
       await createRouterAndInit();
       assert.calledWith(initParams.dispatchCFRAction, {
-        type: "AS_ROUTER_TELEMETRY_USER_EVENT",
         data: {
           action: "asrouter_undesired_event",
-          message_id: "n/a",
           event: "ASR_RS_ERROR",
           event_context: "remotey-settingsy",
+          message_id: "n/a",
         },
+        meta: { from: "ActivityStream:Content", to: "ActivityStream:Main" },
+        type: "AS_ROUTER_TELEMETRY_USER_EVENT",
       });
     });
     it("should dispatch undesired event if RemoteSettings returns no messages", async () => {
@@ -1005,13 +974,14 @@ describe("ASRouter", () => {
         .stub(MessageLoaderUtils, "_getRemoteSettingsMessages")
         .resolves([]);
       assert.calledWith(initParams.dispatchCFRAction, {
-        type: "AS_ROUTER_TELEMETRY_USER_EVENT",
         data: {
           action: "asrouter_undesired_event",
-          message_id: "n/a",
           event: "ASR_RS_NO_MESSAGES",
           event_context: "remotey-settingsy",
+          message_id: "n/a",
         },
+        meta: { from: "ActivityStream:Content", to: "ActivityStream:Main" },
+        type: "AS_ROUTER_TELEMETRY_USER_EVENT",
       });
     });
     it("should download the attachment if RemoteSettings returns some messages", async () => {
@@ -1052,13 +1022,14 @@ describe("ASRouter", () => {
       await createRouterAndInit([provider]);
 
       assert.calledWith(initParams.dispatchCFRAction, {
-        type: "AS_ROUTER_TELEMETRY_USER_EVENT",
         data: {
           action: "asrouter_undesired_event",
-          message_id: "n/a",
           event: "ASR_RS_NO_MESSAGES",
           event_context: "ms-language-packs",
+          message_id: "n/a",
         },
+        meta: { from: "ActivityStream:Content", to: "ActivityStream:Main" },
+        type: "AS_ROUTER_TELEMETRY_USER_EVENT",
       });
     });
   });

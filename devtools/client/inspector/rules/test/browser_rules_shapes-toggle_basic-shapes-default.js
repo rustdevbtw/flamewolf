@@ -72,9 +72,8 @@ add_task(async function () {
     shapesToggle.click();
     await onHighlighterShown;
 
-    is(
-      shapesToggle.getAttribute("aria-pressed"),
-      "true",
+    ok(
+      shapesToggle.classList.contains("active"),
       `Shapes highlighter toggle active for ${selector}`
     );
     ok(
@@ -91,9 +90,8 @@ add_task(async function () {
     shapesToggle.click();
     await onHighlighterHidden;
 
-    is(
-      shapesToggle.getAttribute("aria-pressed"),
-      "false",
+    ok(
+      !shapesToggle.classList.contains("active"),
       `Shapes highlighter toggle no longer active for ${selector}`
     );
     ok(

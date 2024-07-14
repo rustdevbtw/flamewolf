@@ -29,7 +29,6 @@
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/dom/SimpleGestureEventBinding.h"
 #include "mozilla/dom/WheelEventBinding.h"
-#include "mozilla/layers/CompositorBridgeChild.h"
 
 #include "nsArrayUtils.h"
 #include "nsExceptionHandler.h"
@@ -94,7 +93,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_apz.h"
 #include "mozilla/StaticPrefs_browser.h"
-#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_general.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_ui.h"
@@ -830,11 +828,6 @@ void nsChildView::SuspendAsyncCATransactions() {
   // accidentally stay suspended indefinitely.
   [mView markLayerForDisplay];
 
-  // Ensure that whatever we are going to do does sync flushes of the
-  // rendering pipeline, giving us smooth animation.
-  if (mCompositorBridgeChild) {
-    mCompositorBridgeChild->SetForceSyncFlushRendering(true);
-  }
   mNativeLayerRoot->SuspendOffMainThreadCommits();
 }
 
@@ -858,11 +851,6 @@ void nsChildView::UnsuspendAsyncCATransactions() {
     // display, because this will schedule a main thread CATransaction, during
     // which HandleMainThreadCATransaction will call CommitToScreen().
     [mView markLayerForDisplay];
-  }
-
-  // We're done with our critical animation, so allow aysnc flushes again.
-  if (mCompositorBridgeChild) {
-    mCompositorBridgeChild->SetForceSyncFlushRendering(false);
   }
 }
 
@@ -3320,16 +3308,8 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
     if (!mGeckoChild) return nil;
   }
 
-  Maybe<WidgetPointerEvent> pointerEvent;
-  Maybe<WidgetMouseEvent> mouseEvent;
-  if (StaticPrefs::dom_w3c_pointer_events_dispatch_click_as_pointer_event()) {
-    pointerEvent.emplace(true, eContextMenu, mGeckoChild);
-  } else {
-    mouseEvent.emplace(true, eContextMenu, mGeckoChild,
-                       WidgetMouseEvent::eReal);
-  }
-  WidgetMouseEvent& geckoEvent =
-      pointerEvent.isSome() ? pointerEvent.ref() : mouseEvent.ref();
+  WidgetMouseEvent geckoEvent(true, eContextMenu, mGeckoChild,
+                              WidgetMouseEvent::eReal);
   [self convertCocoaMouseEvent:theEvent toGeckoEvent:&geckoEvent];
   if (StaticPrefs::dom_event_treat_ctrl_click_as_right_click_disabled() &&
       [theEvent type] == NSEventTypeLeftMouseDown) {

@@ -9,8 +9,7 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-const SERVICE_WORKER =
-  URL_ROOT_SSL + "resources/service-workers/push-sw.worker.js";
+const SERVICE_WORKER = URL_ROOT_SSL + "resources/service-workers/push-sw.js";
 const TAB_URL = URL_ROOT_SSL + "resources/service-workers/push-sw.html";
 
 // Test that clicking on the Push button next to a Service Worker works as intended.

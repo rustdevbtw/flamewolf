@@ -5,7 +5,7 @@
 use crate::map::{MutableZeroVecLike, ZeroMapKV, ZeroVecLike};
 use crate::ZeroVec;
 use alloc::borrow::Borrow;
-use alloc::vec::Vec;
+use alloc::vec;
 use core::hash::Hash;
 
 pub mod algorithms;
@@ -192,7 +192,8 @@ where
             (lower, None) => lower,
         };
 
-        let mut key_hashes = Vec::with_capacity(size_hint);
+        let mut key_hashes = vec![];
+        key_hashes.reserve(size_hint);
         let mut keys = K::Container::zvl_with_capacity(size_hint);
         let mut values = V::Container::zvl_with_capacity(size_hint);
         for (k, v) in iter {

@@ -375,7 +375,6 @@ export class ProjectSearch extends Component {
             expanded,
           });
         },
-        preventBlur: true,
         getKey: getFilePath,
       });
     }

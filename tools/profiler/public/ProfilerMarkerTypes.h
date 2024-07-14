@@ -35,8 +35,6 @@ using ContentBuildMarker = mozilla::baseprofiler::markers::ContentBuildMarker;
 using MediaEngineMarker = mozilla::baseprofiler::markers::MediaEngineMarker;
 using MediaEngineTextMarker =
     mozilla::baseprofiler::markers::MediaEngineTextMarker;
-using VideoSinkRenderMarker =
-    mozilla::baseprofiler::markers::VideoSinkRenderMarker;
 
 }  // namespace geckoprofiler::markers
 

@@ -1855,17 +1855,8 @@ void nsSocketTransportService::EndPolling() {
 void nsSocketTransportService::TryRepairPollableEvent() {
   mLock.AssertCurrentThreadOwns();
 
-  PollableEvent* pollable = nullptr;
-  {
-    // Bug 1719046: In certain cases PollableEvent constructor can hang
-    // when callign PR_NewTCPSocketPair.
-    // We unlock the mutex to prevent main thread hangs acquiring the lock.
-    MutexAutoUnlock unlock(mLock);
-    pollable = new PollableEvent();
-  }
-
   NS_WARNING("Trying to repair mPollableEvent");
-  mPollableEvent.reset(pollable);
+  mPollableEvent.reset(new PollableEvent());
   if (!mPollableEvent->Valid()) {
     mPollableEvent = nullptr;
   }

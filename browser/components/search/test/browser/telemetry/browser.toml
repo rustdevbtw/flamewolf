@@ -145,9 +145,6 @@ support-files = [
   "serp.css",
 ]
 
-["browser_search_telemetry_engagement_target_after_load.js"]
-support-files = ["searchTelemetryAd_components_text.html", "serp.css"]
-
 ["browser_search_telemetry_engagement_target.js"]
 support-files = [
   "searchTelemetryAd_components_text.html",

@@ -9,8 +9,6 @@ SOURCES += [
     "UiaGridItem.cpp",
     "uiaRawElmProvider.cpp",
     "UiaRoot.cpp",
-    "UiaText.cpp",
-    "UiaTextRange.cpp",
 ]
 
 LOCAL_INCLUDES += [

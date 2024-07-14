@@ -1985,7 +1985,7 @@ template double js::CharsToNumber(const Latin1Char* chars, size_t length);
 
 template double js::CharsToNumber(const char16_t* chars, size_t length);
 
-double js::LinearStringToNumber(const JSLinearString* str) {
+double js::LinearStringToNumber(JSLinearString* str) {
   if (str->hasIndexValue()) {
     return str->getIndexValue();
   }

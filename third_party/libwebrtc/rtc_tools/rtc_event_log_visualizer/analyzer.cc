@@ -740,12 +740,11 @@ void EventLogAnalyzer::CreateAudioLevelGraph(PacketDirection direction,
     TimeSeries time_series(GetStreamName(parsed_log_, direction, stream.ssrc),
                            LineStyle::kLine);
     for (auto& packet : stream.packet_view) {
-      if (packet.header.extension.audio_level()) {
+      if (packet.header.extension.hasAudioLevel) {
         float x = config_.GetCallTimeSec(packet.log_time());
         // The audio level is stored in -dBov (so e.g. -10 dBov is stored as 10)
         // Here we convert it to dBov.
-        float y =
-            static_cast<float>(-packet.header.extension.audio_level()->level());
+        float y = static_cast<float>(-packet.header.extension.audioLevel);
         time_series.points.emplace_back(TimeSeriesPoint(x, y));
       }
     }

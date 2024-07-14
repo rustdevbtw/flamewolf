@@ -2306,11 +2306,8 @@ class AutocompleteTest : BaseSessionTest() {
         var genPass = ""
 
         val saveHandled1 = GeckoResult<Void>()
-        val saveHandled2 = GeckoResult<Void>()
         val selectHandled = GeckoResult<Void>()
         var numSelects = 0
-
-        var onLoginSaveCount = 0
 
         sessionRule.delegateUntilTestEnd(object : StorageDelegate {
             @AssertCalled
@@ -2320,9 +2317,13 @@ class AutocompleteTest : BaseSessionTest() {
                 return GeckoResult.fromValue(null)
             }
 
-            @AssertCalled(count = 2)
+            @AssertCalled(count = 1)
             override fun onLoginSave(login: LoginEntry) {
-                onLoginSaveCount++
+                assertThat(
+                    "Username should match",
+                    login.username,
+                    equalTo(user1),
+                )
 
                 assertThat(
                     "Password should match",
@@ -2330,21 +2331,7 @@ class AutocompleteTest : BaseSessionTest() {
                     equalTo(genPass),
                 )
 
-                if (onLoginSaveCount == 1) {
-                    assertThat(
-                        "Username should be empty",
-                        login.username,
-                        equalTo(""),
-                    )
-                    saveHandled1.complete(null)
-                } else if (onLoginSaveCount == 2) {
-                    assertThat(
-                        "Username should match",
-                        login.username,
-                        equalTo(user1),
-                    )
-                    saveHandled2.complete(null)
-                }
+                saveHandled1.complete(null)
             }
 
             @AssertCalled(false)
@@ -2475,13 +2462,9 @@ class AutocompleteTest : BaseSessionTest() {
             equalTo(genPass),
         )
 
-        sessionRule.waitForResult(saveHandled1)
-
         // Submit the selection.
         mainSession.evaluateJS("document.querySelector('#form1').submit()")
         mainSession.waitForPageStop()
-
-        sessionRule.waitForResult(saveHandled2)
     }
 
     @Test

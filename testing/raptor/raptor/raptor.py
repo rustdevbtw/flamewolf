@@ -125,7 +125,6 @@ def main(args=sys.argv[1:]):
             page_timeout=args.page_timeout,
             clean=args.clean,
             screenshot_on_failure=args.screenshot_on_failure,
-            power_test=args.power_test,
         )
     except Exception:
         traceback.print_exc()

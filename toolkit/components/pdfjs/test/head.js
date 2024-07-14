@@ -1,46 +1,14 @@
-function waitForPdfJS(browser, url = null) {
+async function waitForPdfJS(browser, url) {
   // Runs tests after all "load" event handlers have fired off
-  const loadPromise = new Promise(resolve => {
-    let pageCounter = 0;
-    const removeEventListener1 = BrowserTestUtils.addContentEventListener(
-      browser,
-      "pagerender",
-      () => {
-        pageCounter += 1;
-      },
-      { capture: false, wantUntrusted: true }
-    );
-    const removeEventListener2 = BrowserTestUtils.addContentEventListener(
-      browser,
-      "textlayerrendered",
-      () => {
-        pageCounter -= 1;
-        if (pageCounter === 0) {
-          removeEventListener1();
-          removeEventListener2();
-          resolve();
-        }
-      },
-      { capture: false, wantUntrusted: true }
-    );
-  });
-  if (url) {
-    BrowserTestUtils.startLoadingURIString(browser, url);
-  }
+  let loadPromise = BrowserTestUtils.waitForContentEvent(
+    browser,
+    "documentloaded",
+    false,
+    null,
+    true
+  );
+  BrowserTestUtils.startLoadingURIString(browser, url);
   return loadPromise;
-}
-
-async function waitForPdfJSClose(browser, closeTab = false) {
-  await SpecialPowers.spawn(browser, [], async () => {
-    const viewer = content.wrappedJSObject.PDFViewerApplication;
-    await viewer.testingClose();
-  });
-  if (closeTab) {
-    const tab = gBrowser.getTabForBrowser(browser);
-    if (tab) {
-      BrowserTestUtils.removeTab(tab);
-    }
-  }
 }
 
 async function waitForPdfJSAnnotationLayer(browser, url) {
@@ -51,8 +19,8 @@ async function waitForPdfJSAnnotationLayer(browser, url) {
     null,
     true
   );
-  let pagePromise = waitForPdfJS(browser, url);
-  return Promise.all([pagePromise, loadPromise]);
+  BrowserTestUtils.startLoadingURIString(browser, url);
+  return loadPromise;
 }
 
 async function waitForPdfJSAllLayers(browser, url, layers) {
@@ -77,14 +45,9 @@ async function waitForPdfJSAllLayers(browser, url, layers) {
     null,
     true
   );
-  let pagePromise = waitForPdfJS(browser, url);
 
-  await Promise.all([
-    pagePromise,
-    loadPromise,
-    annotationPromise,
-    annotationEditorPromise,
-  ]);
+  BrowserTestUtils.startLoadingURIString(browser, url);
+  await Promise.all([loadPromise, annotationPromise, annotationEditorPromise]);
 
   await SpecialPowers.spawn(browser, [layers], async function (layers) {
     const { ContentTaskUtils } = ChromeUtils.importESModule(
@@ -117,8 +80,8 @@ async function waitForPdfJSCanvas(browser, url) {
     null,
     true
   );
-  const pagePromise = waitForPdfJS(browser, url);
-  return Promise.all([pagePromise, loadPromise]);
+  BrowserTestUtils.startLoadingURIString(browser, url);
+  return loadPromise;
 }
 
 async function waitForPdfJSSandbox(browser) {
@@ -132,31 +95,25 @@ async function waitForPdfJSSandbox(browser) {
   return loadPromise;
 }
 
-async function waitForSelector(
-  browser,
-  selector,
-  message,
-  checkVisibility = true
-) {
+async function waitForSelector(browser, selector, message) {
   return SpecialPowers.spawn(
     browser,
-    [selector, message, checkVisibility],
-    async function (sel, msg, checkVis) {
+    [selector, message],
+    async function (sel, msg) {
       const { ContentTaskUtils } = ChromeUtils.importESModule(
         "resource://testing-common/ContentTaskUtils.sys.mjs"
       );
       const { document } = content;
+
       await ContentTaskUtils.waitForCondition(
         () => !!document.querySelector(sel),
         `${sel} must be displayed`
       );
 
-      if (checkVis) {
-        await ContentTaskUtils.waitForCondition(
-          () => ContentTaskUtils.isVisible(document.querySelector(sel)),
-          msg
-        );
-      }
+      await ContentTaskUtils.waitForCondition(
+        () => ContentTaskUtils.isVisible(document.querySelector(sel)),
+        msg
+      );
     }
   );
 }

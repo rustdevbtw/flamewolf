@@ -1093,19 +1093,15 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
     });
   }
   renderStepsIndicator() {
+    const currentStep = (this.props.order ?? 0) + 1;
+    const previousStep = (this.props.previousOrder ?? -1) + 1;
     const {
-      order,
-      previousOrder,
       content,
-      totalNumberOfScreens: total,
-      aboveButtonStepsIndicator
+      totalNumberOfScreens: total
     } = this.props;
-    const currentStep = (order ?? 0) + 1;
-    const previousStep = (previousOrder ?? -1) + 1;
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
       id: "steps",
       className: `steps${content.progress_bar ? " progress-bar" : ""}`,
-      "above-button": aboveButtonStepsIndicator ? "" : null,
       "data-l10n-id": content.steps_indicator?.string_id || "onboarding-welcome-steps-indicator-label",
       "data-l10n-args": JSON.stringify({
         current: currentStep,
@@ -1121,7 +1117,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       previousStep: previousStep,
       totalNumberOfScreens: total
     }) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MultiStageAboutWelcome__WEBPACK_IMPORTED_MODULE_6__.StepsIndicator, {
-      order: order,
+      order: this.props.order,
       totalNumberOfScreens: total
     }));
   }

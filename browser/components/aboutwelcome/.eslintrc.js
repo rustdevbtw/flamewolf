@@ -113,7 +113,6 @@ module.exports = {
           "hide-secondary-section",
           "reverse-split",
           "no-rdm",
-          "above-button",
         ],
       },
     ],

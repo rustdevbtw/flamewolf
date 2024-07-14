@@ -703,12 +703,7 @@ const errorReasons: Record<ErrorCode, Protocol.Network.ErrorReason> = {
  * @internal
  */
 export function handleError(error: ProtocolError): void {
-  // Firefox throws an invalid argument error with a message starting with
-  // 'Expected "header" [...]'.
-  if (
-    error.originalMessage.includes('Invalid header') ||
-    error.originalMessage.includes('Expected "header"')
-  ) {
+  if (error.originalMessage.includes('Invalid header')) {
     throw error;
   }
   // In certain cases, protocol will return error if the request was

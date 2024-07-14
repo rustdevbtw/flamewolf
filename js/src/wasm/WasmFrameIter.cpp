@@ -305,21 +305,17 @@ void WasmFrameIter::popFrame() {
 
 const char* WasmFrameIter::filename() const {
   MOZ_ASSERT(!done());
-  return code_->codeMeta().filename.get();
+  return code_->metadata().filename.get();
 }
 
 const char16_t* WasmFrameIter::displayURL() const {
   MOZ_ASSERT(!done());
-  return code_->codeMetaForAsmJS()
-             ? code_->codeMetaForAsmJS()->displayURL()  // asm.js
-             : nullptr;                                 // wasm
+  return code_->metadata().displayURL();
 }
 
 bool WasmFrameIter::mutedErrors() const {
   MOZ_ASSERT(!done());
-  return code_->codeMetaForAsmJS()
-             ? code_->codeMetaForAsmJS()->mutedErrors()  // asm.js
-             : false;                                    // wasm
+  return code_->metadata().mutedErrors();
 }
 
 JSAtom* WasmFrameIter::functionDisplayAtom() const {
@@ -378,7 +374,7 @@ bool WasmFrameIter::debugEnabled() const {
   // Metadata::debugEnabled is only set if debugging is actually enabled (both
   // requested, and available via baseline compilation), and Tier::Debug code
   // will be available.
-  if (!code_->codeMeta().debugEnabled) {
+  if (!code_->metadata().debugEnabled) {
     return false;
   }
 
@@ -463,7 +459,7 @@ static const unsigned BeforePushRetAddr = 0;
 static const unsigned PushedRetAddr = 8;
 static const unsigned PushedFP = 12;
 static const unsigned SetFP = 16;
-static const unsigned PoppedFP = 8;
+static const unsigned PoppedFP = 4;
 static const unsigned PoppedFPJitEntry = 8;
 static_assert(BeforePushRetAddr == 0, "Required by StartUnwinding");
 static_assert(PushedFP > PushedRetAddr, "Required by StartUnwinding");
@@ -675,10 +671,12 @@ static void GenerateCallableEpilogue(MacroAssembler& masm, unsigned framePushed,
 
   AutoForbidPoolsAndNops afp(&masm, /* number of instructions in scope = */ 5);
 
-  masm.Ldr(ARMRegister(lr, 64), MemOperand(sp, Frame::returnAddressOffset()));
   masm.Ldr(ARMRegister(FramePointer, 64),
            MemOperand(sp, Frame::callerFPOffset()));
   poppedFP = masm.currentOffset();
+
+  masm.Ldr(ARMRegister(lr, 64), MemOperand(sp, Frame::returnAddressOffset()));
+  *ret = masm.currentOffset();
 
   masm.Add(sp, sp, sizeof(Frame));
 
@@ -688,7 +686,6 @@ static void GenerateCallableEpilogue(MacroAssembler& masm, unsigned framePushed,
   // use it.  Hence we have to do it "by hand".
   masm.Mov(PseudoStackPointer64, vixl::sp);
 
-  *ret = masm.currentOffset();
   masm.Ret(ARMRegister(lr, 64));
 
   // See comment at equivalent place in |GenerateCallablePrologue| above.
@@ -1430,7 +1427,7 @@ bool js::wasm::StartUnwinding(const RegisterState& registers,
         // been restored so several cases can be coalesced here.
       } else if (offsetInCode >= codeRange->ret() - PoppedFP &&
                  offsetInCode <= codeRange->ret()) {
-        fixedPC = (uint8_t*)registers.lr;
+        fixedPC = Frame::fromUntaggedWasmExitFP(sp)->returnAddress();
         fixedFP = fp;
         AssertMatchesCallSite(fixedPC, fixedFP);
 #else

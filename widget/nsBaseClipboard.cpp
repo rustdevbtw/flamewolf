@@ -43,11 +43,11 @@ namespace {
 
 struct ClipboardGetRequest {
   ClipboardGetRequest(const nsTArray<nsCString>& aFlavorList,
-                      nsIClipboardGetDataSnapshotCallback* aCallback)
+                      nsIAsyncClipboardGetCallback* aCallback)
       : mFlavorList(aFlavorList.Clone()), mCallback(aCallback) {}
 
   const nsTArray<nsCString> mFlavorList;
-  const nsCOMPtr<nsIClipboardGetDataSnapshotCallback> mCallback;
+  const nsCOMPtr<nsIAsyncClipboardGetCallback> mCallback;
 };
 
 class UserConfirmationRequest final
@@ -109,7 +109,7 @@ class UserConfirmationRequest final
   nsIPrincipal* RequestingPrincipal() const { return mRequestingPrincipal; }
 
   void AddClipboardGetRequest(const nsTArray<nsCString>& aFlavorList,
-                              nsIClipboardGetDataSnapshotCallback* aCallback) {
+                              nsIAsyncClipboardGetCallback* aCallback) {
     MOZ_ASSERT(!aFlavorList.IsEmpty());
     MOZ_ASSERT(aCallback);
     mPendingClipboardGetRequests.AppendElement(
@@ -132,9 +132,9 @@ class UserConfirmationRequest final
       MOZ_ASSERT(request);
       MOZ_ASSERT(!request->mFlavorList.IsEmpty());
       MOZ_ASSERT(request->mCallback);
-      mClipboard->GetDataSnapshotInternal(request->mFlavorList, mClipboardType,
-                                          mRequestingWindowContext,
-                                          request->mCallback);
+      mClipboard->AsyncGetDataInternal(request->mFlavorList, mClipboardType,
+                                       mRequestingWindowContext,
+                                       request->mCallback);
     }
   }
 
@@ -475,7 +475,7 @@ NS_IMETHODIMP nsBaseClipboard::GetData(
 
 void nsBaseClipboard::MaybeRetryGetAvailableFlavors(
     const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard,
-    nsIClipboardGetDataSnapshotCallback* aCallback, int32_t aRetryCount,
+    nsIAsyncClipboardGetCallback* aCallback, int32_t aRetryCount,
     mozilla::dom::WindowContext* aRequestingWindowContext) {
   // Note we have to get the clipboard sequence number first before the actual
   // read. This is to use it to verify the clipboard data is still the one we
@@ -515,12 +515,12 @@ void nsBaseClipboard::MaybeRetryGetAvailableFlavors(
         }
 
         if (sequenceNumber == sequenceNumberOrError.unwrap()) {
-          auto clipboardDataSnapshot =
-              mozilla::MakeRefPtr<ClipboardDataSnapshot>(
+          auto asyncGetClipboardData =
+              mozilla::MakeRefPtr<AsyncGetClipboardData>(
                   aWhichClipboard, sequenceNumber,
                   std::move(aFlavorsOrError.unwrap()), false, self,
                   requestingWindowContext);
-          callback->OnSuccess(clipboardDataSnapshot);
+          callback->OnSuccess(asyncGetClipboardData);
           return;
         }
 
@@ -540,11 +540,11 @@ void nsBaseClipboard::MaybeRetryGetAvailableFlavors(
       });
 }
 
-NS_IMETHODIMP nsBaseClipboard::GetDataSnapshot(
+NS_IMETHODIMP nsBaseClipboard::AsyncGetData(
     const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard,
     mozilla::dom::WindowContext* aRequestingWindowContext,
     nsIPrincipal* aRequestingPrincipal,
-    nsIClipboardGetDataSnapshotCallback* aCallback) {
+    nsIAsyncClipboardGetCallback* aCallback) {
   MOZ_CLIPBOARD_LOG("%s: clipboard=%d", __FUNCTION__, aWhichClipboard);
 
   if (!aCallback || !aRequestingPrincipal || aFlavorList.IsEmpty()) {
@@ -563,8 +563,8 @@ NS_IMETHODIMP nsBaseClipboard::GetDataSnapshot(
           dom_events_testing_asyncClipboard_DoNotUseDirectly() ||
       nsContentUtils::PrincipalHasPermission(*aRequestingPrincipal,
                                              nsGkAtoms::clipboardRead)) {
-    GetDataSnapshotInternal(aFlavorList, aWhichClipboard,
-                            aRequestingWindowContext, aCallback);
+    AsyncGetDataInternal(aFlavorList, aWhichClipboard, aRequestingWindowContext,
+                         aCallback);
     return NS_OK;
   }
 
@@ -578,8 +578,8 @@ NS_IMETHODIMP nsBaseClipboard::GetDataSnapshot(
       if (aRequestingPrincipal->Subsumes(principal)) {
         MOZ_CLIPBOARD_LOG("%s: native clipboard data is from same-origin page.",
                           __FUNCTION__);
-        GetDataSnapshotInternal(aFlavorList, aWhichClipboard,
-                                aRequestingWindowContext, aCallback);
+        AsyncGetDataInternal(aFlavorList, aWhichClipboard,
+                             aRequestingWindowContext, aCallback);
         return NS_OK;
       }
     }
@@ -597,7 +597,7 @@ NS_IMETHODIMP nsBaseClipboard::GetDataSnapshot(
   return NS_OK;
 }
 
-already_AddRefed<nsIClipboardDataSnapshot>
+already_AddRefed<nsIAsyncGetClipboardData>
 nsBaseClipboard::MaybeCreateGetRequestFromClipboardCache(
     const nsTArray<nsCString>& aFlavorList, int32_t aClipboardType,
     mozilla::dom::WindowContext* aRequestingWindowContext) {
@@ -640,21 +640,21 @@ nsBaseClipboard::MaybeCreateGetRequestFromClipboardCache(
 
   // XXX Do we need to check system clipboard for the flavors that cannot
   // be found in cache?
-  return mozilla::MakeAndAddRef<ClipboardDataSnapshot>(
+  return mozilla::MakeAndAddRef<AsyncGetClipboardData>(
       aClipboardType, clipboardCache->GetSequenceNumber(), std::move(results),
       true /* aFromCache */, this, aRequestingWindowContext);
 }
 
-void nsBaseClipboard::GetDataSnapshotInternal(
+void nsBaseClipboard::AsyncGetDataInternal(
     const nsTArray<nsCString>& aFlavorList, int32_t aClipboardType,
     mozilla::dom::WindowContext* aRequestingWindowContext,
-    nsIClipboardGetDataSnapshotCallback* aCallback) {
+    nsIAsyncClipboardGetCallback* aCallback) {
   MOZ_ASSERT(nsIClipboard::IsClipboardTypeSupported(aClipboardType));
 
-  if (nsCOMPtr<nsIClipboardDataSnapshot> clipboardDataSnapshot =
+  if (nsCOMPtr<nsIAsyncGetClipboardData> asyncGetClipboardData =
           MaybeCreateGetRequestFromClipboardCache(aFlavorList, aClipboardType,
                                                   aRequestingWindowContext)) {
-    aCallback->OnSuccess(clipboardDataSnapshot);
+    aCallback->OnSuccess(asyncGetClipboardData);
     return;
   }
 
@@ -668,7 +668,7 @@ void nsBaseClipboard::GetDataSnapshotInternal(
 NS_IMETHODIMP nsBaseClipboard::GetDataSnapshotSync(
     const nsTArray<nsCString>& aFlavorList, int32_t aWhichClipboard,
     mozilla::dom::WindowContext* aRequestingWindowContext,
-    nsIClipboardDataSnapshot** _retval) {
+    nsIAsyncGetClipboardData** _retval) {
   MOZ_CLIPBOARD_LOG("%s: clipboard=%d", __FUNCTION__, aWhichClipboard);
 
   *_retval = nullptr;
@@ -683,10 +683,10 @@ NS_IMETHODIMP nsBaseClipboard::GetDataSnapshotSync(
     return NS_ERROR_FAILURE;
   }
 
-  if (nsCOMPtr<nsIClipboardDataSnapshot> clipboardDataSnapshot =
+  if (nsCOMPtr<nsIAsyncGetClipboardData> asyncGetClipboardData =
           MaybeCreateGetRequestFromClipboardCache(aFlavorList, aWhichClipboard,
                                                   aRequestingWindowContext)) {
-    clipboardDataSnapshot.forget(_retval);
+    asyncGetClipboardData.forget(_retval);
     return NS_OK;
   }
 
@@ -708,7 +708,7 @@ NS_IMETHODIMP nsBaseClipboard::GetDataSnapshotSync(
   }
 
   *_retval =
-      mozilla::MakeAndAddRef<ClipboardDataSnapshot>(
+      mozilla::MakeAndAddRef<AsyncGetClipboardData>(
           aWhichClipboard, sequenceNumberOrError.unwrap(), std::move(results),
           false /* aFromCache */, this, aRequestingWindowContext)
           .take();
@@ -886,7 +886,7 @@ void nsBaseClipboard::RequestUserConfirmation(
     int32_t aClipboardType, const nsTArray<nsCString>& aFlavorList,
     mozilla::dom::WindowContext* aWindowContext,
     nsIPrincipal* aRequestingPrincipal,
-    nsIClipboardGetDataSnapshotCallback* aCallback) {
+    nsIAsyncClipboardGetCallback* aCallback) {
   MOZ_ASSERT(nsIClipboard::IsClipboardTypeSupported(aClipboardType));
   MOZ_ASSERT(aCallback);
 
@@ -953,10 +953,10 @@ void nsBaseClipboard::RequestUserConfirmation(
   promise->AppendNativeHandler(sUserConfirmationRequest);
 }
 
-NS_IMPL_ISUPPORTS(nsBaseClipboard::ClipboardDataSnapshot,
-                  nsIClipboardDataSnapshot)
+NS_IMPL_ISUPPORTS(nsBaseClipboard::AsyncGetClipboardData,
+                  nsIAsyncGetClipboardData)
 
-nsBaseClipboard::ClipboardDataSnapshot::ClipboardDataSnapshot(
+nsBaseClipboard::AsyncGetClipboardData::AsyncGetClipboardData(
     int32_t aClipboardType, int32_t aSequenceNumber,
     nsTArray<nsCString>&& aFlavors, bool aFromCache,
     nsBaseClipboard* aClipboard,
@@ -972,22 +972,22 @@ nsBaseClipboard::ClipboardDataSnapshot::ClipboardDataSnapshot(
       mClipboard->nsIClipboard::IsClipboardTypeSupported(mClipboardType));
 }
 
-NS_IMETHODIMP nsBaseClipboard::ClipboardDataSnapshot::GetValid(
+NS_IMETHODIMP nsBaseClipboard::AsyncGetClipboardData::GetValid(
     bool* aOutResult) {
   *aOutResult = IsValid();
   return NS_OK;
 }
 
-NS_IMETHODIMP nsBaseClipboard::ClipboardDataSnapshot::GetFlavorList(
+NS_IMETHODIMP nsBaseClipboard::AsyncGetClipboardData::GetFlavorList(
     nsTArray<nsCString>& aFlavors) {
   aFlavors.AppendElements(mFlavors);
   return NS_OK;
 }
 
-NS_IMETHODIMP nsBaseClipboard::ClipboardDataSnapshot::GetData(
+NS_IMETHODIMP nsBaseClipboard::AsyncGetClipboardData::GetData(
     nsITransferable* aTransferable,
     nsIAsyncClipboardRequestCallback* aCallback) {
-  MOZ_CLIPBOARD_LOG("ClipboardDataSnapshot::GetData: %p", this);
+  MOZ_CLIPBOARD_LOG("AsyncGetClipboardData::GetData: %p", this);
 
   if (!aTransferable || !aCallback) {
     return NS_ERROR_INVALID_ARG;
@@ -1077,7 +1077,7 @@ NS_IMETHODIMP nsBaseClipboard::ClipboardDataSnapshot::GetData(
   return NS_OK;
 }
 
-bool nsBaseClipboard::ClipboardDataSnapshot::IsValid() {
+bool nsBaseClipboard::AsyncGetClipboardData::IsValid() {
   if (!mClipboard) {
     return false;
   }

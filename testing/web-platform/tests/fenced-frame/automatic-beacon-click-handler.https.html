@@ -49,10 +49,8 @@ promise_test(async(t) => {
                .pointerUp()
                .send();
 
-  await verifyBeaconData(start_event.eventType, start_event.eventData,
-      get_host_info().HTTPS_REMOTE_ORIGIN);
-  await verifyBeaconData(commit_event.eventType, commit_event.eventData,
-      get_host_info().HTTPS_REMOTE_ORIGIN);
+  await verifyBeaconData(start_event.eventType, start_event.eventData);
+  await verifyBeaconData(commit_event.eventType, commit_event.eventData);
 
   // Leaving this fenced frame around for subsequent tests can lead to
   // flakiness.

@@ -7,7 +7,7 @@ use super::{
     BackendResult, Error, Options,
 };
 use crate::{
-    back::{self, Baked},
+    back,
     proc::{self, NameKey},
     valid, Handle, Module, ScalarKind, ShaderStage, TypeInner,
 };
@@ -1410,7 +1410,7 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
                         // Also, we use sanitized names! It defense backend from generating variable with name from reserved keywords.
                         Some(self.namer.call(name))
                     } else if self.need_bake_expressions.contains(&handle) {
-                        Some(Baked(handle).to_string())
+                        Some(format!("_expr{}", handle.index()))
                     } else {
                         None
                     };
@@ -1891,7 +1891,7 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
                 write!(self.out, "{level}")?;
                 if let Some(expr) = result {
                     write!(self.out, "const ")?;
-                    let name = Baked(expr).to_string();
+                    let name = format!("{}{}", back::BAKE_PREFIX, expr.index());
                     let expr_ty = &func_ctx.info[expr].ty;
                     match *expr_ty {
                         proc::TypeResolution::Handle(handle) => self.write_type(module, handle)?,
@@ -1919,20 +1919,11 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
                 result,
             } => {
                 write!(self.out, "{level}")?;
-                let res_name = match result {
-                    None => None,
-                    Some(result) => {
-                        let name = Baked(result).to_string();
-                        match func_ctx.info[result].ty {
-                            proc::TypeResolution::Handle(handle) => {
-                                self.write_type(module, handle)?
-                            }
-                            proc::TypeResolution::Value(ref value) => {
-                                self.write_value_type(module, value)?
-                            }
-                        };
-                        write!(self.out, " {name}; ")?;
-                        Some((result, name))
+                let res_name = format!("{}{}", back::BAKE_PREFIX, result.index());
+                match func_ctx.info[result].ty {
+                    proc::TypeResolution::Handle(handle) => self.write_type(module, handle)?,
+                    proc::TypeResolution::Value(ref value) => {
+                        self.write_value_type(module, value)?
                     }
                 };
 
@@ -1943,6 +1934,7 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
                     .unwrap();
 
                 let fun_str = fun.to_hlsl_suffix();
+                write!(self.out, " {res_name}; ")?;
                 match pointer_space {
                     crate::AddressSpace::WorkGroup => {
                         write!(self.out, "Interlocked{fun_str}(")?;
@@ -1978,21 +1970,13 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
                     _ => {}
                 }
                 self.write_expr(module, value, func_ctx)?;
-
-                // The `original_value` out parameter is optional for all the
-                // `Interlocked` functions we generate other than
-                // `InterlockedExchange`.
-                if let Some((result, name)) = res_name {
-                    write!(self.out, ", {name}")?;
-                    self.named_expressions.insert(result, name);
-                }
-
-                writeln!(self.out, ");")?;
+                writeln!(self.out, ", {res_name});")?;
+                self.named_expressions.insert(result, res_name);
             }
             Statement::WorkGroupUniformLoad { pointer, result } => {
                 self.write_barrier(crate::Barrier::WORK_GROUP, level)?;
                 write!(self.out, "{level}")?;
-                let name = Baked(result).to_string();
+                let name = format!("_expr{}", result.index());
                 self.write_named_expr(module, pointer, name, result, func_ctx)?;
 
                 self.write_barrier(crate::Barrier::WORK_GROUP, level)?;
@@ -2099,7 +2083,7 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
             Statement::RayQuery { .. } => unreachable!(),
             Statement::SubgroupBallot { result, predicate } => {
                 write!(self.out, "{level}")?;
-                let name = Baked(result).to_string();
+                let name = format!("{}{}", back::BAKE_PREFIX, result.index());
                 write!(self.out, "const uint4 {name} = ")?;
                 self.named_expressions.insert(result, name);
 
@@ -2118,7 +2102,7 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
             } => {
                 write!(self.out, "{level}")?;
                 write!(self.out, "const ")?;
-                let name = Baked(result).to_string();
+                let name = format!("{}{}", back::BAKE_PREFIX, result.index());
                 match func_ctx.info[result].ty {
                     proc::TypeResolution::Handle(handle) => self.write_type(module, handle)?,
                     proc::TypeResolution::Value(ref value) => {
@@ -2182,7 +2166,7 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
             } => {
                 write!(self.out, "{level}")?;
                 write!(self.out, "const ")?;
-                let name = Baked(result).to_string();
+                let name = format!("{}{}", back::BAKE_PREFIX, result.index());
                 match func_ctx.info[result].ty {
                     proc::TypeResolution::Handle(handle) => self.write_type(module, handle)?,
                     proc::TypeResolution::Value(ref value) => {

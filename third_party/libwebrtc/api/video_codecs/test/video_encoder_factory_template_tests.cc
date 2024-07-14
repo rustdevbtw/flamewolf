@@ -42,7 +42,6 @@ struct FooEncoderTemplateAdapter {
   static std::vector<SdpVideoFormat> SupportedFormats() { return {kFooSdp}; }
 
   static std::unique_ptr<VideoEncoder> CreateEncoder(
-      const Environment& env,
       const SdpVideoFormat& format) {
     return std::make_unique<StrictMock<MockVideoEncoder>>();
   }
@@ -111,6 +110,16 @@ TEST(VideoEncoderFactoryTemplate, TwoTemplateAdaptersCreateEncoders) {
   EXPECT_THAT(factory.Create(env, kBarHighSdp), NotNull());
   EXPECT_THAT(factory.Create(env, SdpVideoFormat("FooX")), IsNull());
   EXPECT_THAT(factory.Create(env, SdpVideoFormat("Bar")), NotNull());
+}
+
+TEST(VideoEncoderFactoryTemplate, CreatesEncoderWithoutEnvironmentWhenNotNeeded)
+{
+  // FooEncoderTemplateAdapter::CreateEncoder doesn't take Environment parameter
+  // Expect it can be created both with newer and older api.
+  VideoEncoderFactoryTemplate<FooEncoderTemplateAdapter> factory;
+
+  EXPECT_THAT(factory.CreateVideoEncoder(kFooSdp), NotNull());
+  EXPECT_THAT(factory.Create(CreateEnvironment(), kFooSdp), NotNull());
 }
 
 TEST(VideoEncoderFactoryTemplate, TwoTemplateAdaptersCodecSupport) {

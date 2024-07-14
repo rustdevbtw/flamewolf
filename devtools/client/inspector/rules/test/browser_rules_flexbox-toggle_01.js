@@ -34,9 +34,8 @@ add_task(async function () {
 
   info("Checking the initial state of the flexbox toggle in the rule-view.");
   ok(flexboxToggle, "Flexbox highlighter toggle is visible.");
-  is(
-    flexboxToggle.getAttribute("aria-pressed"),
-    "false",
+  ok(
+    !flexboxToggle.classList.contains("active"),
     "Flexbox highlighter toggle button is not active."
   );
   ok(
@@ -57,9 +56,8 @@ add_task(async function () {
     "Checking the flexbox highlighter is created and toggle button is active in " +
       "the rule-view."
   );
-  is(
-    flexboxToggle.getAttribute("aria-pressed"),
-    "true",
+  ok(
+    flexboxToggle.classList.contains("active"),
     "Flexbox highlighter toggle is active."
   );
   ok(
@@ -80,9 +78,8 @@ add_task(async function () {
     "Checking the flexbox highlighter is not shown and toggle button is not active " +
       "in the rule-view."
   );
-  is(
-    flexboxToggle.getAttribute("aria-pressed"),
-    "false",
+  ok(
+    !flexboxToggle.classList.contains("active"),
     "Flexbox highlighter toggle button is not active."
   );
   ok(

@@ -4,6 +4,10 @@
 
 "use strict";
 
+const {
+  TYPES: { EXTENSIONS_BGSCRIPT_STATUS },
+} = require("resource://devtools/server/actors/resources/index.js");
+
 class ExtensionsBackgroundScriptStatusWatcher {
   /**
    * Start watching for the status updates related to a background
@@ -44,6 +48,7 @@ class ExtensionsBackgroundScriptStatusWatcher {
   onBackgroundScriptStatus(addonId, isRunning) {
     this.onAvailable([
       {
+        resourceType: EXTENSIONS_BGSCRIPT_STATUS,
         payload: {
           addonId,
           isRunning,

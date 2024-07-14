@@ -72,7 +72,7 @@ add_task(async function search_strings() {
     assertSearchStringIsInUrlbar(searchString);
 
     info("Check that no formatting is applied.");
-    await UrlbarTestUtils.checkFormatting(window, searchString);
+    UrlbarTestUtils.checkFormatting(window, searchString);
   }
 
   BrowserTestUtils.removeTab(tab);

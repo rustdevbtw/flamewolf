@@ -64,10 +64,11 @@ class APZEventResultTester : public APZCTreeManagerTester {
     APZHandledResult delayedAnswer{APZHandledPlace::Invalid, SideBits::eNone,
                                    ScrollDirections()};
     manager->AddInputBlockCallback(
-        result.mInputBlockId, [&](uint64_t id, const APZHandledResult& answer) {
-          EXPECT_EQ(id, result.mInputBlockId);
-          delayedAnswer = answer;
-        });
+        result.mInputBlockId,
+        {result.GetStatus(), [&](uint64_t id, const APZHandledResult& answer) {
+           EXPECT_EQ(id, result.mInputBlockId);
+           delayedAnswer = answer;
+         }});
     manager->SetAllowedTouchBehavior(result.mInputBlockId,
                                      {AllowedTouchBehavior::VERTICAL_PAN});
     manager->SetTargetAPZC(result.mInputBlockId, {result.mTargetGuid});
@@ -393,10 +394,11 @@ TEST_F(APZEventResultTesterMock, HandledByRootApzcFlag) {
   APZHandledResult delayedAnswer{APZHandledPlace::Invalid, SideBits::eNone,
                                  ScrollDirections()};
   manager->AddInputBlockCallback(
-      result.mInputBlockId, [&](uint64_t id, const APZHandledResult& answer) {
-        EXPECT_EQ(id, result.mInputBlockId);
-        delayedAnswer = answer;
-      });
+      result.mInputBlockId,
+      {result.GetStatus(), [&](uint64_t id, const APZHandledResult& answer) {
+         EXPECT_EQ(id, result.mInputBlockId);
+         delayedAnswer = answer;
+       }});
 
   // Send APZ the relevant notifications to allow it to process the
   // input block.
@@ -420,10 +422,11 @@ TEST_F(APZEventResultTesterMock, HandledByRootApzcFlag) {
   TouchUp(manager, ScreenIntPoint(50, 75), mcc->Time());
   EXPECT_EQ(result.GetHandledResult(), Nothing());
   manager->AddInputBlockCallback(
-      result.mInputBlockId, [&](uint64_t id, const APZHandledResult& answer) {
-        EXPECT_EQ(id, result.mInputBlockId);
-        delayedAnswer = answer;
-      });
+      result.mInputBlockId,
+      {result.GetStatus(), [&](uint64_t id, const APZHandledResult& answer) {
+         EXPECT_EQ(id, result.mInputBlockId);
+         delayedAnswer = answer;
+       }});
   manager->SetAllowedTouchBehavior(result.mInputBlockId,
                                    {AllowedTouchBehavior::VERTICAL_PAN});
   manager->SetTargetAPZC(result.mInputBlockId, {result.mTargetGuid});
@@ -447,10 +450,11 @@ TEST_F(APZEventResultTesterMock, HandledByRootApzcFlag) {
   TouchUp(manager, ScreenIntPoint(50, 75), mcc->Time());
   EXPECT_EQ(result.GetHandledResult(), Nothing());
   manager->AddInputBlockCallback(
-      result.mInputBlockId, [&](uint64_t id, const APZHandledResult& answer) {
-        EXPECT_EQ(id, result.mInputBlockId);
-        delayedAnswer = answer;
-      });
+      result.mInputBlockId,
+      {result.GetStatus(), [&](uint64_t id, const APZHandledResult& answer) {
+         EXPECT_EQ(id, result.mInputBlockId);
+         delayedAnswer = answer;
+       }});
   manager->SetAllowedTouchBehavior(result.mInputBlockId,
                                    {AllowedTouchBehavior::VERTICAL_PAN});
   manager->SetTargetAPZC(result.mInputBlockId, {result.mTargetGuid});

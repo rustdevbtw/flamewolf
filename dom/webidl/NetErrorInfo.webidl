@@ -11,5 +11,4 @@
 
 dictionary NetErrorInfo {
   DOMString errorCodeString = "";
-  unsigned long channelStatus = 0;
 };

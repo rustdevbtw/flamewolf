@@ -2295,17 +2295,12 @@ already_AddRefed<Promise> Navigator::RequestMediaKeySystemAccess(
     return nullptr;
   }
 
-  GetOrCreateMediaKeySystemAccessManager()->Request(promise, aKeySystem,
-                                                    aConfigs);
-  return promise.forget();
-}
-
-MediaKeySystemAccessManager*
-Navigator::GetOrCreateMediaKeySystemAccessManager() {
   if (!mMediaKeySystemAccessManager) {
     mMediaKeySystemAccessManager = new MediaKeySystemAccessManager(mWindow);
   }
-  return mMediaKeySystemAccessManager;
+
+  mMediaKeySystemAccessManager->Request(promise, aKeySystem, aConfigs);
+  return promise.forget();
 }
 
 CredentialsContainer* Navigator::Credentials() {

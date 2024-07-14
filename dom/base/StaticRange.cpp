@@ -72,8 +72,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 already_AddRefed<StaticRange> StaticRange::Create(nsINode* aNode) {
   MOZ_ASSERT(aNode);
   if (!sCachedRanges || sCachedRanges->IsEmpty()) {
-    return do_AddRef(
-        new StaticRange(aNode, RangeBoundaryIsMutationObserved::No));
+    return do_AddRef(new StaticRange(aNode));
   }
   RefPtr<StaticRange> staticRange = sCachedRanges->PopLastElement().forget();
   staticRange->Init(aNode);
@@ -119,8 +118,8 @@ void StaticRange::DoSetRange(const RangeBoundaryBase<SPT, SRT>& aStartBoundary,
   bool checkCommonAncestor =
       IsInAnySelection() && (mStart.Container() != aStartBoundary.Container() ||
                              mEnd.Container() != aEndBoundary.Container());
-  mStart.CopyFrom(aStartBoundary, mIsMutationObserved);
-  mEnd.CopyFrom(aEndBoundary, mIsMutationObserved);
+  mStart.CopyFrom(aStartBoundary, RangeBoundaryIsMutationObserved::No);
+  mEnd.CopyFrom(aEndBoundary, RangeBoundaryIsMutationObserved::No);
   MOZ_ASSERT(mStart.IsSet() == mEnd.IsSet());
   mIsPositioned = mStart.IsSet() && mEnd.IsSet();
 

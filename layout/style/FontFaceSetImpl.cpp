@@ -429,7 +429,7 @@ FontFaceSetImpl::FindOrCreateUserFontEntryFromFontFace(
       auto task =
           MakeRefPtr<UpdateUserFontEntryRunnable>(set, existingEntry, aAttr);
       IgnoredErrorResult ignoredRv;
-      task->Dispatch(GetCurrentThreadWorkerPrivate(), Canceling, ignoredRv);
+      task->Dispatch(Canceling, ignoredRv);
     }
     return existingEntry.forget();
   }

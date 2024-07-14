@@ -91,7 +91,7 @@ impl CodePointInversionListBuilder {
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::CodePointInversionListBuilder;
+    /// use icu_collections::codepointinvlist::CodePointInversionListBuilder;
     /// let mut builder = CodePointInversionListBuilder::new();
     /// builder.add_char('a');
     /// let check = builder.build();
@@ -112,23 +112,17 @@ impl CodePointInversionListBuilder {
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::CodePointInversionListBuilder;
+    /// use icu_collections::codepointinvlist::CodePointInversionListBuilder;
     /// let mut builder = CodePointInversionListBuilder::new();
-    /// builder.add32(0x41);
+    /// builder.add_u32(0x41);
     /// let check = builder.build();
     /// assert!(check.contains32(0x41));
     /// ```
-    pub fn add32(&mut self, c: u32) {
+    pub fn add_u32(&mut self, c: u32) {
         if c <= char::MAX as u32 {
             // we already know 0 <= c  because c: u32
             self.add(c, c + 1);
         }
-    }
-
-    /// Same as [`Self::add32`].
-    #[deprecated(since = "1.5.0", note = "Use `add32`")]
-    pub fn add_u32(&mut self, c: u32) {
-        self.add32(c)
     }
 
     /// Add the range of characters to the [`CodePointInversionListBuilder`]
@@ -136,7 +130,7 @@ impl CodePointInversionListBuilder {
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::CodePointInversionListBuilder;
+    /// use icu_collections::codepointinvlist::CodePointInversionListBuilder;
     /// let mut builder = CodePointInversionListBuilder::new();
     /// builder.add_range(&('A'..='Z'));
     /// let check = builder.build();
@@ -152,13 +146,13 @@ impl CodePointInversionListBuilder {
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::CodePointInversionListBuilder;
+    /// use icu_collections::codepointinvlist::CodePointInversionListBuilder;
     /// let mut builder = CodePointInversionListBuilder::new();
-    /// builder.add_range32(&(0xd800..=0xdfff));
+    /// builder.add_range_u32(&(0xd800..=0xdfff));
     /// let check = builder.build();
     /// assert!(check.contains32(0xd900));
     /// ```
-    pub fn add_range32(&mut self, range: &impl RangeBounds<u32>) {
+    pub fn add_range_u32(&mut self, range: &impl RangeBounds<u32>) {
         let (start, end) = deconstruct_range(range);
         // Sets that include char::MAX need to allow an end value of MAX + 1
         if start <= end && end <= char::MAX as u32 + 1 {
@@ -166,18 +160,12 @@ impl CodePointInversionListBuilder {
         }
     }
 
-    /// Same as [`Self::add_range32`].
-    #[deprecated(since = "1.5.0", note = "Use `add_range32`")]
-    pub fn add_range_u32(&mut self, range: &impl RangeBounds<u32>) {
-        self.add_range32(range)
-    }
-
     /// Add the [`CodePointInversionList`] reference to the [`CodePointInversionListBuilder`]
     ///
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::{
+    /// use icu_collections::codepointinvlist::{
     ///     CodePointInversionList, CodePointInversionListBuilder,
     /// };
     /// let mut builder = CodePointInversionListBuilder::new();
@@ -226,19 +214,15 @@ impl CodePointInversionListBuilder {
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::CodePointInversionListBuilder;
+    /// use icu_collections::codepointinvlist::CodePointInversionListBuilder;
     /// let mut builder = CodePointInversionListBuilder::new();
     /// builder.add_range(&('A'..='Z'));
     /// builder.remove_char('A');
     /// let check = builder.build();
     /// assert_eq!(check.iter_chars().next(), Some('B'));
     pub fn remove_char(&mut self, c: char) {
-        self.remove32(c as u32)
-    }
-
-    /// See [`Self::remove_char`]
-    pub fn remove32(&mut self, c: u32) {
-        self.remove(c, c + 1);
+        let to_remove = c as u32;
+        self.remove(to_remove, to_remove + 1);
     }
 
     /// Remove the range of characters from the [`CodePointInversionListBuilder`]
@@ -246,7 +230,7 @@ impl CodePointInversionListBuilder {
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::CodePointInversionListBuilder;
+    /// use icu_collections::codepointinvlist::CodePointInversionListBuilder;
     /// let mut builder = CodePointInversionListBuilder::new();
     /// builder.add_range(&('A'..='Z'));
     /// builder.remove_range(&('A'..='C'));
@@ -257,18 +241,12 @@ impl CodePointInversionListBuilder {
         self.remove(start, end);
     }
 
-    /// See [`Self::remove_range`]
-    pub fn remove_range32(&mut self, range: &impl RangeBounds<u32>) {
-        let (start, end) = deconstruct_range(range);
-        self.remove(start, end);
-    }
-
     /// Remove the [`CodePointInversionList`] from the [`CodePointInversionListBuilder`]
     ///
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::{CodePointInversionList, CodePointInversionListBuilder};
+    /// use icu_collections::codepointinvlist::{CodePointInversionList, CodePointInversionListBuilder};
     /// let mut builder = CodePointInversionListBuilder::new();
     /// let set = CodePointInversionList::try_from_inversion_list_slice(&[0x41, 0x46]).unwrap();
     /// builder.add_range(&('A'..='Z'));
@@ -293,7 +271,7 @@ impl CodePointInversionListBuilder {
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::CodePointInversionListBuilder;
+    /// use icu_collections::codepointinvlist::CodePointInversionListBuilder;
     /// let mut builder = CodePointInversionListBuilder::new();
     /// builder.add_range(&('A'..='Z'));
     /// builder.retain_char('A');
@@ -303,13 +281,9 @@ impl CodePointInversionListBuilder {
     /// assert_eq!(check.next(), None);
     /// ```
     pub fn retain_char(&mut self, c: char) {
-        self.retain32(c as u32)
-    }
-
-    /// See [`Self::retain_char`]
-    pub fn retain32(&mut self, c: u32) {
-        self.remove(0, c);
-        self.remove(c + 1, (char::MAX as u32) + 1);
+        let code_point = c as u32;
+        self.remove(0, code_point);
+        self.remove(code_point + 1, (char::MAX as u32) + 1);
     }
 
     /// Retain the range of characters located within the [`CodePointInversionListBuilder`]
@@ -317,7 +291,7 @@ impl CodePointInversionListBuilder {
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::CodePointInversionListBuilder;
+    /// use icu_collections::codepointinvlist::CodePointInversionListBuilder;
     /// let mut builder = CodePointInversionListBuilder::new();
     /// builder.add_range(&('A'..='Z'));
     /// builder.retain_range(&('A'..='B'));
@@ -333,19 +307,12 @@ impl CodePointInversionListBuilder {
         self.remove(end, (char::MAX as u32) + 1);
     }
 
-    /// See [`Self::retain_range`]
-    pub fn retain_range32(&mut self, range: &impl RangeBounds<u32>) {
-        let (start, end) = deconstruct_range(range);
-        self.remove(0, start);
-        self.remove(end, (char::MAX as u32) + 1);
-    }
-
     /// Retain the elements in the specified set within the [`CodePointInversionListBuilder`]
     ///
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::{
+    /// use icu_collections::codepointinvlist::{
     ///     CodePointInversionList, CodePointInversionListBuilder,
     /// };
     /// let mut builder = CodePointInversionListBuilder::new();
@@ -413,7 +380,7 @@ impl CodePointInversionListBuilder {
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::{
+    /// use icu_collections::codepointinvlist::{
     ///     CodePointInversionList, CodePointInversionListBuilder,
     /// };
     /// let mut builder = CodePointInversionListBuilder::new();
@@ -453,7 +420,7 @@ impl CodePointInversionListBuilder {
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::CodePointInversionListBuilder;
+    /// use icu_collections::codepointinvlist::CodePointInversionListBuilder;
     /// let mut builder = CodePointInversionListBuilder::new();
     /// builder.add_range(&('A'..='D'));
     /// builder.complement_char('A');
@@ -463,12 +430,9 @@ impl CodePointInversionListBuilder {
     /// assert!(!check.contains('A'));
     /// ```
     pub fn complement_char(&mut self, c: char) {
-        self.complement32(c as u32);
-    }
-
-    /// See [`Self::complement_char`]
-    pub fn complement32(&mut self, c: u32) {
-        self.complement_list([c, c + 1].into_iter());
+        let code_point = c as u32;
+        let to_complement = [code_point, code_point + 1];
+        self.complement_list(to_complement.iter().copied());
     }
 
     /// Complements the range in the builder, adding any elements in the range if not in the builder, and
@@ -477,7 +441,7 @@ impl CodePointInversionListBuilder {
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::CodePointInversionListBuilder;
+    /// use icu_collections::codepointinvlist::CodePointInversionListBuilder;
     /// let mut builder = CodePointInversionListBuilder::new();
     /// builder.add_range(&('A'..='D'));
     /// builder.complement_range(&('C'..='F'));
@@ -491,20 +455,13 @@ impl CodePointInversionListBuilder {
         self.complement_list(to_complement.iter().copied());
     }
 
-    /// See [`Self::complement_range`]
-    pub fn complement_range32(&mut self, range: &impl RangeBounds<u32>) {
-        let (start, end) = deconstruct_range(range);
-        let to_complement = [start, end];
-        self.complement_list(to_complement.iter().copied());
-    }
-
     /// Complements the set in the builder, adding any elements in the set if not in the builder, and
     /// removing them otherwise.
     ///
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::{
+    /// use icu_collections::codepointinvlist::{
     ///     CodePointInversionList, CodePointInversionListBuilder,
     /// };
     /// let mut builder = CodePointInversionListBuilder::new();
@@ -528,7 +485,9 @@ impl CodePointInversionListBuilder {
     /// # Examples
     ///
     /// ```
-    /// use icu::collections::codepointinvlist::CodePointInversionListBuilder;
+    /// use icu_collections::codepointinvlist::{
+    ///     CodePointInversionList, CodePointInversionListBuilder,
+    /// };
     /// let mut builder = CodePointInversionListBuilder::new();
     /// let check = builder.build();
     /// assert!(check.is_empty());
@@ -754,9 +713,9 @@ mod tests {
     }
 
     #[test]
-    fn test_add_range32() {
+    fn test_add_range_u32() {
         let mut builder = CodePointInversionListBuilder::new();
-        builder.add_range32(&(0xd800..=0xdfff));
+        builder.add_range_u32(&(0xd800..=0xdfff));
         let expected = [0xd800, 0xe000];
         assert_eq!(builder.intervals, expected);
     }

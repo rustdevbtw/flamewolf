@@ -1,5 +1,6 @@
-use crate::primitive::sync::atomic::{AtomicUsize, Ordering::SeqCst};
+use crate::primitive::sync::atomic::AtomicUsize;
 use crate::primitive::sync::{Arc, Condvar, Mutex};
+use core::sync::atomic::Ordering::SeqCst;
 use std::fmt;
 use std::marker::PhantomData;
 use std::time::{Duration, Instant};
@@ -121,10 +122,7 @@ impl Parker {
     /// p.park_timeout(Duration::from_millis(500));
     /// ```
     pub fn park_timeout(&self, timeout: Duration) {
-        match Instant::now().checked_add(timeout) {
-            Some(deadline) => self.park_deadline(deadline),
-            None => self.park(),
-        }
+        self.park_deadline(Instant::now() + timeout)
     }
 
     /// Blocks the current thread until the token is made available, or until a certain deadline.

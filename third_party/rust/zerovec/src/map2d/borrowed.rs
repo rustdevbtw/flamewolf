@@ -180,6 +180,7 @@ where
     /// primary advantage of using [`ZeroMap2dBorrowed`](super::ZeroMap2dBorrowed) over [`ZeroMap2d`](super::ZeroMap2d).
     ///
     /// ```rust
+    /// use zerovec::maps::ZeroMap2dBorrowed;
     /// use zerovec::ZeroMap2d;
     ///
     /// let mut map = ZeroMap2d::new();
@@ -212,6 +213,7 @@ where
     /// then `key0` is in the map, and `key1` can be queried.
     ///
     /// ```rust
+    /// use zerovec::maps::ZeroMap2dBorrowed;
     /// use zerovec::ZeroMap2d;
     ///
     /// let mut map = ZeroMap2d::new();
@@ -230,6 +232,7 @@ where
     /// Binary search the map for `key0`, returning a cursor.
     ///
     /// ```rust
+    /// use zerovec::maps::ZeroMap2dBorrowed;
     /// use zerovec::ZeroMap2d;
     ///
     /// let mut map = ZeroMap2d::new();
@@ -250,6 +253,7 @@ where
     /// Returns whether `key0` is contained in this map
     ///
     /// ```rust
+    /// use zerovec::maps::ZeroMap2dBorrowed;
     /// use zerovec::ZeroMap2d;
     ///
     /// let mut map = ZeroMap2d::new();

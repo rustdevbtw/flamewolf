@@ -55,10 +55,10 @@ async function testCrossProcessTabNavigation(browser, resourceCommand) {
 
   // messages are coming from different targets so the order isn't guaranteed
   const topLevelMessageResource = messages.find(resource =>
-    resource.filename.startsWith(URL_ROOT_COM_SSL)
+    resource.message.filename.startsWith(URL_ROOT_COM_SSL)
   );
   const iframeMessage = messages.find(resource =>
-    resource.filename.startsWith("data:")
+    resource.message.filename.startsWith("data:")
   );
 
   assertConsoleMessage(resourceCommand, topLevelMessageResource, {
@@ -88,7 +88,9 @@ async function testCrossProcessIframeNavigation(browser, resourceCommand) {
 
   const onAvailable = resources => {
     messages.push(
-      ...resources.filter(r => !r.arguments[0].startsWith("[WORKER] started"))
+      ...resources.filter(
+        r => !r.message.arguments[0].startsWith("[WORKER] started")
+      )
     );
     if (messages.length == 3) {
       doneResolve();
@@ -104,10 +106,10 @@ async function testCrossProcessIframeNavigation(browser, resourceCommand) {
 
   // messages are coming from different targets so the order isn't guaranteed
   const topLevelMessageResource = messages.find(resource =>
-    resource.arguments[0].startsWith("top-level")
+    resource.message.arguments[0].startsWith("top-level")
   );
   const dataUrlMessageResource = messages.find(resource =>
-    resource.arguments[0].startsWith("data url")
+    resource.message.arguments[0].startsWith("data url")
   );
 
   // Assert cached messages from the previous top document
@@ -133,7 +135,7 @@ async function testCrossProcessIframeNavigation(browser, resourceCommand) {
   );
 
   const iframeMessageResource = messages.find(resource =>
-    resource.arguments[0].endsWith("iframe log")
+    resource.message.arguments[0].endsWith("iframe log")
   );
   assertConsoleMessage(resourceCommand, iframeMessageResource, {
     messageText: `${TEST_DOMAIN} iframe log`,
@@ -151,6 +153,7 @@ function assertConsoleMessage(resourceCommand, messageResource, expected) {
     resourceCommand.TYPES.CONSOLE_MESSAGE,
     "Resource is a console message"
   );
+  ok(messageResource.message, "message is wrapped into a message attribute");
   if (expected.targetFront) {
     is(
       messageResource.targetFront,
@@ -159,7 +162,7 @@ function assertConsoleMessage(resourceCommand, messageResource, expected) {
     );
   }
   is(
-    messageResource.arguments[0],
+    messageResource.message.arguments[0],
     expected.messageText,
     "The correct type of message"
   );

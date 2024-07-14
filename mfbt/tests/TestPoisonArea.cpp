@@ -354,7 +354,7 @@ static uintptr_t ReserveNegativeControl() {
   // (mmap(PROT_EXEC) may fail when applied to anonymous memory.)
 
   if (MakeRegionExecutable(result)) {
-    ReleaseRegion(result);
+    printf("ERROR | making negative control executable | %s\n", LastErrMsg());
     return 0;
   }
 
@@ -514,29 +514,15 @@ int main() {
 #endif
 
   uintptr_t ncontrol = ReserveNegativeControl();
-  if (!ncontrol) {
-#if (defined __aarch64__ || defined _M_ARM64) && defined(XP_DARWIN)
-    // Apple silicon doesn't support W+X pages, so if we didn't manage to setup
-    // the negative page on Apple Silicon then skip that part of the test.
-    printf("TEST-SKIP | making negative control executable | %s\n",
-           LastErrMsg());
-#else
-    printf("ERROR | making negative control executable | %s\n", LastErrMsg());
-    return 2;
-#endif
-  }
-
   uintptr_t pcontrol = ReservePositiveControl();
   uintptr_t poison = ReservePoisonArea();
 
-  if (!pcontrol || !poison) {
+  if (!ncontrol || !pcontrol || !poison) {
     return 2;
   }
 
   bool failed = false;
-  if (ncontrol) {
-    failed |= TestPage("negative control", ncontrol, 1);
-  }
+  failed |= TestPage("negative control", ncontrol, 1);
   failed |= TestPage("positive control", pcontrol, 0);
   failed |= TestPage("poison area", poison, 0);
 

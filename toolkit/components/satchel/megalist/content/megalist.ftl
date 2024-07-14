@@ -9,7 +9,6 @@ filter-input =
 
 menu-more-options-button = …
   .aria-label = More
-  .title = Open commands menu
 
 more-options-popup =
   .aria-label = More Options
@@ -31,9 +30,6 @@ command-cancel = Cancel
 passwords-section-label = Passwords
 passwords-disabled = Passwords are disabled
 
-passwords-expand-section-tooltip = Show Passwords
-passwords-collapse-section-tooltip = Hide Passwords
-
 passwords-dismiss-breach-alert-command = Dismiss breach alert
 passwords-command-create = Add Password
 passwords-command-import-from-browser = Import from Another Browser…
@@ -42,9 +38,6 @@ passwords-command-export = Export Passwords…
 passwords-command-remove-all = Remove All Passwords…
 passwords-command-settings = Settings
 passwords-command-help = Help
-passwords-command-sort-name = Sort By Name (A-Z)
-# This message can be seen when sorting logins by breached or vulnerable alerts.
-passwords-command-sort-alerts = Sort By Alerts
 
 passwords-os-auth-dialog-caption = { -brand-full-name }
 
@@ -143,9 +136,6 @@ payments-command-create = Add Payment Method
 payments-section-label = Payment methods
 payments-disabled = Payments methods are disabled
 
-payments-expand-section-tooltip = Show Payments
-payments-collapse-section-tooltip = Hide Payments
-
 # Variables
 #   $count (number) - Number of payment methods
 payments-count =
@@ -173,9 +163,6 @@ addresses-command-create = Add Address
 
 addresses-section-label = Addresses
 addresses-disabled = Addresses are disabled
-
-addresses-expand-section-tooltip = Show Addresses
-addresses-collapse-section-tooltip = Hide Addresses
 
 # Variables
 #   $count (number) - Number of addresses

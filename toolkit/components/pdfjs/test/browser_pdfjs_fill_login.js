@@ -75,6 +75,10 @@ async function openContextMenuForSelector(browser, selector) {
  * Ensure the fill login context menu is not shown for PDF.js forms.
  */
 add_task(async function test_filllogin() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["pdfjs.renderInteractiveForms", true]],
+  });
+
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:blank" },
     async function (browser) {
@@ -99,8 +103,6 @@ add_task(async function test_filllogin() {
       contextMenu.hidePopup();
       info("waiting for promiseHidden");
       await promiseHidden;
-
-      await waitForPdfJSClose(browser);
     }
   );
 });

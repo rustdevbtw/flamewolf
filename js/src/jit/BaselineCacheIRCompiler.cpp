@@ -2199,13 +2199,8 @@ bool ShapeListObject::traceWeak(JSTracer* trc) {
   }
 
   MOZ_ASSERT(dst <= end);
-  uint32_t newLength = dst - elements_;
-  setDenseInitializedLength(newLength);
-
-  if (length != newLength) {
-    JitSpew(JitSpew_StubFolding, "Cleared %u/%u shapes from %p",
-            length - newLength, length, this);
-  }
+  length = dst - elements_;
+  setDenseInitializedLength(length);
 
   return length != 0;
 }
@@ -2397,12 +2392,6 @@ bool js::jit::TryFoldingStubs(JSContext* cx, ICFallbackStub* fallback,
   }
   MOZ_ASSERT(result == ICAttachResult::Attached);
 
-  JitSpew(JitSpew_StubFolding,
-          "Folded stub at offset %u (icScript: %p) with %zu shapes (%s:%u:%u)",
-          fallback->pcOffset(), icScript, shapeList.length(),
-          script->filename(), script->lineno(),
-          script->column().oneOriginValue());
-
   fallback->setMayHaveFoldedStub();
   return true;
 }
@@ -2521,9 +2510,6 @@ static bool AddToFoldedStub(JSContext* cx, const CacheIRWriter& writer,
     cx->recoverFromOutOfMemory();
     return false;
   }
-
-  JitSpew(JitSpew_StubFolding, "ShapeListObject %p: new length: %u",
-          foldedShapes.get(), foldedShapes->length());
 
   return true;
 }
@@ -2651,11 +2637,6 @@ ICAttachResult js::jit::AttachBaselineCacheIRStub(
   // Try including this case in an existing folded stub.
   if (stub->mayHaveFoldedStub() &&
       AddToFoldedStub(cx, writer, icScript, stub)) {
-    JitSpew(JitSpew_StubFolding,
-            "Added to folded stub at offset %u (icScript: %p) (%s:%u:%u)",
-            stub->pcOffset(), icScript, outerScript->filename(),
-            outerScript->lineno(), outerScript->column().oneOriginValue());
-
     // Instead of adding a new stub, we have added a new case to an existing
     // folded stub. We do not have to invalidate Warp, because the
     // ShapeListObject that stores the cases is shared between baseline and
@@ -2666,10 +2647,6 @@ ICAttachResult js::jit::AttachBaselineCacheIRStub(
     JSScript* owningScript = nullptr;
     if (cx->zone()->jitZone()->hasStubFoldingBailoutData(outerScript)) {
       owningScript = cx->zone()->jitZone()->stubFoldingBailoutParent();
-      JitSpew(JitSpew_StubFolding,
-              "Found stub folding bailout parent: %s:%u:%u",
-              owningScript->filename(), owningScript->lineno(),
-              owningScript->column().oneOriginValue());
     } else {
       owningScript = icScript->isInlined()
                          ? icScript->inliningRoot()->owningScript()

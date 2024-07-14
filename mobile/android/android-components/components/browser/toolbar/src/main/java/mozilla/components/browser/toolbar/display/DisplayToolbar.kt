@@ -669,8 +669,8 @@ class DisplayToolbar internal constructor(
     fun setHorizontalPadding(horizontalPadding: Int) {
         val background = views.background
         (background.layoutParams as? ConstraintLayout.LayoutParams)?.apply {
-            goneStartMargin = horizontalPadding
-            goneEndMargin = horizontalPadding
+            marginStart = horizontalPadding
+            marginEnd = horizontalPadding
             background.layoutParams = this
         }
     }

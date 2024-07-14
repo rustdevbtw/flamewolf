@@ -11,11 +11,9 @@ pub struct Env {
 }
 
 /// The type resolution environment within a specific module
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct ModuleEnv {
     pub(crate) module: BTreeMap<Ident, ModSymbol>,
-    #[cfg_attr(not(feature = "hir"), allow(unused))]
-    pub(crate) attrs: Attrs,
 }
 
 impl Env {
@@ -46,12 +44,6 @@ impl Env {
 }
 
 impl ModuleEnv {
-    pub(crate) fn new(attrs: Attrs) -> Self {
-        Self {
-            module: Default::default(),
-            attrs,
-        }
-    }
     pub(crate) fn insert(&mut self, name: Ident, symbol: ModSymbol) -> Option<ModSymbol> {
         self.module.insert(name, symbol)
     }

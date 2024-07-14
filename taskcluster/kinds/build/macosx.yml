@@ -94,7 +94,7 @@ macosx64-non-unified/plain:
         symbol: Bp-nu
         tier: 1
     worker:
-        max-run-time: 7200
+        max-run-time: 5400
         env:
             PERFHERDER_EXTRA_OPTIONS: non-unified
     run:

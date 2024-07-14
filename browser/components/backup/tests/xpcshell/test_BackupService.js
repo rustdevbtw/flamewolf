@@ -6,8 +6,8 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
-const { JsonSchema } = ChromeUtils.importESModule(
-  "resource://gre/modules/JsonSchema.sys.mjs"
+const { JsonSchemaValidator } = ChromeUtils.importESModule(
+  "resource://gre/modules/components-utils/JsonSchemaValidator.sys.mjs"
 );
 const { UIState } = ChromeUtils.importESModule(
   "resource://services-sync/UIState.sys.mjs"
@@ -17,9 +17,6 @@ const { ClientID } = ChromeUtils.importESModule(
 );
 
 add_setup(function () {
-  // FOG needs to be initialized in order for data to flow.
-  Services.fog.initializeFOG();
-
   // Much of this setup is copied from toolkit/profile/xpcshell/head.js. It is
   // needed in order to put the xpcshell test environment into the state where
   // it thinks its profile is the one pointed at by
@@ -83,11 +80,6 @@ add_setup(function () {
  * @returns {Promise<undefined>}
  */
 async function testCreateBackupHelper(sandbox, taskFn) {
-  Services.fog.testResetFOG();
-  // Handle for the metric for total byte size of staging folder
-  let totalBackupSizeHistogram = TelemetryTestUtils.getAndClearHistogram(
-    "BROWSER_BACKUP_TOTAL_BACKUP_SIZE"
-  );
   const EXPECTED_CLIENT_ID = await ClientID.getClientID();
 
   let fake1ManifestEntry = { fake1: "hello from 1" };
@@ -115,27 +107,23 @@ async function testCreateBackupHelper(sandbox, taskFn) {
     "createBackupTest"
   );
 
-  Assert.ok(!bs.state.lastBackupDate, "No backup date is stored in state.");
   await bs.createBackup({ profilePath: fakeProfilePath });
-  Assert.ok(bs.state.lastBackupDate, "The backup date was recorded.");
 
   // We expect the staging folder to exist then be renamed under the fakeProfilePath.
   // We should also find a folder for each fake BackupResource.
   let backupsFolderPath = PathUtils.join(
     fakeProfilePath,
-    BackupService.PROFILE_FOLDER_NAME,
-    BackupService.SNAPSHOTS_FOLDER_NAME
+    BackupService.PROFILE_FOLDER_NAME
   );
   let stagingPath = PathUtils.join(backupsFolderPath, "staging");
 
   // For now, we expect a single backup only to be saved. There should also be
-  // a single compressed file for the staging folder, and a single HTML file
-  // export.
+  // a single compressed file for the staging folder.
   let backupsChildren = await IOUtils.getChildren(backupsFolderPath);
   Assert.equal(
     backupsChildren.length,
-    3,
-    "There should only be 3 items in the backups folder"
+    2,
+    "There should only be 2 items in the backups folder"
   );
 
   // The folder and the compressed file should have the same filename, but
@@ -209,7 +197,7 @@ async function testCreateBackupHelper(sandbox, taskFn) {
   let manifest = await IOUtils.readJSON(manifestPath);
 
   let schema = await BackupService.MANIFEST_SCHEMA;
-  let validationResult = JsonSchema.validate(manifest, schema);
+  let validationResult = JsonSchemaValidator.validate(manifest, schema);
   Assert.ok(validationResult.valid, "Schema matches manifest");
   Assert.deepEqual(
     Object.keys(manifest.resources).sort(),
@@ -230,28 +218,6 @@ async function testCreateBackupHelper(sandbox, taskFn) {
     manifest.meta.legacyClientID,
     EXPECTED_CLIENT_ID,
     "The client ID was stored properly."
-  );
-
-  // 1 mebibyte minimum recorded value if staging folder is under 1 mebibyte
-  // This assumes that these BackupService tests do not create sizable fake files
-  const SMALLEST_BACKUP_SIZE_BYTES = 1048576;
-  const SMALLEST_BACKUP_SIZE_MEBIBYTES = 1;
-
-  let totalBackupSize = Glean.browserBackup.totalBackupSize.testGetValue();
-  Assert.equal(
-    totalBackupSize.count,
-    1,
-    "Should have collected a single measurement for the total backup size"
-  );
-  Assert.equal(
-    totalBackupSize.sum,
-    SMALLEST_BACKUP_SIZE_BYTES,
-    "Should have collected the right value for the total backup size"
-  );
-  TelemetryTestUtils.assertHistogram(
-    totalBackupSizeHistogram,
-    SMALLEST_BACKUP_SIZE_MEBIBYTES,
-    1
   );
 
   taskFn(manifest);
@@ -325,10 +291,10 @@ add_task(async function test_createBackup_signed_in() {
 
 /**
  * Creates a directory that looks a lot like a decompressed backup archive,
- * and then tests that BackupService.recoverFromSnapshotFolder can create a new
- * profile and recover into it.
+ * and then tests that BackupService.recoverFromBackup can create a new profile
+ * and recover into it.
  */
-add_task(async function test_recoverFromSnapshotFolder() {
+add_task(async function test_recoverFromBackup() {
   let sandbox = sinon.createSandbox();
   let fakeEntryMap = new Map();
   let backupResourceClasses = [
@@ -365,31 +331,14 @@ add_task(async function test_recoverFromSnapshotFolder() {
 
   let oldProfilePath = await IOUtils.createUniqueDirectory(
     PathUtils.tempDir,
-    "recoverFromSnapshotFolderTest"
+    "recoverFromBackupTest"
   );
   let newProfileRootPath = await IOUtils.createUniqueDirectory(
     PathUtils.tempDir,
-    "recoverFromSnapshotFolderTest-newProfileRoot"
+    "recoverFromBackupTest-newProfileRoot"
   );
 
   let { stagingPath } = await bs.createBackup({ profilePath: oldProfilePath });
-
-  // Ensure that the appName in the written manifest matches the current
-  // MOZ_APP_NAME.
-  let manifest = await IOUtils.readJSON(
-    PathUtils.join(stagingPath, BackupService.MANIFEST_FILE_NAME)
-  );
-  Assert.equal(
-    manifest.meta.appName,
-    AppConstants.MOZ_APP_NAME,
-    "appName matches MOZ_APP_NAME"
-  );
-  // And that appVersion matches MOZ_APP_VERSION
-  Assert.equal(
-    manifest.meta.appVersion,
-    AppConstants.MOZ_APP_VERSION,
-    "appVersion matches MOZ_APP_VERSION"
-  );
 
   let testTelemetryStateObject = {
     clientID: "ed209123-04a1-04a1-04a1-c0ffeec0ffee",
@@ -399,11 +348,10 @@ add_task(async function test_recoverFromSnapshotFolder() {
     testTelemetryStateObject
   );
 
-  let profile = await bs.recoverFromSnapshotFolder(
+  let profile = await bs.recoverFromBackup(
     stagingPath,
     false /* shouldLaunch */,
-    newProfileRootPath,
-    null /* encState */
+    newProfileRootPath
   );
   Assert.ok(profile, "An nsIToolkitProfile was created.");
   let newProfilePath = profile.rootDir.path;

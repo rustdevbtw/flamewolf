@@ -331,9 +331,6 @@ def check_and_add_flags(
                         return c.try_link(host_linker_ldflags, *args, **kwargs)
 
                 tool = "linker"
-            elif mode == "assemble":
-                runner = c.try_compile
-                tool = "assembler"
             else:
                 runner = c.try_compile
                 tool = "compiler"
@@ -406,14 +403,7 @@ def add_warning(warning, compiler=None, when=None):
 # Like the warning checks above, but for general compilation flags.
 @dependable
 def compilation_flags():
-    return namespace(
-        cflags=[],
-        cxxflags=[],
-        host_cflags=[],
-        host_cxxflags=[],
-        cmflags=[],
-        cmmflags=[],
-    )
+    return namespace(cflags=[], cxxflags=[], host_cflags=[], host_cxxflags=[])
 
 
 # Tests whether GCC or clang support the given compilation flag; if the flag
@@ -478,11 +468,6 @@ def check_and_add_asm_flag(flag, when=None, check=True):
 @dependable
 def linker_flags():
     return namespace(ldflags=[], host_ldflags=[])
-
-
-@dependable
-def dso_flags():
-    return namespace(ldopts=[])
 
 
 # Tests the given linker flag is supported; if the flag

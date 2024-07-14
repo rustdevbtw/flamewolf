@@ -16,7 +16,6 @@ import { makeBreakpointId } from "../../utils/breakpoint/index";
 import { connect } from "devtools/client/shared/vendor/react-redux";
 import { fromEditorLine } from "../../utils/editor/index";
 import actions from "../../actions/index";
-import { markerTypes } from "../../constants";
 import { features } from "../../utils/prefs";
 const classnames = require("resource://devtools/client/shared/classnames.js");
 
@@ -69,7 +68,7 @@ class Breakpoints extends Component {
 
     const markers = [
       {
-        id: markerTypes.GUTTER_BREAKPOINT_MARKER,
+        id: "gutter-breakpoint-marker",
         lineClassName: "cm6-gutter-breakpoint",
         condition: line => {
           const lineNumber = fromEditorLine(selectedSource.id, line);

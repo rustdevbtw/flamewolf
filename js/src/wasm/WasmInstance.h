@@ -367,8 +367,7 @@ class alignas(16) Instance {
   inline const CodeTier& code(Tier t) const;
   inline uint8_t* codeBase(Tier t) const;
   inline const MetadataTier& metadata(Tier t) const;
-  inline const CodeMetadata& codeMeta() const;
-  inline const CodeMetadataForAsmJS* codeMetaForAsmJS() const;
+  inline const Metadata& metadata() const;
   inline bool isAsmJS() const;
 
   // This method returns a pointer to the GC object that owns this Instance.
@@ -456,9 +455,7 @@ class alignas(16) Instance {
 
   // about:memory reporting:
 
-  void addSizeOfMisc(MallocSizeOf mallocSizeOf,
-                     SeenSet<CodeMetadata>* seenCodeMeta,
-                     SeenSet<CodeMetadataForAsmJS>* seenCodeMetaForAsmJS,
+  void addSizeOfMisc(MallocSizeOf mallocSizeOf, SeenSet<Metadata>* seenMetadata,
                      SeenSet<Code>* seenCode, SeenSet<Table>* seenTables,
                      size_t* code, size_t* data) const;
 
@@ -595,7 +592,8 @@ class alignas(16) Instance {
   static int32_t stringTest(Instance* instance, void* stringArg);
   static void* stringCast(Instance* instance, void* stringArg);
   static void* stringFromCharCodeArray(Instance* instance, void* arrayArg,
-                                       uint32_t arrayStart, uint32_t arrayEnd);
+                                       uint32_t arrayStart,
+                                       uint32_t arrayCount);
   static int32_t stringIntoCharCodeArray(Instance* instance, void* stringArg,
                                          void* arrayArg, uint32_t arrayStart);
   static void* stringFromCharCode(Instance* instance, uint32_t charCode);

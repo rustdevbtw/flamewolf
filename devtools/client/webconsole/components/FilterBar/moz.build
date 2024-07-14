@@ -7,4 +7,5 @@ DevToolsModules(
     "ConsoleSettings.js",
     "FilterBar.js",
     "FilterButton.js",
+    "FilterCheckbox.js",
 )

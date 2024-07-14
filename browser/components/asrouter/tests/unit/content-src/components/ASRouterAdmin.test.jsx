@@ -5,7 +5,7 @@ import {
 import { ASRouterUtils } from "content-src/asrouter-utils";
 import { GlobalOverrider } from "test/unit/utils";
 import React from "react";
-import { mount } from "enzyme";
+import { shallow } from "enzyme";
 
 describe("ASRouterAdmin", () => {
   let globalOverrider;
@@ -39,8 +39,8 @@ describe("ASRouterAdmin", () => {
       ASRouterRemoveParentListener: sandbox.stub(),
     };
     globalOverrider.set(globals);
-    wrapper = mount(<ASRouterAdminInner location={{ routes: [""] }} />);
-    wrapper.setState({ devtoolsEnabled: true, messages: [] });
+    wrapper = shallow(<ASRouterAdminInner location={{ routes: [""] }} />);
+    wrapper.setState({ devtoolsEnabled: true });
   });
   afterEach(() => {
     sandbox.restore();
@@ -58,17 +58,17 @@ describe("ASRouterAdmin", () => {
   });
   describe("#getSection", () => {
     it("should render a message provider section by default", () => {
-      assert.lengthOf(wrapper.find(".messages-list").at(0), 1);
+      assert.equal(wrapper.find("h2").at(1).text(), "Messages");
     });
     it("should render a targeting section for targeting route", () => {
-      wrapper = mount(
+      wrapper = shallow(
         <ASRouterAdminInner location={{ routes: ["targeting"] }} />
       );
       wrapper.setState({ devtoolsEnabled: true });
-      assert.lengthOf(wrapper.find(".targeting-table").at(0), 1);
+      assert.equal(wrapper.find("h2").at(0).text(), "Targeting Utilities");
     });
     it("should render two error messages", () => {
-      wrapper = mount(
+      wrapper = shallow(
         <ASRouterAdminInner location={{ routes: ["errors"] }} Sections={[]} />
       );
       wrapper.setState({ devtoolsEnabled: true });
@@ -110,7 +110,8 @@ describe("ASRouterAdmin", () => {
           providers: FAKE_PROVIDER,
         });
 
-        assert.lengthOf(wrapper.find(`[data-provider]`), 1);
+        // Header + 1 item
+        assert.lengthOf(wrapper.find(".message-item"), 2);
       });
     });
     describe("#renderMessages", () => {
@@ -120,17 +121,11 @@ describe("ASRouterAdmin", () => {
         sandbox.stub(ASRouterUtils, "overrideMessage").resolves({ foo: "bar" });
         sandbox.stub(ASRouterUtils, "sendMessage").resolves();
         wrapper.setState({
-          filterProviders: [],
-          filterGroups: [],
-          filterTemplates: [],
-          filtersCollapsed: false,
+          messageFilter: "all",
           messageBlockList: [],
           messageImpressions: { foo: 2 },
           groups: [{ id: "messageProvider", enabled: true }],
-          providers: [
-            { id: "messageProvider", enabled: true },
-            { id: "nullProvider", enabled: true },
-          ],
+          providers: [{ id: "messageProvider", enabled: true }],
         });
       });
       it("should render a message when no filtering is applied", () => {
@@ -146,8 +141,8 @@ describe("ASRouterAdmin", () => {
 
         assert.lengthOf(wrapper.find(".message-id"), 1);
         wrapper.find(".message-item button.primary").simulate("click");
-        assert.calledOnce(ASRouterUtils.overrideMessage);
-        assert.calledWith(ASRouterUtils.overrideMessage, "foo");
+        assert.calledOnce(ASRouterUtils.blockById);
+        assert.calledWith(ASRouterUtils.blockById, "foo");
       });
       it("should render a blocked message", () => {
         wrapper.setState({
@@ -161,19 +156,16 @@ describe("ASRouterAdmin", () => {
           messageBlockList: ["foo"],
         });
         assert.lengthOf(wrapper.find(".message-item.blocked"), 1);
-        wrapper.find(".message-item.blocked button.primary").simulate("click");
+        wrapper.find(".message-item.blocked button").simulate("click");
         assert.calledOnce(ASRouterUtils.unblockById);
         assert.calledWith(ASRouterUtils.unblockById, "foo");
       });
-      it("should render a message if it matches filter", () => {
+      it("should render a message if provider matches filter", () => {
         wrapper.setState({
-          filterProviders: ["messageProvider"],
-          filterGroups: ["messageProvider"],
-          filterTemplates: ["bar"],
+          messageFilter: "messageProvider",
           messages: [
             {
               id: "foo",
-              template: "bar",
               provider: "messageProvider",
               groups: ["messageProvider"],
             },
@@ -184,8 +176,7 @@ describe("ASRouterAdmin", () => {
       });
       it("should override with the selected message", async () => {
         wrapper.setState({
-          filterProviders: ["messageProvider"],
-          filterGroups: ["messageProvider"],
+          messageFilter: "messageProvider",
           messages: [
             {
               id: "foo",
@@ -204,8 +195,7 @@ describe("ASRouterAdmin", () => {
       });
       it("should hide message if provider filter changes", () => {
         wrapper.setState({
-          filterProviders: ["messageProvider"],
-          filterGroups: ["messageProvider"],
+          messageFilter: "messageProvider",
           messages: [
             {
               id: "foo",
@@ -217,14 +207,58 @@ describe("ASRouterAdmin", () => {
 
         assert.lengthOf(wrapper.find(".message-id"), 1);
 
-        let ckbx1 = wrapper.find("[data-provider='messageProvider']");
-        ckbx1.getDOMNode().checked = false;
-        ckbx1.simulate("change");
-        let ckbx2 = wrapper.find("[data-provider='nullProvider']");
-        ckbx2.getDOMNode().checked = true;
-        ckbx2.simulate("change");
+        wrapper.find("select").simulate("change", { target: { value: "bar" } });
 
         assert.lengthOf(wrapper.find(".message-id"), 0);
+      });
+      it("should not display Reset All button if provider filter value is set to all or test providers", () => {
+        wrapper.setState({
+          messageFilter: "messageProvider",
+          messages: [
+            {
+              id: "foo",
+              provider: "messageProvider",
+              groups: ["messageProvider"],
+            },
+          ],
+        });
+
+        assert.lengthOf(wrapper.find(".messages-reset"), 1);
+        wrapper.find("select").simulate("change", { target: { value: "all" } });
+
+        assert.lengthOf(wrapper.find(".messages-reset"), 0);
+
+        wrapper
+          .find("select")
+          .simulate("change", { target: { value: "test_local_testing" } });
+        assert.lengthOf(wrapper.find(".messages-reset"), 0);
+      });
+      it("should trigger disable and enable provider on Reset All button click", () => {
+        wrapper.setState({
+          messageFilter: "messageProvider",
+          messages: [
+            {
+              id: "foo",
+              provider: "messageProvider",
+              groups: ["messageProvider"],
+            },
+          ],
+          providerPrefs: [
+            {
+              id: "messageProvider",
+            },
+          ],
+        });
+        wrapper.find(".messages-reset").simulate("click");
+        assert.calledTwice(ASRouterUtils.sendMessage);
+        assert.calledWith(ASRouterUtils.sendMessage, {
+          type: "DISABLE_PROVIDER",
+          data: "messageProvider",
+        });
+        assert.calledWith(ASRouterUtils.sendMessage, {
+          type: "ENABLE_PROVIDER",
+          data: "messageProvider",
+        });
       });
     });
   });

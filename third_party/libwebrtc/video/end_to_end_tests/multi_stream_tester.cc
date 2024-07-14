@@ -58,9 +58,7 @@ void MultiStreamTester::RunTest() {
   VideoReceiveStreamInterface* receive_streams[kNumStreams];
   test::FrameGeneratorCapturer* frame_generators[kNumStreams];
   test::FunctionVideoEncoderFactory encoder_factory(
-      [](const Environment& env, const SdpVideoFormat& format) {
-        return CreateVp8Encoder(env);
-      });
+      []() { return VP8Encoder::Create(); });
   std::unique_ptr<VideoBitrateAllocatorFactory> bitrate_allocator_factory =
       CreateBuiltinVideoBitrateAllocatorFactory();
   InternalDecoderFactory decoder_factory;

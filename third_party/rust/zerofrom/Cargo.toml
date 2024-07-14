@@ -11,16 +11,13 @@
 
 [package]
 edition = "2021"
-rust-version = "1.67"
 name = "zerofrom"
-version = "0.1.4"
+version = "0.1.2"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
 include = [
-    "data/**/*",
     "src/**/*",
     "examples/**/*",
     "benches/**/*",
-    "tests/**/*",
     "Cargo.toml",
     "LICENSE",
     "README.md",
@@ -38,19 +35,18 @@ categories = [
     "caching",
     "no-std",
 ]
-license = "Unicode-3.0"
+license = "Unicode-DFS-2016"
 repository = "https://github.com/unicode-org/icu4x"
-
-[package.metadata.docs.rs]
-all-features = true
 
 [package.metadata.workspaces]
 independent = true
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies.zerofrom-derive]
-version = "0.1.3"
+version = "0.1.1"
 optional = true
-default-features = false
 
 [features]
 alloc = []

@@ -17,6 +17,8 @@
 #include "api/video_codecs/video_encoder.h"
 #include "api/video_codecs/vp9_profile.h"
 #include "common_video/libyuv/include/webrtc_libyuv.h"
+#include "media/base/codec.h"
+#include "media/base/media_constants.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/video_coding/codecs/interface/libvpx_interface.h"
 #include "modules/video_coding/codecs/interface/mock_libvpx_interface.h"
@@ -2216,8 +2218,8 @@ TEST(Vp9SpeedSettingsTrialsTest, NoSvcUsesGlobalSpeedFromTl0InLayerConfig) {
   // Keep a raw pointer for EXPECT calls and the like. Ownership is otherwise
   // passed on to LibvpxVp9Encoder.
   auto* const vpx = new NiceMock<MockLibvpxInterface>();
-  LibvpxVp9Encoder encoder(CreateEnvironment(&trials), {},
-                           absl::WrapUnique<LibvpxInterface>(vpx));
+  LibvpxVp9Encoder encoder(cricket::CreateVideoCodec(cricket::kVp9CodecName),
+                           absl::WrapUnique<LibvpxInterface>(vpx), trials);
 
   VideoCodec settings = DefaultCodecSettings();
   settings.width = 480;
@@ -2260,8 +2262,8 @@ TEST(Vp9SpeedSettingsTrialsTest,
   // Keep a raw pointer for EXPECT calls and the like. Ownership is otherwise
   // passed on to LibvpxVp9Encoder.
   auto* const vpx = new NiceMock<MockLibvpxInterface>();
-  LibvpxVp9Encoder encoder(CreateEnvironment(&trials), {},
-                           absl::WrapUnique<LibvpxInterface>(vpx));
+  LibvpxVp9Encoder encoder(cricket::CreateVideoCodec(cricket::kVp9CodecName),
+                           absl::WrapUnique<LibvpxInterface>(vpx), trials);
 
   VideoCodec settings = DefaultCodecSettings();
   settings.width = 480;
@@ -2318,8 +2320,8 @@ TEST(Vp9SpeedSettingsTrialsTest, DefaultPerLayerFlagsWithSvc) {
   // Keep a raw pointer for EXPECT calls and the like. Ownership is otherwise
   // passed on to LibvpxVp9Encoder.
   auto* const vpx = new NiceMock<MockLibvpxInterface>();
-  LibvpxVp9Encoder encoder(CreateEnvironment(&trials), {},
-                           absl::WrapUnique<LibvpxInterface>(vpx));
+  LibvpxVp9Encoder encoder(cricket::CreateVideoCodec(cricket::kVp9CodecName),
+                           absl::WrapUnique<LibvpxInterface>(vpx), trials);
 
   VideoCodec settings = DefaultCodecSettings();
   constexpr int kNumSpatialLayers = 3;
@@ -2468,9 +2470,9 @@ TEST_P(TestVp9ImplSvcFrameDropConfig, SvcFrameDropConfig) {
   SvcFrameDropConfigTestParameters test_params = GetParam();
   auto* const vpx = new NiceMock<MockLibvpxInterface>();
   LibvpxVp9Encoder encoder(
-      CreateEnvironment(std::make_unique<test::ExplicitKeyValueConfig>(
-          test_params.field_trial)),
-      {}, absl::WrapUnique<LibvpxInterface>(vpx));
+      cricket::CreateVideoCodec(cricket::kVp9CodecName),
+      absl::WrapUnique<LibvpxInterface>(vpx),
+      test::ExplicitKeyValueConfig(test_params.field_trial));
 
   vpx_image_t img;
   ON_CALL(*vpx, img_wrap).WillByDefault(GetWrapImageFunction(&img));

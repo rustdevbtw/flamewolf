@@ -28,21 +28,16 @@ static constexpr nsLiteralCString kUrlClassifierFeatures[] = {
 static_assert(ArrayLength(kUrlClassifierFeatures) > 0,
               "At least one URL classifier feature must be defined");
 
-// List of features for classifying bounce trackers that have been purged.
-// See kUrlClassifierFeatures for the list of features.
-static StaticAutoPtr<nsTArray<RefPtr<nsIUrlClassifierFeature>>>
-    sUrlClassifierFeatures;
-
 NS_IMPL_ISUPPORTS(ClearDataCallback, nsIClearDataCallback,
                   nsIUrlClassifierFeatureCallback);
 
+// static
+nsTArray<RefPtr<nsIUrlClassifierFeature>>
+    ClearDataCallback::sUrlClassifierFeatures;
+
 ClearDataCallback::ClearDataCallback(ClearDataMozPromise::Private* aPromise,
-                                     const nsACString& aHost,
-                                     PRTime aBounceTime)
-    : mHost(aHost),
-      mBounceTime(aBounceTime),
-      mPromise(aPromise),
-      mClearDurationTimer(0) {
+                                     const nsACString& aHost)
+    : mHost(aHost), mPromise(aPromise), mClearDurationTimer(0) {
   MOZ_ASSERT(!aHost.IsEmpty(), "Host must not be empty");
 
   if (!StaticPrefs::privacy_bounceTrackingProtection_enableDryRunMode()) {
@@ -53,9 +48,7 @@ ClearDataCallback::ClearDataCallback(ClearDataMozPromise::Private* aPromise,
   }
 
   // Populate feature list for URL classification as needed.
-  if (!sUrlClassifierFeatures) {
-    sUrlClassifierFeatures = new nsTArray<RefPtr<nsIUrlClassifierFeature>>();
-
+  if (sUrlClassifierFeatures.IsEmpty()) {
     // Construct the list of classifier features used for purging telemetry.
     for (const nsCString& featureName : kUrlClassifierFeatures) {
       nsCOMPtr<nsIUrlClassifierFeature> feature =
@@ -63,14 +56,11 @@ ClearDataCallback::ClearDataCallback(ClearDataMozPromise::Private* aPromise,
       if (NS_WARN_IF(!feature)) {
         continue;
       }
-      sUrlClassifierFeatures->AppendElement(feature);
+      sUrlClassifierFeatures.AppendElement(feature);
     }
-    MOZ_ASSERT(!sUrlClassifierFeatures->IsEmpty(),
+    MOZ_ASSERT(!sUrlClassifierFeatures.IsEmpty(),
                "At least one URL classifier feature must be present");
-    RunOnShutdown([] {
-      sUrlClassifierFeatures->Clear();
-      sUrlClassifierFeatures = nullptr;
-    });
+    RunOnShutdown([] { sUrlClassifierFeatures.Clear(); });
   }
 };
 
@@ -88,8 +78,7 @@ NS_IMETHODIMP ClearDataCallback::OnDataDeleted(uint32_t aFailedFlags) {
     mPromise->Reject(aFailedFlags, __func__);
   } else {
     MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
-            ("%s: Cleared host: %s, bounceTime: %" PRIu64, __FUNCTION__,
-             mHost.get(), mBounceTime));
+            ("%s: Cleared %s", __FUNCTION__, mHost.get()));
     mPromise->Resolve(mHost, __func__);
 
     // Only record classifications on successful deletion.
@@ -98,8 +87,6 @@ NS_IMETHODIMP ClearDataCallback::OnDataDeleted(uint32_t aFailedFlags) {
   // Always collect clear duration and purge count.
   RecordClearDurationTelemetry();
   RecordPurgeCountTelemetry(aFailedFlags != 0);
-  RecordPurgeEventTelemetry(aFailedFlags == 0);
-
   return NS_OK;
 }
 
@@ -141,9 +128,8 @@ void ClearDataCallback::RecordURLClassifierTelemetry() {
   rv = NS_NewURI(getter_AddRefs(uri), uriStr);
   NS_ENSURE_SUCCESS_VOID(rv);
 
-  MOZ_ASSERT(sUrlClassifierFeatures);
   rv = uriClassifier->AsyncClassifyLocalWithFeatures(
-      uri, *sUrlClassifierFeatures, nsIUrlClassifierFeature::blocklist, this);
+      uri, sUrlClassifierFeatures, nsIUrlClassifierFeature::blocklist, this);
   NS_ENSURE_SUCCESS_VOID(rv);
 }
 
@@ -174,19 +160,4 @@ ClearDataCallback::OnClassifyComplete(
   }
 
   return NS_OK;
-}
-
-void ClearDataCallback::RecordPurgeEventTelemetry(bool aSuccess) {
-// Record a glean event for the clear action. This is only recorded in
-// pre-release channels.
-#if defined(EARLY_BETA_OR_EARLIER)
-  glean::bounce_tracking_protection::PurgeActionExtra extra = {
-      .bounceTime = Some(mBounceTime / PR_USEC_PER_SEC),
-      .isDryRun = Some(
-          StaticPrefs::privacy_bounceTrackingProtection_enableDryRunMode()),
-      .siteHost = Some(mHost),
-      .success = Some(aSuccess),
-  };
-  glean::bounce_tracking_protection::purge_action.Record(Some(extra));
-#endif  // defined(EARLY_BETA_OR_EARLIER)
 }

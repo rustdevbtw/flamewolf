@@ -22,11 +22,9 @@ export const getVisibleBreakpoints = createSelector(
     }
 
     return breakpoints.filter(
-      breakpoint =>
+      bp =>
         selectedSource &&
-        getSelectedLocation(breakpoint, selectedSource)?.source.id ===
-          selectedSource.id &&
-        !breakpoint.options.hidden
+        getSelectedLocation(bp, selectedSource)?.source.id === selectedSource.id
     );
   }
 );

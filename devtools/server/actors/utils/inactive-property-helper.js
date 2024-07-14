@@ -381,7 +381,7 @@ class InactivePropertyHelper {
             "table-caption",
           ]),
         fixId: "inactive-css-not-display-block-on-floated-fix",
-        msgId: "inactive-css-not-display-block-on-floated-2",
+        msgId: "inactive-css-not-display-block-on-floated",
       },
       // The property is impossible to override due to :visited restriction.
       {
@@ -470,24 +470,13 @@ class InactivePropertyHelper {
         msgId:
           "inactive-css-not-for-internal-table-elements-except-table-cells",
       },
-      // table-related properties used on non-table elements.
+      // table-layout used on non-table elements.
       {
-        invalidProperties: [
-          "border-collapse",
-          "border-spacing",
-          "table-layout",
-        ],
+        invalidProperties: ["table-layout"],
         when: () =>
           !this.checkComputedStyle("display", ["table", "inline-table"]),
         fixId: "inactive-css-not-table-fix",
         msgId: "inactive-css-not-table",
-      },
-      // border-spacing property used on collapsed table borders.
-      {
-        invalidProperties: ["border-spacing"],
-        when: () => this.checkComputedStyle("border-collapse", ["collapse"]),
-        fixId: "inactive-css-collapsed-table-borders-fix",
-        msgId: "inactive-css-collapsed-table-borders",
       },
       // empty-cells property used on non-table-cell elements.
       {
@@ -545,13 +534,6 @@ class InactivePropertyHelper {
         fixId: "inactive-css-ruby-element-fix",
         msgId: "inactive-css-ruby-element",
       },
-      // resize property used on non-overflowing elements or replaced elements other than textarea.
-      {
-        invalidProperties: ["resize"],
-        when: () => !this.isScrollContainer && !this.isResizableReplacedElement,
-        fixId: "inactive-css-resize-fix",
-        msgId: "inactive-css-resize",
-      },
       // text-wrap: balance; used on elements exceeding the threshold line number
       {
         invalidProperties: ["text-wrap"],
@@ -585,13 +567,6 @@ class InactivePropertyHelper {
         },
         fixId: "inactive-css-text-wrap-balance-fragmented-fix",
         msgId: "inactive-css-text-wrap-balance-fragmented",
-      },
-      // box-sizing used on element ignoring width and height.
-      {
-        invalidProperties: ["box-sizing"],
-        when: () => this.nonReplacedInlineBox,
-        fixId: "learn-more",
-        msgId: "inactive-css-no-width-height",
       },
     ];
   }
@@ -793,10 +768,7 @@ class InactivePropertyHelper {
       if (validator.invalidProperties) {
         isRuleConcerned = validator.invalidProperties.includes(property);
       } else if (validator.acceptedProperties) {
-        isRuleConcerned =
-          !validator.acceptedProperties.has(property) &&
-          // custom properties can always be set
-          !property.startsWith("--");
+        isRuleConcerned = !validator.acceptedProperties.has(property);
       }
 
       if (!isRuleConcerned) {
@@ -1203,15 +1175,6 @@ class InactivePropertyHelper {
     return !(
       overflowValues.includes("visible") || overflowValues.includes("clip")
     );
-  }
-
-  /**
-   * Check if the current node is a replaced element that can be resized.
-   */
-  get isResizableReplacedElement() {
-    // There might be more replaced elements that can be resized in the future.
-    // (See bug 1280920 and its dependencies.)
-    return this.localName === "textarea";
   }
 
   /**

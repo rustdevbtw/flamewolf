@@ -25,7 +25,6 @@
 #include "mozilla/dom/PBackgroundLSSharedTypes.h"
 #include "mozilla/dom/PBackgroundLSSimpleRequest.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/dom/quota/PromiseUtils.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundUtils.h"
@@ -154,6 +153,26 @@ class SimpleRequestResolver final : public LSSimpleRequestChildCallback {
   // LSRequestChildCallback
   void OnResponse(const LSSimpleRequestResponse& aResponse) override;
 };
+
+nsresult CreatePromise(JSContext* aContext, Promise** aPromise) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aContext);
+
+  nsIGlobalObject* global =
+      xpc::NativeGlobal(JS::CurrentGlobalOrNull(aContext));
+  if (NS_WARN_IF(!global)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  ErrorResult result;
+  RefPtr<Promise> promise = Promise::Create(global, result);
+  if (result.Failed()) {
+    return result.StealNSResult();
+  }
+
+  promise.forget(aPromise);
+  return NS_OK;
+}
 
 nsresult CheckedPrincipalToPrincipalInfo(
     nsIPrincipal* aPrincipal, mozilla::ipc::PrincipalInfo& aPrincipalInfo) {
@@ -301,7 +320,7 @@ LocalStorageManager2::Preload(nsIPrincipal* aPrincipal, JSContext* aContext,
   RefPtr<Promise> promise;
 
   if (aContext) {
-    rv = quota::CreatePromise(aContext, getter_AddRefs(promise));
+    rv = CreatePromise(aContext, getter_AddRefs(promise));
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -345,7 +364,7 @@ LocalStorageManager2::IsPreloaded(nsIPrincipal* aPrincipal, JSContext* aContext,
   MOZ_ASSERT(_retval);
 
   RefPtr<Promise> promise;
-  nsresult rv = quota::CreatePromise(aContext, getter_AddRefs(promise));
+  nsresult rv = CreatePromise(aContext, getter_AddRefs(promise));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -376,7 +395,7 @@ LocalStorageManager2::GetState(nsIPrincipal* aPrincipal, JSContext* aContext,
   MOZ_ASSERT(_retval);
 
   RefPtr<Promise> promise;
-  nsresult rv = quota::CreatePromise(aContext, getter_AddRefs(promise));
+  nsresult rv = CreatePromise(aContext, getter_AddRefs(promise));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

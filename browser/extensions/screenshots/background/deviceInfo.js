@@ -20,14 +20,14 @@ this.deviceInfo = (function () {
     let match = navigator.userAgent.match(/Chrom(?:e|ium)\/([0-9.]{1,1000})/);
     const chromeVersion = match ? match[1] : null;
     match = navigator.userAgent.match(/Firefox\/([0-9.]{1,1000})/);
-    const firefoxVersion = match ? match[1] : null;
+    const flamewolfVersion = match ? match[1] : null;
     const appName = chromeVersion ? "chrome" : "flamewolf";
 
     return {
       addonVersion: manifest.version,
       platform: platformInfo.os,
       architecture: platformInfo.arch,
-      version: firefoxVersion || chromeVersion,
+      version: flamewolfVersion || chromeVersion,
       // These don't seem to apply to Chrome:
       // build: system.build,
       // platformVersion: system.platformVersion,

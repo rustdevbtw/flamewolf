@@ -756,7 +756,7 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
         encoder = std::move(primary_encoder);
       } else {
         encoder = CreateVideoEncoderSoftwareFallbackWrapper(
-            env_, std::move(fallback_encoder), std::move(primary_encoder),
+            std::move(fallback_encoder), std::move(primary_encoder),
             prefer_temporal_support);
       }
     } else if (fallback_encoder != nullptr) {

@@ -18,10 +18,7 @@ async function expectSavedAddresses(expectedAddresses) {
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["extensions.formautofill.addresses.capture.enabled", true],
-      ["extensions.formautofill.addresses.capture.requiredFields", ""],
-    ],
+    set: [["extensions.formautofill.addresses.capture.enabled", true]],
   });
 });
 

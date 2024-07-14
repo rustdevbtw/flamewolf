@@ -8,7 +8,7 @@
 //! This crate provides two implementations of the shelf packing algorithm for *dynamic*
 //! texture atlas allocation (dynamic here means supporting both allocation and deallocation).
 //!
-//! [A thousand ways to pack the bin](https://github.com/juj/RectangleBinPack/blob/master/RectangleBinPack.pdf)
+//! [A thousand ways to pack the bin](http://pds25.egloos.com/pds/201504/21/98/RectangleBinPack.pdf)
 //! is a good resource to learn about rectangle packing algorithms, although it does not not cover
 //! deallocation which complicates the problem space a fair bit.
 //!
@@ -80,8 +80,6 @@ pub extern crate euclid;
 
 mod bucketed;
 mod allocator;
-#[cfg(feature = "ffi")]
-pub mod ffi;
 
 pub use allocator::*;
 pub use bucketed::*;

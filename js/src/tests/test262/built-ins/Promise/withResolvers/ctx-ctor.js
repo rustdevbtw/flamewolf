@@ -4,7 +4,7 @@
 /*---
 description: Promise.withResolvers produces instances of the receiver
 esid: sec-promise.withresolvers
-features: [promise-with-resolvers, class]
+features: [promise-with-resolvers]
 ---*/
 
 class SubPromise extends Promise {}
