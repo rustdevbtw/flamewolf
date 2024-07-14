@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-15, windows-latest]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
     - name: Checkout code
@@ -35,11 +35,7 @@ jobs:
 
     - name: Install dependencies on Linux
       if: matrix.os == 'ubuntu-latest'
-      run: sudo apt-get update && sudo apt-get install -y build-essential python3 python3-pip libasound2-dev libpulse-dev libpango1.0-dev libxcb1-dev libxcb-shm0-dev libx11-xcb-dev libxrandr-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev
-
-    - name: Install dependencies on macOS
-      if: matrix.os == 'macos-15'
-      run: brew install python@3.11
+      run: sudo apt-get update && sudo apt-get install -y build-essential python3 python3-pip libasound2-dev libpulse-dev libpango1.0-dev libxcb1-dev libxcb-shm0-dev libx11-xcb-dev libxrandr-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev nasm
 
     - name: Install dependencies on Windows
       if: matrix.os == 'windows-latest'
@@ -52,14 +48,6 @@ jobs:
       run: |
         ./mach build
         sed -i "s/'MOZ_APP_NAME': 'firefox'/'MOZ_APP_NAME': 'flamewolf'/g" obj-x86_64-pc-linux-gnu/config.status
-        ./mach build
-        ./mach package
-
-    - name: Build Flamewolf (macOS)
-      if: matrix.os == 'macos-15'
-      run: |
-        ./mach build
-        sed -i '' "s/'MOZ_APP_NAME': 'firefox'/'MOZ_APP_NAME': 'flamewolf'/g" obj-x86_64-apple-darwin/config.status
         ./mach build
         ./mach package
 
@@ -78,13 +66,6 @@ jobs:
         name: flamewolf-linux
         path: obj-x86_64-pc-linux-gnu/dist/*.tar.gz
 
-    - name: Upload artifact (macOS)
-      if: matrix.os == 'macos-15'
-      uses: actions/upload-artifact@v4
-      with:
-        name: flamewolf-macos
-        path: obj-x86_64-apple-darwin/dist/*.dmg
-
     - name: Upload artifact (Windows)
       if: matrix.os == 'windows-latest'
       uses: actions/upload-artifact@v4
@@ -102,12 +83,6 @@ jobs:
         name: flamewolf-linux
         path: ./linux
 
-    - name: Download macOS artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: flamewolf-macos
-        path: ./macos
-
     - name: Download Windows artifact
       uses: actions/download-artifact@v4
       with:
@@ -121,14 +96,6 @@ jobs:
         asset_path: ./linux/*.tar.gz
         asset_name: flamewolf-linux.tar.gz
         asset_content_type: application/gzip
-
-    - name: Upload release asset (macOS)
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./macos/*.dmg
-        asset_name: flamewolf-macos.dmg
-        asset_content_type: application/x-apple-diskimage
 
     - name: Upload release asset (Windows)
       uses: actions/upload-release-asset@v1
