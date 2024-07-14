@@ -1,0 +1,139 @@
+name: Build and Release Flamewolf
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        lfs: true
+        fetch-depth: 1
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/pip
+          obj-x86_64-pc-linux-gnu
+          obj-x86_64-apple-darwin
+          obj-x86_64-pc-msvc
+        key: ${{ runner.os }}-python-${{ hashFiles('**/requirements.txt') }}
+
+    - name: Install dependencies on Linux
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get update && sudo apt-get install -y build-essential python3 python3-pip
+
+    - name: Install dependencies on macOS
+      if: matrix.os == 'macos-latest'
+      run: brew install python@3.11
+
+    - name: Install dependencies on Windows
+      if: matrix.os == 'windows-latest'
+      run: |
+        choco install python --version 3.11
+        refreshenv
+
+    - name: Build Flamewolf (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        ./mach build
+        sed -i "s/'MOZ_APP_NAME': 'firefox'/'MOZ_APP_NAME': 'flamewolf'/g" obj-x86_64-pc-linux-gnu/config.status
+        ./mach build
+        ./mach package
+
+    - name: Build Flamewolf (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        ./mach build
+        sed -i '' "s/'MOZ_APP_NAME': 'firefox'/'MOZ_APP_NAME': 'flamewolf'/g" obj-x86_64-apple-darwin/config.status
+        ./mach build
+        ./mach package
+
+    - name: Build Flamewolf (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        ./mach.ps1 build
+        (Get-Content obj-x86_64-pc-msvc/config.status).replace("'MOZ_APP_NAME': 'firefox'", "'MOZ_APP_NAME': 'flamewolf'") | Set-Content obj-x86_64-pc-msvc/config.status
+        ./mach.ps1 build
+        ./mach.ps1 package
+
+    - name: Upload artifact (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: flamewolf-linux
+        path: obj-x86_64-pc-linux-gnu/dist/*.tar.gz
+
+    - name: Upload artifact (macOS)
+      if: matrix.os == 'macos-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: flamewolf-macos
+        path: obj-x86_64-apple-darwin/dist/*.dmg
+
+    - name: Upload artifact (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: flamewolf-windows
+        path: obj-x86_64-pc-msvc/dist/*.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download Linux artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: flamewolf-linux
+        path: ./linux
+
+    - name: Download macOS artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: flamewolf-macos
+        path: ./macos
+
+    - name: Download Windows artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: flamewolf-windows
+        path: ./windows
+
+    - name: Upload release asset (Linux)
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./linux/*.tar.gz
+        asset_name: flamewolf-linux.tar.gz
+        asset_content_type: application/gzip
+
+    - name: Upload release asset (macOS)
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./macos/*.dmg
+        asset_name: flamewolf-macos.dmg
+        asset_content_type: application/x-apple-diskimage
+
+    - name: Upload release asset (Windows)
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./windows/*.zip
+        asset_name: flamewolf-windows.zip
+        asset_content_type: application/zip
