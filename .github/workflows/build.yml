@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-14, windows-latest]
 
     steps:
     - name: Checkout code
@@ -38,7 +38,7 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y build-essential python3 python3-pip libasound2-dev libpulse-dev libpango1.0-dev
 
     - name: Install dependencies on macOS
-      if: matrix.os == 'macos-latest'
+      if: matrix.os == 'macos-14'
       run: brew install python@3.11
 
     - name: Install dependencies on Windows
@@ -56,11 +56,11 @@ jobs:
         ./mach package
 
     - name: Change XCode version (macOS)
-      if: matrix.os == 'macos-latest'
+      if: matrix.os == 'macos-14'
       run: sudo xcode-select -s "/Applications/Xcode_15.0.1.app"
 
     - name: Build Flamewolf (macOS)
-      if: matrix.os == 'macos-latest'
+      if: matrix.os == 'macos-14'
       run: |
         ./mach build
         sed -i '' "s/'MOZ_APP_NAME': 'firefox'/'MOZ_APP_NAME': 'flamewolf'/g" obj-x86_64-apple-darwin/config.status
@@ -83,7 +83,7 @@ jobs:
         path: obj-x86_64-pc-linux-gnu/dist/*.tar.gz
 
     - name: Upload artifact (macOS)
-      if: matrix.os == 'macos-latest'
+      if: matrix.os == 'macos-14'
       uses: actions/upload-artifact@v4
       with:
         name: flamewolf-macos
