@@ -52,6 +52,7 @@ jobs:
         sudo mkdir -p /usr/lib/llvm-18/lib/clang/18/lib/wasi
         sudo ln -s /opt/wasi-sdk/share/wasi-sysroot/lib/wasm32-wasi/* /usr/lib/llvm-18/lib/clang/18/lib/wasi/
         rm *.tar.gz
+        echo "WASI_SYSROOT=/opt/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
 
     - name: Build Flamewolf (Linux)
       if: matrix.os == 'ubuntu-latest'
