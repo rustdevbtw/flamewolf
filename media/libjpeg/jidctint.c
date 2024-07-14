@@ -66,7 +66,6 @@
 Sorry, this code only copes with 8x8 DCT blocks./* deliberate syntax err */
 #  endif
 
-
 /*
  * The poop on this scaling stuff is as follows:
  *
@@ -412,7 +411,6 @@ Sorry, this code only copes with 8x8 DCT blocks./* deliberate syntax err */
 }
 
 #  ifdef IDCT_SCALING_SUPPORTED
-
 
 /*
  * Perform dequantization and inverse DCT on one block of coefficients,

@@ -42,7 +42,6 @@
 Sorry, this code only copes with 8x8 DCTs./* deliberate syntax err */
 #  endif
 
-
 /*
  * The poop on this scaling stuff is as follows:
  *

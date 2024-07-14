@@ -13,14 +13,14 @@ namespace capi {
 extern "C" {
 #endif
 typedef struct diplomat_result_box_ICU4XCodePointMapData16_ICU4XError {
-    union {
-        ICU4XCodePointMapData16* ok;
-        ICU4XError err;
-    };
-    bool is_ok;
+  union {
+    ICU4XCodePointMapData16* ok;
+    ICU4XError err;
+  };
+  bool is_ok;
 } diplomat_result_box_ICU4XCodePointMapData16_ICU4XError;
 #ifdef __cplusplus
-} // extern "C"
-} // namespace capi
+}  // extern "C"
+}  // namespace capi
 #endif
 #endif

@@ -39,7 +39,6 @@
 Sorry, this code only copes with 8x8 DCTs./* deliberate syntax err */
 #  endif
 
-
 /* Scaling is the same as in jidctint.c. */
 
 #if BITS_IN_JSAMPLE == 8

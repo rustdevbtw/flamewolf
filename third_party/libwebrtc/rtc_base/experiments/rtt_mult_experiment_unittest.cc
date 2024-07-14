@@ -15,14 +15,16 @@
 
 namespace webrtc {
 
-TEST(RttMultExperimentTest, RttMultEnabledByDefault) {
+TEST(RttMultExperimentTest, RttMultEnabledByDefault)
+{
   EXPECT_TRUE(RttMultExperiment::RttMultEnabled());
   ASSERT_TRUE(RttMultExperiment::GetRttMultValue());
   EXPECT_EQ(0.9f, RttMultExperiment::GetRttMultValue()->rtt_mult_setting);
   EXPECT_EQ(200.0f, RttMultExperiment::GetRttMultValue()->rtt_mult_add_cap_ms);
 }
 
-TEST(RttMultExperimentTest, RttMultDisabledByFieldTrial) {
+TEST(RttMultExperimentTest, RttMultDisabledByFieldTrial)
+{
   webrtc::test::ScopedFieldTrials field_trials("WebRTC-RttMult/Disabled/");
   EXPECT_FALSE(RttMultExperiment::RttMultEnabled());
   EXPECT_FALSE(RttMultExperiment::GetRttMultValue());

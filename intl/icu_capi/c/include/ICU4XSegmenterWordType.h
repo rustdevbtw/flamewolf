@@ -16,7 +16,7 @@ typedef enum ICU4XSegmenterWordType {
   ICU4XSegmenterWordType_Letter = 2,
 } ICU4XSegmenterWordType;
 #ifdef __cplusplus
-} // namespace capi
+}  // namespace capi
 #endif
 #ifdef __cplusplus
 namespace capi {
@@ -26,7 +26,7 @@ extern "C" {
 void ICU4XSegmenterWordType_destroy(ICU4XSegmenterWordType* self);
 
 #ifdef __cplusplus
-} // extern "C"
-} // namespace capi
+}  // extern "C"
+}  // namespace capi
 #endif
 #endif

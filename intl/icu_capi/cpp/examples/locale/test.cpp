@@ -7,8 +7,8 @@
 
 #include <iostream>
 
-static bool test_locale(ICU4XLocale &locale, std::string_view expectedString,
-                        const char *message) {
+static bool test_locale(ICU4XLocale& locale, std::string_view expectedString,
+                        const char* message) {
   std::string actualString = locale.to_string().ok().value();
   std::cout << message << ": \"" << actualString << "\"" << std::endl;
   if (actualString != expectedString) {
@@ -20,7 +20,7 @@ static bool test_locale(ICU4XLocale &locale, std::string_view expectedString,
 }
 
 static bool test_string(std::string_view actualString,
-                        std::string_view expectedString, const char *message) {
+                        std::string_view expectedString, const char* message) {
   std::cout << message << ": \"" << actualString << "\"" << std::endl;
   if (actualString != expectedString) {
     std::cout << "String did not match expected: \"" << expectedString << "\""

@@ -36,15 +36,11 @@ enum HttpAuthResult { HAR_RESPONSE, HAR_IGNORE, HAR_CREDENTIALS, HAR_ERROR };
 // Start by passing a null pointer, then pass the same pointer each additional
 // call.  When the authentication attempt is finished, delete the context.
 // TODO(bugs.webrtc.org/8905): Change "response" to "ZeroOnFreeBuffer".
-HttpAuthResult HttpAuthenticate(absl::string_view challenge,
-                                const SocketAddress& server,
-                                absl::string_view method,
-                                absl::string_view uri,
-                                absl::string_view username,
-                                const CryptString& password,
-                                HttpAuthContext*& context,
-                                std::string& response,
-                                std::string& auth_method);
+HttpAuthResult HttpAuthenticate(
+    absl::string_view challenge, const SocketAddress& server,
+    absl::string_view method, absl::string_view uri, absl::string_view username,
+    const CryptString& password, HttpAuthContext*& context,
+    std::string& response, std::string& auth_method);
 
 //////////////////////////////////////////////////////////////////////
 

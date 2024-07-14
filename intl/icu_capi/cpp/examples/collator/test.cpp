@@ -17,16 +17,18 @@ int main() {
 
   // test 01 - basic collation example, default CollatorOptions
 
-  std::string_view manna{ "manna" };
-  std::string_view manana{ "mañana" };
+  std::string_view manna{"manna"};
+  std::string_view manana{"mañana"};
 
   ICU4XLocale locale = ICU4XLocale::create_from_string("en").ok().value();
   ICU4XCollatorOptionsV1 options = {};
-  ICU4XCollator collator = ICU4XCollator::create_v1(dp, locale, options).ok().value();
+  ICU4XCollator collator =
+      ICU4XCollator::create_v1(dp, locale, options).ok().value();
   ICU4XOrdering actual = collator.compare(manna, manana);
 
   if (actual != ICU4XOrdering::Greater) {
-    std::cout << "Expected manna > mañana for locale " << locale.to_string().ok().value() << std::endl;
+    std::cout << "Expected manna > mañana for locale "
+              << locale.to_string().ok().value() << std::endl;
     return 1;
   }
 
@@ -35,14 +37,15 @@ int main() {
   actual = collator.compare(manna, manana);
 
   if (actual != ICU4XOrdering::Less) {
-    std::cout << "Expected manna < mañana for locale " << locale.to_string().ok().value()<< std::endl;
+    std::cout << "Expected manna < mañana for locale "
+              << locale.to_string().ok().value() << std::endl;
     return 1;
   }
 
   // test 02 - collation strength example, requires non-default CollatorOptions
 
-  std::string_view as{ "as" };
-  std::string_view graveAs{ "às" };
+  std::string_view as{"as"};
+  std::string_view graveAs{"às"};
 
   locale = ICU4XLocale::create_from_string("en").ok().value();
   options.strength = ICU4XCollatorStrength::Primary;
@@ -50,7 +53,8 @@ int main() {
   actual = collator.compare(as, graveAs);
 
   if (actual != ICU4XOrdering::Equal) {
-    std::cout << "Expected as = às for primary strength, locale " << locale.to_string().ok().value()<< std::endl;
+    std::cout << "Expected as = às for primary strength, locale "
+              << locale.to_string().ok().value() << std::endl;
     return 1;
   }
 
@@ -59,7 +63,8 @@ int main() {
   actual = collator.compare(as, graveAs);
 
   if (actual != ICU4XOrdering::Less) {
-    std::cout << "Expected as < às for secondary strength, locale " << locale.to_string().ok().value()<< std::endl;
+    std::cout << "Expected as < às for secondary strength, locale "
+              << locale.to_string().ok().value() << std::endl;
     return 1;
   }
 

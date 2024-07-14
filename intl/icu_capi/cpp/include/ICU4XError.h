@@ -68,7 +68,7 @@ typedef enum ICU4XError {
   ICU4XError_NormalizerValidationError = 2817,
 } ICU4XError;
 #ifdef __cplusplus
-} // namespace capi
+}  // namespace capi
 #endif
 #ifdef __cplusplus
 namespace capi {
@@ -78,7 +78,7 @@ extern "C" {
 void ICU4XError_destroy(ICU4XError* self);
 
 #ifdef __cplusplus
-} // extern "C"
-} // namespace capi
+}  // extern "C"
+}  // namespace capi
 #endif
 #endif

@@ -56,7 +56,6 @@
 Sorry, this code only copes with 8x8 DCTs./* deliberate syntax err */
 #  endif
 
-
 /* Dequantize a coefficient by multiplying it by the multiplier-table
  * entry; produce a float result.
  */

@@ -13,12 +13,12 @@
 #include "absl/strings/string_view.h"
 
 #if defined(WEBRTC_WIN)
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
+#  include <windows.h>
+#  include <winsock2.h>
+#  include <ws2tcpip.h>
 
-#define SECURITY_WIN32
-#include <security.h>
+#  define SECURITY_WIN32
+#  include <security.h>
 #endif
 
 #include <ctype.h>  // for isspace
@@ -70,12 +70,10 @@ const char* LookupLabel(int value, const ConstantToLabel entries[]) {
 }
 
 std::string GetErrorName(int err, const ConstantToLabel* err_table) {
-  if (err == 0)
-    return "No error";
+  if (err == 0) return "No error";
 
   if (err_table != 0) {
-    if (const char* value = LookupLabel(err, err_table))
-      return value;
+    if (const char* value = LookupLabel(err, err_table)) return value;
   }
 
   char buffer[16];
@@ -83,10 +81,8 @@ std::string GetErrorName(int err, const ConstantToLabel* err_table) {
   return buffer;
 }
 
-#define KLABEL(x) \
-  { x, #x }
-#define LASTLABEL \
-  { 0, 0 }
+#  define KLABEL(x) {x, #x}
+#  define LASTLABEL {0, 0}
 
 const ConstantToLabel SECURITY_ERRORS[] = {
     KLABEL(SEC_I_COMPLETE_AND_CONTINUE),
@@ -113,18 +109,16 @@ const ConstantToLabel SECURITY_ERRORS[] = {
     KLABEL(SEC_E_UNTRUSTED_ROOT),
     KLABEL(SEC_E_WRONG_PRINCIPAL),
     LASTLABEL};
-#undef KLABEL
-#undef LASTLABEL
+#  undef KLABEL
+#  undef LASTLABEL
 #endif  // defined(WEBRTC_WIN) && !defined(WINUWP)
 
 typedef std::pair<std::string, std::string> HttpAttribute;
 typedef std::vector<HttpAttribute> HttpAttributeList;
 
 inline bool IsEndOfAttributeName(size_t pos, absl::string_view data) {
-  if (pos >= data.size())
-    return true;
-  if (isspace(static_cast<unsigned char>(data[pos])))
-    return true;
+  if (pos >= data.size()) return true;
+  if (isspace(static_cast<unsigned char>(data[pos]))) return true;
   // The reason for this complexity is that some attributes may contain trailing
   // equal signs (like base64 tokens in Negotiate auth headers)
   if ((pos + 1 < data.size()) && (data[pos] == '=') &&
@@ -146,8 +140,7 @@ void HttpParseAttributes(absl::string_view data,
     }
 
     // End of attributes?
-    if (pos >= len)
-      return;
+    if (pos >= len) return;
 
     // Find end of attribute name
     size_t start = pos;
@@ -168,8 +161,7 @@ void HttpParseAttributes(absl::string_view data,
             ++pos;
             break;
           }
-          if ((data[pos] == '\\') && (pos + 1 < len))
-            ++pos;
+          if ((data[pos] == '\\') && (pos + 1 < len)) ++pos;
           attribute.second.append(1, data[pos]);
         }
       } else {
@@ -181,14 +173,12 @@ void HttpParseAttributes(absl::string_view data,
     }
 
     attributes.push_back(attribute);
-    if ((pos < len) && (data[pos] == ','))
-      ++pos;  // Skip ','
+    if ((pos < len) && (data[pos] == ',')) ++pos;  // Skip ','
   }
 }
 
 bool HttpHasAttribute(const HttpAttributeList& attributes,
-                      absl::string_view name,
-                      std::string* value) {
+                      absl::string_view name, std::string* value) {
   for (HttpAttributeList::const_iterator it = attributes.begin();
        it != attributes.end(); ++it) {
     if (it->first == name) {
@@ -201,17 +191,12 @@ bool HttpHasAttribute(const HttpAttributeList& attributes,
   return false;
 }
 
-bool HttpHasNthAttribute(HttpAttributeList& attributes,
-                         size_t index,
-                         std::string* name,
-                         std::string* value) {
-  if (index >= attributes.size())
-    return false;
+bool HttpHasNthAttribute(HttpAttributeList& attributes, size_t index,
+                         std::string* name, std::string* value) {
+  if (index >= attributes.size()) return false;
 
-  if (name)
-    *name = attributes[index].first;
-  if (value)
-    *value = attributes[index].second;
+  if (name) *name = attributes[index].first;
+  if (value) *value = attributes[index].second;
   return true;
 }
 
@@ -219,8 +204,7 @@ std::string quote(absl::string_view str) {
   std::string result;
   result.push_back('"');
   for (size_t i = 0; i < str.size(); ++i) {
-    if ((str[i] == '"') || (str[i] == '\\'))
-      result.push_back('\\');
+    if ((str[i] == '"') || (str[i] == '\\')) result.push_back('\\');
     result.push_back(str[i]);
   }
   result.push_back('"');
@@ -250,28 +234,21 @@ struct NegotiateAuthContext : public HttpAuthContext {
 
 }  // anonymous namespace
 
-HttpAuthResult HttpAuthenticate(absl::string_view challenge,
-                                const SocketAddress& server,
-                                absl::string_view method,
-                                absl::string_view uri,
-                                absl::string_view username,
-                                const CryptString& password,
-                                HttpAuthContext*& context,
-                                std::string& response,
-                                std::string& auth_method) {
+HttpAuthResult HttpAuthenticate(
+    absl::string_view challenge, const SocketAddress& server,
+    absl::string_view method, absl::string_view uri, absl::string_view username,
+    const CryptString& password, HttpAuthContext*& context,
+    std::string& response, std::string& auth_method) {
   HttpAttributeList args;
   HttpParseAttributes(challenge, args);
   HttpHasNthAttribute(args, 0, &auth_method, nullptr);
 
-  if (context && (context->auth_method != auth_method))
-    return HAR_IGNORE;
+  if (context && (context->auth_method != auth_method)) return HAR_IGNORE;
 
   // BASIC
   if (absl::EqualsIgnoreCase(auth_method, "basic")) {
-    if (context)
-      return HAR_CREDENTIALS;  // Bad credentials
-    if (username.empty())
-      return HAR_CREDENTIALS;  // Missing credentials
+    if (context) return HAR_CREDENTIALS;           // Bad credentials
+    if (username.empty()) return HAR_CREDENTIALS;  // Missing credentials
 
     context = new HttpAuthContext(auth_method);
 
@@ -296,10 +273,8 @@ HttpAuthResult HttpAuthenticate(absl::string_view challenge,
 
   // DIGEST
   if (absl::EqualsIgnoreCase(auth_method, "digest")) {
-    if (context)
-      return HAR_CREDENTIALS;  // Bad credentials
-    if (username.empty())
-      return HAR_CREDENTIALS;  // Missing credentials
+    if (context) return HAR_CREDENTIALS;           // Bad credentials
+    if (username.empty()) return HAR_CREDENTIALS;  // Missing credentials
 
     context = new HttpAuthContext(auth_method);
 
@@ -361,7 +336,7 @@ HttpAuthResult HttpAuthenticate(absl::string_view challenge,
   }
 
 #if defined(WEBRTC_WIN) && !defined(WINUWP)
-#if 1
+#  if 1
   bool want_negotiate = absl::EqualsIgnoreCase(auth_method, "negotiate");
   bool want_ntlm = absl::EqualsIgnoreCase(auth_method, "ntlm");
   // SPNEGO & NTLM
@@ -369,7 +344,7 @@ HttpAuthResult HttpAuthenticate(absl::string_view challenge,
     const size_t MAX_MESSAGE = 12000, MAX_SPN = 256;
     char out_buf[MAX_MESSAGE], spn[MAX_SPN];
 
-#if 0  // Requires funky windows versions
+#    if 0  // Requires funky windows versions
     DWORD len = MAX_SPN;
     if (DsMakeSpn("HTTP", server.HostAsURIString().c_str(), nullptr,
                   server.port(),
@@ -377,9 +352,9 @@ HttpAuthResult HttpAuthenticate(absl::string_view challenge,
       RTC_LOG_F(LS_WARNING) << "(Negotiate) - DsMakeSpn failed";
       return HAR_IGNORE;
     }
-#else
+#    else
     snprintf(spn, MAX_SPN, "HTTP/%s", server.ToString().c_str());
-#endif
+#    endif
 
     SecBuffer out_sec;
     out_sec.pvBuffer = out_buf;
@@ -544,7 +519,7 @@ HttpAuthResult HttpAuthenticate(absl::string_view challenge,
     response.append(Base64::Encode(decoded));
     return HAR_RESPONSE;
   }
-#endif
+#  endif
 #endif  // defined(WEBRTC_WIN) && !defined(WINUWP)
 
   return HAR_IGNORE;

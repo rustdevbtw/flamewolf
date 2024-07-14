@@ -50,7 +50,6 @@ const char* const jpeg_std_message_table[] = {
 #include "jerror.h"
     NULL};
 
-
 /*
  * Error exit handler: must not return to caller.
  *

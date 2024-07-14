@@ -17,7 +17,8 @@
   std::unique_ptr<webrtc::VideoEncoder> _wrappedEncoder;
 }
 
-- (instancetype)initWithNativeEncoder:(std::unique_ptr<webrtc::VideoEncoder>)encoder {
+- (instancetype)initWithNativeEncoder:
+    (std::unique_ptr<webrtc::VideoEncoder>)encoder {
   if (self = [super init]) {
     _wrappedEncoder = std::move(encoder);
   }

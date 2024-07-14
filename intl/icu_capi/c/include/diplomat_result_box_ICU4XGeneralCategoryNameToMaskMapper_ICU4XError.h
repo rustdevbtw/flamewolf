@@ -6,21 +6,23 @@
 #include <stdbool.h>
 #include "diplomat_runtime.h"
 
-typedef struct ICU4XGeneralCategoryNameToMaskMapper ICU4XGeneralCategoryNameToMaskMapper;
+typedef struct ICU4XGeneralCategoryNameToMaskMapper
+    ICU4XGeneralCategoryNameToMaskMapper;
 #include "ICU4XError.h"
 #ifdef __cplusplus
 namespace capi {
 extern "C" {
 #endif
-typedef struct diplomat_result_box_ICU4XGeneralCategoryNameToMaskMapper_ICU4XError {
-    union {
-        ICU4XGeneralCategoryNameToMaskMapper* ok;
-        ICU4XError err;
-    };
-    bool is_ok;
+typedef struct
+    diplomat_result_box_ICU4XGeneralCategoryNameToMaskMapper_ICU4XError {
+  union {
+    ICU4XGeneralCategoryNameToMaskMapper* ok;
+    ICU4XError err;
+  };
+  bool is_ok;
 } diplomat_result_box_ICU4XGeneralCategoryNameToMaskMapper_ICU4XError;
 #ifdef __cplusplus
-} // extern "C"
-} // namespace capi
+}  // extern "C"
+}  // namespace capi
 #endif
 #endif

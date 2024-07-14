@@ -27,7 +27,8 @@ namespace cricket {
 
 // Simple test to check if NullWebRtcVideoEngine implements the methods
 // required by CompositeMediaEngine.
-TEST(NullWebRtcVideoEngineTest, CheckInterface) {
+TEST(NullWebRtcVideoEngineTest, CheckInterface)
+{
   std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory =
       webrtc::CreateDefaultTaskQueueFactory();
   rtc::scoped_refptr<webrtc::test::MockAudioDeviceModule> adm =

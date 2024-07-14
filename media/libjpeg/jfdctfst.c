@@ -49,7 +49,6 @@
 Sorry, this code only copes with 8x8 DCTs./* deliberate syntax err */
 #  endif
 
-
 /* Scaling decisions are generally the same as in the LL&M algorithm;
  * see jfdctint.c for more details.  However, we choose to descale
  * (right shift) multiplication products as soon as they are formed,

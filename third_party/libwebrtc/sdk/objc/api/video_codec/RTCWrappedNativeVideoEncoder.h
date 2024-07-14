@@ -18,7 +18,8 @@
 #include "api/video_codecs/video_encoder.h"
 #include "media/base/codec.h"
 
-// TODO: bugs.webrtc.org/15860 - Remove in favor of the RTCNativeVideoEncoderBuilder
+// TODO: bugs.webrtc.org/15860 - Remove in favor of the
+// RTCNativeVideoEncoderBuilder
 @interface RTC_OBJC_TYPE (RTCWrappedNativeVideoEncoder) : RTC_OBJC_TYPE (RTCNativeVideoEncoder)
 
 - (instancetype)initWithNativeEncoder:(std::unique_ptr<webrtc::VideoEncoder>)encoder;

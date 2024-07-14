@@ -57,6 +57,8 @@ let gAddEngineDialog = {
     }
     this._alias.setCustomValidity(validity);
   },
+  // flame NOTE: Don't remove it. Removing it breaks Search Engine addition logic
+  async onFormInput() { },
 };
 
 window.addEventListener("load", () => gAddEngineDialog.onLoad());

@@ -12,7 +12,7 @@ namespace capi {
 
 typedef struct ICU4XList ICU4XList;
 #ifdef __cplusplus
-} // namespace capi
+}  // namespace capi
 #endif
 #ifdef __cplusplus
 namespace capi {
@@ -29,7 +29,7 @@ size_t ICU4XList_len(const ICU4XList* self);
 void ICU4XList_destroy(ICU4XList* self);
 
 #ifdef __cplusplus
-} // extern "C"
-} // namespace capi
+}  // extern "C"
+}  // namespace capi
 #endif
 #endif
