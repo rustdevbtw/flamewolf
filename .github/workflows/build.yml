@@ -5,7 +5,7 @@ on:
     types: [published]
 
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-latest
 
     steps:
@@ -37,7 +37,6 @@ jobs:
           echo "nocache=true" >> $GITHUB_ENV
         else
           echo "nocache=false" >> $GITHUB_ENV
-        fi
 
     - name: Install dependencies on Linux
       if: steps.cache-dependencies.outputs.cache-hit != 'true' && env.nocache == 'false'
@@ -66,28 +65,12 @@ jobs:
         sed -i "s/'MOZ_APP_NAME': 'firefox'/'MOZ_APP_NAME': 'flamewolf'/g" obj-x86_64-pc-linux-gnu/config.status
         CC=clang CXX=clang++ ./mach build
         ./mach package
-        mv obj-x86_64-pc-linux-gnu/dist/flamewolf*.tar.bz2 obj-x86_64-pc-linux-gnu/dist/flamewolf-linux.tar.bz2 || true
 
-    - name: Rename files
+    - name: Rename artifact
       run: |
-        mv obj-x86_64-pc-linux-gnu/dist/flamewolf*.tar.bz2 obj-x86_64-pc-linux-gnu/dist/flamewolf-linux.tar.bz2 || true
+        mv obj-x86_64-pc-linux-gnu/dist/flamewolf*.tar.bz2 flamewolf-linux.tar.bz2 || true
 
-    - name: Upload artifact (Linux)
-      uses: actions/upload-artifact@v4
-      with:
-        name: flamewolf-linux.tar.bz2
-        path: obj-x86_64-pc-linux-gnu/dist/flamewolf-linux.tar.bz2
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-    - name: Download artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: flamewolf-linux.tar.bz2
-
-    - name: Upload release asset (Linux)
+    - name: Upload artifact and Release (Linux)
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ github.event.release.upload_url }}
