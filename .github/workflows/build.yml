@@ -53,6 +53,8 @@ jobs:
         sudo ln -s /opt/wasi-sdk/share/wasi-sysroot/lib/wasm32-wasi/* /usr/lib/llvm-18/lib/clang/18/lib/wasi/
         rm *.tar.gz
         echo "WASI_SYSROOT=/opt/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
+        echo "WASM_CC=/opt/wasi-sdk/bin/clang" >> $GITHUB_ENV
+        echo "WASM_CXX=/opt/wasi-sdk/bin/clang++" >> $GITHUB_ENV
 
     - name: Build Flamewolf (Linux)
       if: matrix.os == 'ubuntu-latest'
