@@ -67,7 +67,7 @@ jobs:
         CC=clang CXX=clang++ ./mach build
         ./mach package
         mv obj-x86_64-pc-linux-gnu/dist/flamewolf*.tar.bz2 obj-x86_64-pc-linux-gnu/dist/flamewolf-linux.tar.bz2 || true
-    
+
     - name: Rename files
       run: |
         ls -la obj-x86_64-pc-linux-gnu/dist
