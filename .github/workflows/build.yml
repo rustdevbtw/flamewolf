@@ -42,24 +42,12 @@ jobs:
         choco install python --version 3.11
         refreshenv
 
-    - name: Configure WASI (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        cd /tmp
-        wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-22/wasi-sdk-22.0-linux.tar.gz
-        tar -xvf wasi-sdk-22.0-linux.tar.gz
-        sudo mv wasi-sdk-22.0 /opt/wasi-sdk
-        sudo mkdir -p /usr/lib/llvm-18/lib/clang/18/lib/wasi
-        sudo ln -s /opt/wasi-sdk/share/wasi-sysroot/lib/wasm32-wasi/* /usr/lib/llvm-18/lib/clang/18/lib/wasi/
-        rm *.tar.gz
-        #echo "WASI_SYSROOT=/opt/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
-
     - name: Build Flamewolf (Linux)
       if: matrix.os == 'ubuntu-latest'
       run: |
-        CC=clang CXX=clang++ ./mach build --without-wasm-sandboxed-libraries
+        CC=clang CXX=clang++ ./mach build
         sed -i "s/'MOZ_APP_NAME': 'firefox'/'MOZ_APP_NAME': 'flamewolf'/g" obj-x86_64-pc-linux-gnu/config.status
-        CC=clang CXX=clang++ ./mach build --without-wasm-sandboxed-libraries
+        CC=clang CXX=clang++ ./mach build
         ./mach package
 
     - name: Build Flamewolf (Windows)
