@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
 
     steps:
     - name: Checkout code
@@ -57,28 +57,13 @@ jobs:
         sed -i "s/'MOZ_APP_NAME': 'firefox'/'MOZ_APP_NAME': 'flamewolf'/g" obj-x86_64-pc-linux-gnu/config.status
         CC=clang CXX=clang++ ./mach build
         ./mach package
-
-    - name: Build Flamewolf (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        ./mach.ps1 build
-        (Get-Content obj-x86_64-pc-msvc/config.status).replace("'MOZ_APP_NAME': 'firefox'", "'MOZ_APP_NAME': 'flamewolf'") | Set-Content obj-x86_64-pc-msvc/config.status
-        ./mach.ps1 build
-        ./mach.ps1 package
-
+        
     - name: Upload artifact (Linux)
       if: matrix.os == 'ubuntu-latest'
       uses: actions/upload-artifact@v4
       with:
         name: flamewolf-linux
         path: obj-x86_64-pc-linux-gnu/dist/*.tar.gz
-
-    - name: Upload artifact (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: flamewolf-windows
-        path: obj-x86_64-pc-msvc/dist/*.zip
 
   release:
     needs: build
@@ -90,12 +75,6 @@ jobs:
         name: flamewolf-linux
         path: ./linux
 
-    - name: Download Windows artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: flamewolf-windows
-        path: ./windows
-
     - name: Upload release asset (Linux)
       uses: actions/upload-release-asset@v1
       with:
@@ -103,11 +82,3 @@ jobs:
         asset_path: ./linux/*.tar.gz
         asset_name: flamewolf-linux.tar.gz
         asset_content_type: application/gzip
-
-    - name: Upload release asset (Windows)
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./windows/*.zip
-        asset_name: flamewolf-windows.zip
-        asset_content_type: application/zip
