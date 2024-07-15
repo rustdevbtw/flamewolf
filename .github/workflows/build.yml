@@ -56,11 +56,8 @@ jobs:
         sed -i "s/'MOZ_APP_NAME': 'firefox'/'MOZ_APP_NAME': 'flamewolf'/g" obj-x86_64-pc-linux-gnu/config.status
         CC=clang CXX=clang++ ./mach build
         ./mach package
+        mv obj-x86_64-pc-linux-gnu/dist/flamewolf*.tar.gz obj-x86_64-pc-linux-gnu/dist/flamewolf-linux.tar.gz || true
         
-    - name: Rename Artifacts (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: mv obj-x86_64-pc-linux-gnu/dist/flamewolf*.tar.gz obj-x86_64-pc-linux-gnu/dist/flamewolf-linux.tar.gz
-
     - name: Upload artifact (Linux)
       if: matrix.os == 'ubuntu-latest'
       uses: actions/upload-artifact@v4
@@ -72,6 +69,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+    - name: Ensure artifact exists and rename (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        mv obj-x86_64-pc-linux-gnu/dist/flamewolf*.tar.gz obj-x86_64-pc-linux-gnu/dist/flamewolf-linux.tar.gz || true
+
     - name: Upload release asset (Linux)
       uses: actions/upload-release-asset@v1
       with:
