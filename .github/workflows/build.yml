@@ -57,9 +57,9 @@ jobs:
     - name: Build Flamewolf (Linux)
       if: matrix.os == 'ubuntu-latest'
       run: |
-        CC=clang CXX=clang++ ./mach build
+        CC=clang CXX=clang++ ./mach build --without-wasm-sandboxed-libraries
         sed -i "s/'MOZ_APP_NAME': 'firefox'/'MOZ_APP_NAME': 'flamewolf'/g" obj-x86_64-pc-linux-gnu/config.status
-        CC=clang CXX=clang++ ./mach build
+        CC=clang CXX=clang++ ./mach build --without-wasm-sandboxed-libraries
         ./mach package
 
     - name: Build Flamewolf (Windows)
