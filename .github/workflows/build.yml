@@ -1,4 +1,6 @@
 name: Build and Release Flamewolf
+permissions:
+    contents: write
 
 on:
   release:
