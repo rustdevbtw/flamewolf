@@ -637,7 +637,9 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   nsCString mAppName;
   nsCString mAppVersion;
   nsCString mCompatFirefox;
-  bool mCompatFirefoxEnabled{false};
+  // Enable Firefox compat by default (bug:
+  // https://github.com/rustdevbtw/flamewolf/issues/12)
+  bool mCompatFirefoxEnabled{true};
   nsCString mCompatDevice;
   nsCString mDeviceModelId;
 

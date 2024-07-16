@@ -11,9 +11,9 @@
 !define BrandFullNameInternal "FlameWolf"
 !define BrandFullName         "FlameWolf"
 !define CompanyName           "FlameWolf Authors"
-!define URLInfoAbout          "https://www.mozilla.org"
-!define URLUpdateInfo         "https://www.mozilla.org/firefox/${AppVersion}/releasenotes"
-!define HelpLink              "https://support.mozilla.org"
+!define URLInfoAbout          "https://flame.rajdeepm.xyz"
+!define URLUpdateInfo         "https://github.com/rustdevbtw/flamewolf/releases/v${AppVersion}"
+!define HelpLink              "https://github.com/rustdevbtw/flamewolf/issues"
 
 ; The OFFICIAL define is a workaround to support different urls for Release and
 ; Beta since they share the same branding when building with other branches that

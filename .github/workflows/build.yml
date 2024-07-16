@@ -65,8 +65,6 @@ jobs:
       if: steps.cache-dependencies.outputs.cache-hit != 'true' && env.nocache == 'false'
       run: |
         CC=clang CXX=clang++ ./mach build
-        sed -i "s/'MOZ_APP_NAME': 'firefox'/'MOZ_APP_NAME': 'flamewolf'/g" obj-x86_64-pc-linux-gnu/config.status
-        CC=clang CXX=clang++ ./mach build
         ./mach package
 
     - name: Rename artifact

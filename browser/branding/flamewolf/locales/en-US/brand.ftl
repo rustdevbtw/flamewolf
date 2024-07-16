@@ -23,5 +23,5 @@
 # This brand name can be used in messages where the product name needs to
 # remain unchanged across different versions (Nightly, Beta, etc.).
 -brand-product-name = FlameWolf
--vendor-short-name = FlameWolf Authors
+-vendor-short-name = FlameWolf Community
 trademarkInfo = FlameWolf and the FlameWolf logos are trademarks of the FlameWolf Authors.

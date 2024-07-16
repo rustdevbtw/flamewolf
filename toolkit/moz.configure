@@ -3194,8 +3194,7 @@ with only_when(compile_environment):
     "MOZ_NORMANDY",
 )
 def data_reporting(telemetry, healthreport, crashreporter, normandy):
-    return telemetry or healthreport or crashreporter or normandy
-
+    return False
 
 set_config("MOZ_DATA_REPORTING", True, when=data_reporting)
 set_define("MOZ_DATA_REPORTING", True, when=data_reporting)
