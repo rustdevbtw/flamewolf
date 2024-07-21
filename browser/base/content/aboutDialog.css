@@ -17,7 +17,7 @@
 }
 
 #leftBox {
-  background-image: url("chrome://branding/content/about-logo.png");
+  background-image: url("chrome://branding/content/about-logo.svg");
   background-repeat: no-repeat;
   background-size: 192px auto;
   background-position: center 40px;
@@ -31,7 +31,7 @@
 
 @media (min-resolution: 2dppx) {
   #leftBox {
-    background-image: url("chrome://branding/content/about-logo@2x.png");
+    background-image: url("chrome://branding/content/about-logo.svg");
   }
 }
 

@@ -924,15 +924,15 @@ async function test_rotateHelperOneGesture(
       stopExpectedRotation,
       test_rotateHelperGetImageRotation(aImageElement),
       "Image rotation at gesture stop/hold: expected=" +
-        stopExpectedRotation +
-        ", observed=" +
-        test_rotateHelperGetImageRotation(aImageElement) +
-        ", init=" +
-        aCurrentRotation +
-        ", amt=" +
-        aAmount +
-        ", dir=" +
-        (aDirection == clockwise ? "cl" : "ccl")
+      stopExpectedRotation +
+      ", observed=" +
+      test_rotateHelperGetImageRotation(aImageElement) +
+      ", init=" +
+      aCurrentRotation +
+      ", amt=" +
+      aAmount +
+      ", dir=" +
+      (aDirection == clockwise ? "cl" : "ccl")
     );
   }
   // End it and force flush
@@ -967,15 +967,15 @@ async function test_rotateHelperOneGesture(
     finalExpectedRotation,
     test_rotateHelperGetImageRotation(aImageElement),
     "Image rotation gesture end: expected=" +
-      finalExpectedRotation +
-      ", observed=" +
-      test_rotateHelperGetImageRotation(aImageElement) +
-      ", init=" +
-      aCurrentRotation +
-      ", amt=" +
-      aAmount +
-      ", dir=" +
-      (aDirection == clockwise ? "cl" : "ccl")
+    finalExpectedRotation +
+    ", observed=" +
+    test_rotateHelperGetImageRotation(aImageElement) +
+    ", init=" +
+    aCurrentRotation +
+    ", amt=" +
+    aAmount +
+    ", dir=" +
+    (aDirection == clockwise ? "cl" : "ccl")
   );
 }
 
@@ -1138,7 +1138,7 @@ async function test_rotateGesturesOnTab() {
 function test_rotateGestures() {
   test_imageTab = BrowserTestUtils.addTab(
     gBrowser,
-    "chrome://branding/content/about-logo.png"
+    "chrome://branding/content/about-logo.svg"
   );
   gBrowser.selectedTab = test_imageTab;
 

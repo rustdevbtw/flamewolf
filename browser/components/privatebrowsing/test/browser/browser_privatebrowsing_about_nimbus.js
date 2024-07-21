@@ -17,7 +17,7 @@ add_task(async function test_experiment_plain_text() {
       infoTitleEnabled: true,
       infoBody: "This is some text",
       infoLinkText: "This is a link",
-      infoIcon: "chrome://branding/content/about-logo.png",
+      infoIcon: "chrome://branding/content/about-logo.svg",
       promoTitle: "Promo title",
       promoLinkText: "Promo link",
       promoLinkType: "link",
@@ -55,7 +55,7 @@ add_task(async function test_experiment_plain_text() {
     ok(!infoContainer.hidden, ".info container should be visible");
     ok(
       infoContainer.style.backgroundImage.includes(
-        "chrome://branding/content/about-logo.png"
+        "chrome://branding/content/about-logo.svg"
       ),
       "should render icon"
     );

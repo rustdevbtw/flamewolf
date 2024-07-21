@@ -56,7 +56,7 @@ interface mixin NavigatorID {
   DOMString arch();
   [Pure]
   boolean isEnabled(DOMString api);
-  [Pure]
+  [Pure, Pref="flamewolf.api.whoami.enabled"]
   DOMString whoami();
   // WebKit/Blink/Trident/Presto support this (hardcoded "Mozilla").
   [Constant, Cached, Throws]
