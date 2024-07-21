@@ -8,6 +8,7 @@ on:
 
 jobs:
   build-and-release:
+    name: Build and Release (Linux; AMD64)
     runs-on: ubuntu-latest
 
     steps:
@@ -22,17 +23,7 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Cache dependencies
-      id: cache-dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cache/pip
-          obj-x86_64-pc-linux-gnu
-          obj-x86_64-pc-msvc
-        key: ${{ runner.os }}-python-${{ hashFiles('**/requirements.txt') }}
-
-    - name: Install dependencies on Linux
+    - name: Install dependencies on Linux (AMD64)
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential wget python3 python3-pip libasound2-dev libpulse-dev libpango1.0-dev libxcb1-dev libxcb-shm0-dev libx11-xcb-dev libxrandr-dev libxcomposite-dev libxdamage-dev libxi-dev nasm ccache zlib1g zlib1g-dev clang llvm lld libgcc-10-dev libgtk-3-dev libglib2.0-dev
@@ -50,21 +41,21 @@ jobs:
         echo "WASM_CC=/opt/wasi-sdk/bin/clang" >> $GITHUB_ENV
         echo "WASM_CXX=/opt/wasi-sdk/bin/clang++" >> $GITHUB_ENV
 
-    - name: Build Flamewolf (Linux)
+    - name: Build Flamewolf (Linux; AMD64)
       run: |
         CC=clang CXX=clang++ ./mach build
         ./mach package
 
     - name: Rename artifact
       run: |
-        mv obj-x86_64-pc-linux-gnu/dist/flamewolf*.tar.bz2 flamewolf-linux.tar.bz2 || true
+        mv obj-x86_64-pc-linux-gnu/dist/flamewolf*.tar.bz2 flamewolf-amd64-linux.tar.bz2 || true
 
-    - name: Upload artifact and Release (Linux)
+    - name: Upload artifact and Release (Linux; AMD64)
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./flamewolf-linux.tar.bz2
-        asset_name: flamewolf-linux.tar.bz2
+        asset_path: ./flamewolf-amd64-linux.tar.bz2
+        asset_name: flamewolf-amd64-linux.tar.bz2
         asset_content_type: application/x-bzip2
